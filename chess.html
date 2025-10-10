@@ -472,50 +472,23 @@
         // ============================================
         // Attempt User Move
         // ============================================
-        async function attemptUserMove(moveStr) {
-            // First, validate the move by checking with the engine's legal moves
-            const fen = boardToFEN();
-
-            try {
-                isProcessing = true;
-
-                // Get legal moves from engine
-                const encodedFEN = encodeURIComponent(fen);
-                const response = await fetch(`${API_ENDPOINT}?fen=${encodedFEN}`);
-
-                if (!response.ok) {
-                    throw new Error('Failed to validate move');
-                }
-
-                const data = await response.json();
-
-                // For now, we'll trust the user's move is legal and make it
-                // In a production system, we'd get legal moves list from the engine
-                // and validate against it
-
-                if (makeMove(moveStr)) {
-                    updateLastMoveDisplay(moveStr);
-                    selectedSquare = null;
-                    renderBoard();
-
-                    // Automatically trigger engine move after user move
-                    setTimeout(() => getEngineMove(true), 500);
-                } else {
-                    // Invalid move format
-                    selectedSquare = null;
-                    renderBoard();
-                    showStatus('Invalid move!', 'error');
-                    setTimeout(hideStatus, 2000);
-                }
-
-            } catch (error) {
-                console.error('Error validating move:', error);
+        function attemptUserMove(moveStr) {
+            // Make the move IMMEDIATELY for instant visual feedback
+            if (makeMove(moveStr)) {
+                // Update display instantly
+                updateLastMoveDisplay(moveStr);
                 selectedSquare = null;
                 renderBoard();
-                showStatus('Error validating move', 'error');
+
+                // Now trigger engine move automatically
+                // This runs in the background without blocking
+                getEngineMove(true);
+            } else {
+                // Invalid move format
+                selectedSquare = null;
+                renderBoard();
+                showStatus('Invalid move!', 'error');
                 setTimeout(hideStatus, 2000);
-            } finally {
-                isProcessing = false;
             }
         }
 
