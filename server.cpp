@@ -113,7 +113,7 @@ std::string processMoveRequest(const std::string& fenString) {
 
         // Initialize board and load FEN position
         Board board;
-        if (!board.loadFEN(fenString)) {
+        if (!board.loadFromFEN(fenString)) {
             return "{\"move\":\"\",\"status\":\"error\",\"message\":\"Invalid FEN string\"}";
         }
 
