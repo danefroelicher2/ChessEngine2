@@ -100,6 +100,31 @@
             pointer-events: none;
         }
 
+        .square.legal-destination {
+            position: relative;
+        }
+
+        .square.legal-destination::before {
+            content: '';
+            position: absolute;
+            width: 25%;
+            height: 25%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(34, 139, 34, 0.6);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .square.legal-destination.has-piece::before {
+            width: 100%;
+            height: 100%;
+            background: rgba(220, 20, 60, 0.3);
+            border-radius: 0;
+            border: 3px solid rgba(220, 20, 60, 0.7);
+        }
+
         /* ============================================
            Control Panel Styles
            ============================================ */
@@ -234,6 +259,40 @@
         }
 
         /* ============================================
+           Engine Status Display
+           ============================================ */
+        .engine-status {
+            text-align: center;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .engine-status.idle {
+            background: #e9ecef;
+            color: #6c757d;
+            border: 2px solid #ced4da;
+        }
+
+        .engine-status.thinking {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 2px solid #17a2b8;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        /* ============================================
            Responsive Design
            ============================================ */
         @media (max-width: 600px) {
@@ -261,6 +320,9 @@
 <body>
     <div class="container">
         <h1>♔ Chess Engine Interface ♔</h1>
+
+        <!-- Engine Status Display -->
+        <div id="engineStatus" class="engine-status idle">Engine idle</div>
 
         <!-- Status Messages -->
         <div id="statusMessage" class="status-message"></div>
@@ -316,11 +378,13 @@
         let whiteToMove = true;
         let lastMove = null;
         let selectedSquare = null; // {row, col} of selected piece
-        let legalMoves = []; // List of legal moves from current position
+        let legalMovesForPiece = []; // List of legal moves for currently selected piece
+        let cachedLegalMoves = null; // Cached legal moves for current position
         let isProcessing = false; // Prevent moves while engine is thinking
 
-        // API endpoint
+        // API endpoints
         const API_ENDPOINT = 'https://chessengine2.onrender.com/move';
+        const LEGAL_MOVES_ENDPOINT = 'https://chessengine2.onrender.com/legal-moves';
 
         // ============================================
         // Initialize Board with Starting Position
@@ -339,7 +403,8 @@
             whiteToMove = true;
             lastMove = null;
             selectedSquare = null;
-            legalMoves = [];
+            legalMovesForPiece = [];
+            cachedLegalMoves = null;
             isProcessing = false;
         }
 
@@ -367,6 +432,16 @@
                     // Highlight selected square
                     if (selectedSquare && selectedSquare.row === row && selectedSquare.col === col) {
                         square.classList.add('selected');
+                    }
+
+                    // Highlight legal destination squares
+                    const algebraicSquare = coordsToAlgebraic(row, col);
+                    if (legalMovesForPiece.some(move => move.endsWith(algebraicSquare))) {
+                        square.classList.add('legal-destination');
+                        // Add different style if square has a piece (capture)
+                        if (board[row][col] !== '.') {
+                            square.classList.add('has-piece');
+                        }
                     }
 
                     // Add piece symbol if present
@@ -414,7 +489,7 @@
         // ============================================
         // Handle Square Click
         // ============================================
-        function handleSquareClick(row, col) {
+        async function handleSquareClick(row, col) {
             // Ignore clicks while engine is thinking
             if (isProcessing) {
                 return;
@@ -436,8 +511,29 @@
                 const expectedColor = whiteToMove ? 'white' : 'black';
 
                 if (pieceColor === expectedColor) {
-                    // Select this piece
+                    // Select this piece and fetch legal moves
                     selectedSquare = { row, col };
+                    showStatus('Fetching legal moves...', 'thinking');
+
+                    // Fetch legal moves if not cached
+                    if (!cachedLegalMoves) {
+                        try {
+                            cachedLegalMoves = await getLegalMoves();
+                        } catch (error) {
+                            console.error('Error fetching legal moves:', error);
+                            showStatus('Error fetching legal moves', 'error');
+                            setTimeout(hideStatus, 2000);
+                            selectedSquare = null;
+                            renderBoard();
+                            return;
+                        }
+                    }
+
+                    // Filter moves for this piece
+                    const fromSquare = coordsToAlgebraic(row, col);
+                    legalMovesForPiece = cachedLegalMoves.filter(move => move.startsWith(fromSquare));
+
+                    hideStatus();
                     renderBoard();
                 }
             } else {
@@ -448,6 +544,7 @@
                 // If clicking the same square, deselect
                 if (fromRow === row && fromCol === col) {
                     selectedSquare = null;
+                    legalMovesForPiece = [];
                     renderBoard();
                     return;
                 }
@@ -459,6 +556,9 @@
 
                 if (clickedColor === selectedColor) {
                     selectedSquare = { row, col };
+                    // Filter moves for the new piece
+                    const fromSquare = coordsToAlgebraic(row, col);
+                    legalMovesForPiece = cachedLegalMoves.filter(move => move.startsWith(fromSquare));
                     renderBoard();
                     return;
                 }
@@ -470,24 +570,65 @@
         }
 
         // ============================================
+        // Get Legal Moves from API
+        // ============================================
+        async function getLegalMoves() {
+            try {
+                const fen = boardToFEN();
+                const encodedFEN = encodeURIComponent(fen);
+                const response = await fetch(`${LEGAL_MOVES_ENDPOINT}?fen=${encodedFEN}`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.status === 'ok' && data.moves) {
+                    return data.moves;
+                } else if (data.status === 'error') {
+                    throw new Error(data.message || 'Failed to get legal moves');
+                } else {
+                    throw new Error('Invalid response from server');
+                }
+            } catch (error) {
+                console.error('Error in getLegalMoves:', error);
+                throw error;
+            }
+        }
+
+        // ============================================
         // Attempt User Move
         // ============================================
         function attemptUserMove(moveStr) {
+            // Validate move is legal
+            if (!legalMovesForPiece.includes(moveStr)) {
+                showStatus('Illegal move!', 'error');
+                setTimeout(hideStatus, 2000);
+                selectedSquare = null;
+                legalMovesForPiece = [];
+                renderBoard();
+                return;
+            }
+
             // Make the move IMMEDIATELY for instant visual feedback
             if (makeMove(moveStr)) {
                 // Update display instantly
                 updateLastMoveDisplay(moveStr);
                 selectedSquare = null;
+                legalMovesForPiece = [];
+                cachedLegalMoves = null; // Clear cache for new position
                 renderBoard();
 
                 // Now trigger engine move automatically
                 // This runs in the background without blocking
                 getEngineMove(true);
             } else {
-                // Invalid move format
+                // Invalid move format (shouldn't happen if validation passed)
                 selectedSquare = null;
+                legalMovesForPiece = [];
                 renderBoard();
-                showStatus('Invalid move!', 'error');
+                showStatus('Invalid move format!', 'error');
                 setTimeout(hideStatus, 2000);
             }
         }
@@ -607,6 +748,21 @@
         }
 
         // ============================================
+        // Update Engine Status Display
+        // ============================================
+        function setEngineThinking() {
+            const engineStatus = document.getElementById('engineStatus');
+            engineStatus.textContent = 'Engine thinking...';
+            engineStatus.className = 'engine-status thinking';
+        }
+
+        function setEngineIdle() {
+            const engineStatus = document.getElementById('engineStatus');
+            engineStatus.textContent = 'Engine idle';
+            engineStatus.className = 'engine-status idle';
+        }
+
+        // ============================================
         // Get Engine Move via API
         // ============================================
         async function getEngineMove(autoCall = false) {
@@ -651,6 +807,7 @@
                     // Make the move
                     if (makeMove(data.move)) {
                         updateLastMoveDisplay(data.move);
+                        cachedLegalMoves = null; // Clear cache after engine move
                         renderBoard();
                         hideStatus();
                     } else {
@@ -684,6 +841,7 @@
             renderBoard();
             updateLastMoveDisplay(null);
             hideStatus();
+            setEngineIdle();
         }
 
         // ============================================
