@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cmake:*)",
+      "Bash(where g++)",
+      "Bash(where cl)",
+      "Bash(g++:*)",
+      "Bash(rm:*)",
+      "Bash(mkdir:*)",
+      "Bash(where mingw32-make)",
+      "Bash(C:/msys64/mingw64/bin/c++.exe -std=gnu++17 -c ../server.cpp)",
+      "Bash(C:/msys64/mingw64/bin/g++.exe -std=c++17 -c server.cpp -o server.o)",
+      "Bash(C:/msys64/mingw64/bin/g++.exe:*)",
+      "Bash(cat:*)",
+      "Bash(tee:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

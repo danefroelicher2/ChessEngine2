@@ -1,0 +1,4 @@
+C:/Users/danef/Downloads/Programming/ChessEngine2/build/CMakeFiles/chess_engine.dir
+C:/Users/danef/Downloads/Programming/ChessEngine2/build/CMakeFiles/chess_server.dir
+C:/Users/danef/Downloads/Programming/ChessEngine2/build/CMakeFiles/edit_cache.dir
+C:/Users/danef/Downloads/Programming/ChessEngine2/build/CMakeFiles/rebuild_cache.dir

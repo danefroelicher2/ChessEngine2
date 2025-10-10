@@ -191,7 +191,18 @@ std::vector<std::string> Moves::generateLegalMoves() {
         }
     }
 
-    return moves;
+    std::vector<std::string> legalMoves;
+    for (const std::string& move : moves) {
+        MoveInfo info = makeMoveWithInfo(move);
+        bool inCheck = isKingInCheck();
+        unmakeMove(move, info);
+
+        if (!inCheck) {
+            legalMoves.push_back(move);
+        }
+    }
+
+    return legalMoves;
 }
 
 bool Moves::isLegalMove(const std::string& move) {
@@ -218,4 +229,141 @@ void Moves::makeMove(const std::string& move) {
 
     // Toggle side to move
     board->setWhiteToMove(!board->isWhiteToMove());
+}
+
+bool Moves::isSquareAttacked(int row, int col, bool byWhite) {
+    int pawnDir = byWhite ? 1 : -1;
+    for (int colOffset : {-1, 1}) {
+        int attackRow = row + pawnDir;
+        int attackCol = col + colOffset;
+        if (attackRow >= 0 && attackRow < 8 && attackCol >= 0 && attackCol < 8) {
+            char piece = board->getPiece(attackRow, attackCol);
+            if (piece == (byWhite ? 'P' : 'p')) {
+                return true;
+            }
+        }
+    }
+
+    int knightMoves[8][2] = {{-2,-1},{-2,1},{-1,-2},{-1,2},{1,-2},{1,2},{2,-1},{2,1}};
+    for (auto& move : knightMoves) {
+        int r = row + move[0];
+        int c = col + move[1];
+        if (r >= 0 && r < 8 && c >= 0 && c < 8) {
+            char piece = board->getPiece(r, c);
+            if (piece == (byWhite ? 'N' : 'n')) {
+                return true;
+            }
+        }
+    }
+
+    int kingMoves[8][2] = {{-1,-1},{-1,0},{-1,1},{0,-1},{0,1},{1,-1},{1,0},{1,1}};
+    for (auto& move : kingMoves) {
+        int r = row + move[0];
+        int c = col + move[1];
+        if (r >= 0 && r < 8 && c >= 0 && c < 8) {
+            char piece = board->getPiece(r, c);
+            if (piece == (byWhite ? 'K' : 'k')) {
+                return true;
+            }
+        }
+    }
+
+    int diagDirs[4][2] = {{-1,-1},{-1,1},{1,-1},{1,1}};
+    for (auto& dir : diagDirs) {
+        for (int dist = 1; dist < 8; dist++) {
+            int r = row + dir[0] * dist;
+            int c = col + dir[1] * dist;
+            if (r < 0 || r >= 8 || c < 0 || c >= 8) break;
+
+            char piece = board->getPiece(r, c);
+            if (piece != '.') {
+                if ((piece == (byWhite ? 'B' : 'b')) || (piece == (byWhite ? 'Q' : 'q'))) {
+                    return true;
+                }
+                break;
+            }
+        }
+    }
+
+    int straightDirs[4][2] = {{-1,0},{1,0},{0,-1},{0,1}};
+    for (auto& dir : straightDirs) {
+        for (int dist = 1; dist < 8; dist++) {
+            int r = row + dir[0] * dist;
+            int c = col + dir[1] * dist;
+            if (r < 0 || r >= 8 || c < 0 || c >= 8) break;
+
+            char piece = board->getPiece(r, c);
+            if (piece != '.') {
+                if ((piece == (byWhite ? 'R' : 'r')) || (piece == (byWhite ? 'Q' : 'q'))) {
+                    return true;
+                }
+                break;
+            }
+        }
+    }
+
+    return false;
+}
+
+bool Moves::isKingInCheck() {
+    bool findWhiteKing = board->isWhiteToMove();
+    char kingChar = findWhiteKing ? 'K' : 'k';
+
+    int kingRow = -1, kingCol = -1;
+    for (int row = 0; row < 8; row++) {
+        for (int col = 0; col < 8; col++) {
+            if (board->getPiece(row, col) == kingChar) {
+                kingRow = row;
+                kingCol = col;
+                break;
+            }
+        }
+        if (kingRow != -1) break;
+    }
+
+    if (kingRow == -1) {
+        return false;
+    }
+
+    return isSquareAttacked(kingRow, kingCol, !findWhiteKing);
+}
+
+MoveInfo Moves::makeMoveWithInfo(const std::string& move) {
+    MoveInfo info;
+    info.wasWhiteToMove = board->isWhiteToMove();
+
+    if (move.length() != 4) {
+        info.capturedPiece = '.';
+        return info;
+    }
+
+    int fromCol = move[0] - 'a';
+    int fromRow = 7 - (move[1] - '1');
+    int toCol = move[2] - 'a';
+    int toRow = 7 - (move[3] - '1');
+
+    info.capturedPiece = board->getPiece(toRow, toCol);
+
+    char piece = board->getPiece(fromRow, fromCol);
+    board->setPiece(toRow, toCol, piece);
+    board->setPiece(fromRow, fromCol, '.');
+
+    board->setWhiteToMove(!board->isWhiteToMove());
+
+    return info;
+}
+
+void Moves::unmakeMove(const std::string& move, const MoveInfo& info) {
+    if (move.length() != 4) return;
+
+    int fromCol = move[0] - 'a';
+    int fromRow = 7 - (move[1] - '1');
+    int toCol = move[2] - 'a';
+    int toRow = 7 - (move[3] - '1');
+
+    char piece = board->getPiece(toRow, toCol);
+    board->setPiece(fromRow, fromCol, piece);
+    board->setPiece(toRow, toCol, info.capturedPiece);
+
+    board->setWhiteToMove(info.wasWhiteToMove);
 }

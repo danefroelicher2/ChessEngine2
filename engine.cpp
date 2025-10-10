@@ -52,13 +52,12 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
         int maxEval = std::numeric_limits<int>::min();
         for (const std::string& move : legalMoves) {
             // Make move
-            Board backup = *board;
-            moves->makeMove(move);
+            MoveInfo info = moves->makeMoveWithInfo(move);
 
             int eval = minimax(depth - 1, alpha, beta, false);
 
             // Undo move
-            *board = backup;
+            moves->unmakeMove(move, info);
 
             maxEval = std::max(maxEval, eval);
             alpha = std::max(alpha, eval);
@@ -69,13 +68,12 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
         int minEval = std::numeric_limits<int>::max();
         for (const std::string& move : legalMoves) {
             // Make move
-            Board backup = *board;
-            moves->makeMove(move);
+            MoveInfo info = moves->makeMoveWithInfo(move);
 
             int eval = minimax(depth - 1, alpha, beta, true);
 
             // Undo move
-            *board = backup;
+            moves->unmakeMove(move, info);
 
             minEval = std::min(minEval, eval);
             beta = std::min(beta, eval);
@@ -97,13 +95,12 @@ std::string Engine::getBestMove() {
 
     for (const std::string& move : legalMoves) {
         // Make move
-        Board backup = *board;
-        moves->makeMove(move);
+        MoveInfo info = moves->makeMoveWithInfo(move);
 
         int score = minimax(3, std::numeric_limits<int>::min(), std::numeric_limits<int>::max(), !board->isWhiteToMove());
 
         // Undo move
-        *board = backup;
+        moves->unmakeMove(move, info);
 
         if (board->isWhiteToMove()) {
             if (score > bestScore) {
