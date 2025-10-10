@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chess Engine Interface</title>
+    <style>
+        /* ============================================
+           Global Styles
+           ============================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* ============================================
+           Main Container
+           ============================================ */
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 700px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 32px;
+        }
+
+        /* ============================================
+           Chessboard Styles
+           ============================================ */
+        .board-wrapper {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
+        .chessboard {
+            display: grid;
+            grid-template-columns: repeat(8, 70px);
+            grid-template-rows: repeat(8, 70px);
+            border: 3px solid #333;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .square {
+            width: 70px;
+            height: 70px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 48px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            user-select: none;
+        }
+
+        .square.light {
+            background-color: #f0d9b5;
+        }
+
+        .square.dark {
+            background-color: #b58863;
+        }
+
+        .square:hover {
+            opacity: 0.8;
+        }
+
+        /* ============================================
+           Control Panel Styles
+           ============================================ */
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .control-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        label {
+            font-weight: bold;
+            color: #333;
+            font-size: 16px;
+        }
+
+        select {
+            padding: 10px 15px;
+            font-size: 16px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        select:hover {
+            border-color: #764ba2;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #764ba2;
+        }
+
+        button {
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            color: white;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* ============================================
+           Information Display Styles
+           ============================================ */
+        .info-panel {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .info-row {
+            margin-bottom: 15px;
+        }
+
+        .info-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .info-label {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            color: #333;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            word-break: break-all;
+            padding: 8px;
+            background: white;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+
+        /* ============================================
+           Status Messages
+           ============================================ */
+        .status-message {
+            text-align: center;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        .status-message.show {
+            display: block;
+        }
+
+        .status-message.thinking {
+            background: #fff3cd;
+            color: #856404;
+            border: 2px solid #ffc107;
+        }
+
+        .status-message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #f5c6cb;
+        }
+
+        /* ============================================
+           Responsive Design
+           ============================================ */
+        @media (max-width: 600px) {
+            .chessboard {
+                grid-template-columns: repeat(8, 50px);
+                grid-template-rows: repeat(8, 50px);
+            }
+
+            .square {
+                width: 50px;
+                height: 50px;
+                font-size: 36px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .container {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>♔ Chess Engine Interface ♔</h1>
+
+        <!-- Status Messages -->
+        <div id="statusMessage" class="status-message"></div>
+
+        <!-- Chessboard -->
+        <div class="board-wrapper">
+            <div id="chessboard" class="chessboard"></div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <div class="control-row">
+                <label for="engineColor">Engine plays:</label>
+                <select id="engineColor">
+                    <option value="white">White</option>
+                    <option value="black">Black</option>
+                </select>
+            </div>
+            <div class="control-row">
+                <button id="getMoveBtn" onclick="getEngineMove()">Get Engine Move</button>
+                <button onclick="resetBoard()">Reset Board</button>
+            </div>
+        </div>
+
+        <!-- Information Panel -->
+        <div class="info-panel">
+            <div class="info-row">
+                <div class="info-label">Last Move:</div>
+                <div id="lastMove" class="info-value">None</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Current FEN:</div>
+                <div id="fenString" class="info-value"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // Chess Piece Symbols
+        // ============================================
+        const PIECES = {
+            // White pieces
+            'K': '♔', 'Q': '♕', 'R': '♖', 'B': '♗', 'N': '♘', 'P': '♙',
+            // Black pieces
+            'k': '♚', 'q': '♛', 'r': '♜', 'b': '♝', 'n': '♞', 'p': '♟'
+        };
+
+        // ============================================
+        // Game State
+        // ============================================
+        let board = [];
+        let whiteToMove = true;
+        let lastMove = null;
+
+        // API endpoint
+        const API_ENDPOINT = 'https://chessengine2.onrender.com/move';
+
+        // ============================================
+        // Initialize Board with Starting Position
+        // ============================================
+        function initializeBoard() {
+            board = [
+                ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'], // Row 8 (Black back rank)
+                ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'], // Row 7 (Black pawns)
+                ['.', '.', '.', '.', '.', '.', '.', '.'], // Row 6
+                ['.', '.', '.', '.', '.', '.', '.', '.'], // Row 5
+                ['.', '.', '.', '.', '.', '.', '.', '.'], // Row 4
+                ['.', '.', '.', '.', '.', '.', '.', '.'], // Row 3
+                ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'], // Row 2 (White pawns)
+                ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R']  // Row 1 (White back rank)
+            ];
+            whiteToMove = true;
+            lastMove = null;
+        }
+
+        // ============================================
+        // Render the Chessboard
+        // ============================================
+        function renderBoard() {
+            const chessboard = document.getElementById('chessboard');
+            chessboard.innerHTML = '';
+
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    const square = document.createElement('div');
+                    square.className = 'square';
+
+                    // Alternate light and dark squares
+                    if ((row + col) % 2 === 0) {
+                        square.classList.add('light');
+                    } else {
+                        square.classList.add('dark');
+                    }
+
+                    // Add piece symbol if present
+                    const piece = board[row][col];
+                    if (piece !== '.') {
+                        square.textContent = PIECES[piece];
+                    }
+
+                    chessboard.appendChild(square);
+                }
+            }
+
+            // Update FEN display
+            updateFENDisplay();
+        }
+
+        // ============================================
+        // Convert Board State to FEN String
+        // ============================================
+        function boardToFEN() {
+            let fen = '';
+
+            // Board position
+            for (let row = 0; row < 8; row++) {
+                let emptyCount = 0;
+                for (let col = 0; col < 8; col++) {
+                    const piece = board[row][col];
+                    if (piece === '.') {
+                        emptyCount++;
+                    } else {
+                        if (emptyCount > 0) {
+                            fen += emptyCount;
+                            emptyCount = 0;
+                        }
+                        fen += piece;
+                    }
+                }
+                if (emptyCount > 0) {
+                    fen += emptyCount;
+                }
+                if (row < 7) {
+                    fen += '/';
+                }
+            }
+
+            // Active color
+            fen += whiteToMove ? ' w' : ' b';
+
+            // Castling rights (simplified - always assume all castling available at start)
+            fen += ' KQkq';
+
+            // En passant target square (simplified - none)
+            fen += ' -';
+
+            // Halfmove clock (simplified)
+            fen += ' 0';
+
+            // Fullmove number (simplified)
+            fen += ' 1';
+
+            return fen;
+        }
+
+        // ============================================
+        // Parse Move String and Update Board
+        // ============================================
+        function makeMove(moveStr) {
+            // Move format: "e2e4" (from square to square)
+            if (moveStr.length !== 4) {
+                console.error('Invalid move format:', moveStr);
+                return false;
+            }
+
+            const fromCol = moveStr.charCodeAt(0) - 'a'.charCodeAt(0);
+            const fromRow = 8 - parseInt(moveStr[1]);
+            const toCol = moveStr.charCodeAt(2) - 'a'.charCodeAt(0);
+            const toRow = 8 - parseInt(moveStr[3]);
+
+            // Validate coordinates
+            if (fromRow < 0 || fromRow > 7 || fromCol < 0 || fromCol > 7 ||
+                toRow < 0 || toRow > 7 || toCol < 0 || toCol > 7) {
+                console.error('Invalid move coordinates:', moveStr);
+                return false;
+            }
+
+            // Move the piece
+            const piece = board[fromRow][fromCol];
+            board[toRow][toCol] = piece;
+            board[fromRow][fromCol] = '.';
+
+            // Update game state
+            whiteToMove = !whiteToMove;
+            lastMove = moveStr;
+
+            return true;
+        }
+
+        // ============================================
+        // Update FEN Display
+        // ============================================
+        function updateFENDisplay() {
+            const fen = boardToFEN();
+            document.getElementById('fenString').textContent = fen;
+        }
+
+        // ============================================
+        // Update Last Move Display
+        // ============================================
+        function updateLastMoveDisplay(move) {
+            const display = move ? `${move.substring(0, 2)}-${move.substring(2, 4)}` : 'None';
+            document.getElementById('lastMove').textContent = display;
+        }
+
+        // ============================================
+        // Show Status Message
+        // ============================================
+        function showStatus(message, type) {
+            const statusEl = document.getElementById('statusMessage');
+            statusEl.textContent = message;
+            statusEl.className = 'status-message show ' + type;
+        }
+
+        // ============================================
+        // Hide Status Message
+        // ============================================
+        function hideStatus() {
+            const statusEl = document.getElementById('statusMessage');
+            statusEl.className = 'status-message';
+        }
+
+        // ============================================
+        // Get Engine Move via API
+        // ============================================
+        async function getEngineMove() {
+            const engineColor = document.getElementById('engineColor').value;
+            const isEngineWhite = engineColor === 'white';
+
+            // Check if it's engine's turn
+            if (whiteToMove !== isEngineWhite) {
+                alert('It is not the engine\'s turn!');
+                return;
+            }
+
+            // Disable button and show thinking message
+            const btn = document.getElementById('getMoveBtn');
+            btn.disabled = true;
+            showStatus('Thinking...', 'thinking');
+
+            try {
+                // Get current FEN
+                const fen = boardToFEN();
+                const encodedFEN = encodeURIComponent(fen);
+
+                // Make API call
+                const response = await fetch(`${API_ENDPOINT}?fen=${encodedFEN}`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // Check response status
+                if (data.status === 'ok' && data.move) {
+                    // Make the move
+                    if (makeMove(data.move)) {
+                        updateLastMoveDisplay(data.move);
+                        renderBoard();
+                        hideStatus();
+                    } else {
+                        throw new Error('Failed to make move on board');
+                    }
+                } else if (data.status === 'error') {
+                    throw new Error(data.message || 'Engine returned an error');
+                } else {
+                    throw new Error('Invalid response from engine');
+                }
+
+            } catch (error) {
+                console.error('Error getting engine move:', error);
+                showStatus('Error: ' + error.message, 'error');
+                setTimeout(hideStatus, 5000);
+            } finally {
+                // Re-enable button
+                btn.disabled = false;
+            }
+        }
+
+        // ============================================
+        // Reset Board to Starting Position
+        // ============================================
+        function resetBoard() {
+            initializeBoard();
+            renderBoard();
+            updateLastMoveDisplay(null);
+            hideStatus();
+        }
+
+        // ============================================
+        // Initialize on Page Load
+        // ============================================
+        window.onload = function() {
+            initializeBoard();
+            renderBoard();
+            console.log('Chess board initialized!');
+            console.log('API Endpoint:', API_ENDPOINT);
+        };
+    </script>
+</body>
+</html>
