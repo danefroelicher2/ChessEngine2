@@ -210,11 +210,41 @@ std::vector<std::string> Moves::generateLegalMoves() {
         }
 
         // Now test if this move leaves us in check
+        // Save whose turn it is BEFORE making the move
+        bool wasWhiteToMove = board->isWhiteToMove();
+
         MoveInfo info = makeMoveWithInfo(move);
-        bool inCheck = isKingInCheck();
+
+        // After making the move, the turn has toggled
+        // We need to check if the ORIGINAL side's king is in check
+        // So we need to check if the king of the color that JUST moved is being attacked
+
+        // Find our king (the side that just moved)
+        char ourKing = wasWhiteToMove ? 'K' : 'k';
+        int kingRow = -1, kingCol = -1;
+        for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 8; col++) {
+                if (board->getPiece(row, col) == ourKing) {
+                    kingRow = row;
+                    kingCol = col;
+                    break;
+                }
+            }
+            if (kingRow != -1) break;
+        }
+
+        // Check if our king is being attacked by the opponent (whose turn it now is)
+        bool ourKingInCheck = false;
+        if (kingRow != -1) {
+            // isSquareAttacked checks if square is attacked by the specified color
+            // After the move, it's the opponent's turn, so check if they're attacking our king
+            ourKingInCheck = isSquareAttacked(kingRow, kingCol, board->isWhiteToMove());
+        }
+
         unmakeMove(move, info);
 
-        if (!inCheck) {
+        // Only allow moves that DON'T leave our own king in check
+        if (!ourKingInCheck) {
             legalMoves.push_back(move);
         }
     }
