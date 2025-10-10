@@ -193,6 +193,23 @@ std::vector<std::string> Moves::generateLegalMoves() {
 
     std::vector<std::string> legalMoves;
     for (const std::string& move : moves) {
+        // Parse the destination square
+        int toCol = move[2] - 'a';
+        int toRow = 7 - (move[3] - '1');
+        char targetPiece = board->getPiece(toRow, toCol);
+
+        // CRITICAL: Skip moves that capture own pieces
+        // If target square has a piece AND it's the same color as side to move
+        if (targetPiece != '.') {
+            bool targetIsWhite = isupper(targetPiece);
+            bool movingIsWhite = board->isWhiteToMove();
+            if (targetIsWhite == movingIsWhite) {
+                // This move would capture our own piece - ILLEGAL
+                continue;  // Skip this move
+            }
+        }
+
+        // Now test if this move leaves us in check
         MoveInfo info = makeMoveWithInfo(move);
         bool inCheck = isKingInCheck();
         unmakeMove(move, info);
