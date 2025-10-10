@@ -8,6 +8,12 @@
 struct MoveInfo {
     char capturedPiece;
     bool wasWhiteToMove;
+
+    // Castling rights before the move (for undo)
+    bool whiteKingside;
+    bool whiteQueenside;
+    bool blackKingside;
+    bool blackQueenside;
 };
 
 class Moves {

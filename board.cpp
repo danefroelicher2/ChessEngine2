@@ -23,6 +23,12 @@ Board::Board() {
     squares[7][4] = 'K'; squares[7][5] = 'B'; squares[7][6] = 'N'; squares[7][7] = 'R';
 
     whiteToMove = true;
+
+    // Initialize castling rights (all allowed at start)
+    whiteCanCastleKingside = true;
+    whiteCanCastleQueenside = true;
+    blackCanCastleKingside = true;
+    blackCanCastleQueenside = true;
 }
 
 char Board::getPiece(int row, int col) const {
@@ -67,6 +73,26 @@ void Board::loadFromFEN(const std::string& fen) {
     char side;
     iss >> side;
     whiteToMove = (side == 'w');
+
+    // Read castling rights (e.g., "KQkq" or "-")
+    std::string castlingRights;
+    iss >> castlingRights;
+
+    // Initialize all castling rights to false
+    whiteCanCastleKingside = false;
+    whiteCanCastleQueenside = false;
+    blackCanCastleKingside = false;
+    blackCanCastleQueenside = false;
+
+    // Parse castling rights
+    if (castlingRights != "-") {
+        for (char c : castlingRights) {
+            if (c == 'K') whiteCanCastleKingside = true;
+            if (c == 'Q') whiteCanCastleQueenside = true;
+            if (c == 'k') blackCanCastleKingside = true;
+            if (c == 'q') blackCanCastleQueenside = true;
+        }
+    }
 }
 
 std::string Board::toString() const {

@@ -187,6 +187,65 @@ std::vector<std::string> Moves::generateLegalMoves() {
                         }
                     }
                 }
+
+                // Castling moves
+                if (isWhite && fromRow == 7 && fromCol == 4) {
+                    // White castling (king on e1)
+                    // Kingside castling (e1-g1)
+                    if (board->canCastleKingside(true)) {
+                        // Check if squares f1 and g1 are empty
+                        if (board->getPiece(7, 5) == '.' && board->getPiece(7, 6) == '.') {
+                            // Check if e1, f1, g1 are not under attack
+                            if (!isSquareAttacked(7, 4, false) &&
+                                !isSquareAttacked(7, 5, false) &&
+                                !isSquareAttacked(7, 6, false)) {
+                                moves.push_back("e1g1");
+                            }
+                        }
+                    }
+                    // Queenside castling (e1-c1)
+                    if (board->canCastleQueenside(true)) {
+                        // Check if squares d1, c1, b1 are empty
+                        if (board->getPiece(7, 3) == '.' &&
+                            board->getPiece(7, 2) == '.' &&
+                            board->getPiece(7, 1) == '.') {
+                            // Check if e1, d1, c1 are not under attack
+                            if (!isSquareAttacked(7, 4, false) &&
+                                !isSquareAttacked(7, 3, false) &&
+                                !isSquareAttacked(7, 2, false)) {
+                                moves.push_back("e1c1");
+                            }
+                        }
+                    }
+                } else if (!isWhite && fromRow == 0 && fromCol == 4) {
+                    // Black castling (king on e8)
+                    // Kingside castling (e8-g8)
+                    if (board->canCastleKingside(false)) {
+                        // Check if squares f8 and g8 are empty
+                        if (board->getPiece(0, 5) == '.' && board->getPiece(0, 6) == '.') {
+                            // Check if e8, f8, g8 are not under attack
+                            if (!isSquareAttacked(0, 4, true) &&
+                                !isSquareAttacked(0, 5, true) &&
+                                !isSquareAttacked(0, 6, true)) {
+                                moves.push_back("e8g8");
+                            }
+                        }
+                    }
+                    // Queenside castling (e8-c8)
+                    if (board->canCastleQueenside(false)) {
+                        // Check if squares d8, c8, b8 are empty
+                        if (board->getPiece(0, 3) == '.' &&
+                            board->getPiece(0, 2) == '.' &&
+                            board->getPiece(0, 1) == '.') {
+                            // Check if e8, d8, c8 are not under attack
+                            if (!isSquareAttacked(0, 4, true) &&
+                                !isSquareAttacked(0, 3, true) &&
+                                !isSquareAttacked(0, 2, true)) {
+                                moves.push_back("e8c8");
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -379,6 +438,12 @@ MoveInfo Moves::makeMoveWithInfo(const std::string& move) {
     MoveInfo info;
     info.wasWhiteToMove = board->isWhiteToMove();
 
+    // Save current castling rights
+    info.whiteKingside = board->canCastleKingside(true);
+    info.whiteQueenside = board->canCastleQueenside(true);
+    info.blackKingside = board->canCastleKingside(false);
+    info.blackQueenside = board->canCastleQueenside(false);
+
     if (move.length() != 4) {
         info.capturedPiece = '.';
         return info;
@@ -392,8 +457,68 @@ MoveInfo Moves::makeMoveWithInfo(const std::string& move) {
     info.capturedPiece = board->getPiece(toRow, toCol);
 
     char piece = board->getPiece(fromRow, fromCol);
-    board->setPiece(toRow, toCol, piece);
-    board->setPiece(fromRow, fromCol, '.');
+
+    // Check if this is a castling move
+    bool isCastling = false;
+    if (tolower(piece) == 'k' && abs(toCol - fromCol) == 2) {
+        isCastling = true;
+        // Move the king
+        board->setPiece(toRow, toCol, piece);
+        board->setPiece(fromRow, fromCol, '.');
+
+        // Move the rook
+        if (toCol == 6) {
+            // Kingside castling - move rook from h to f
+            char rook = board->getPiece(fromRow, 7);
+            board->setPiece(fromRow, 5, rook);
+            board->setPiece(fromRow, 7, '.');
+        } else if (toCol == 2) {
+            // Queenside castling - move rook from a to d
+            char rook = board->getPiece(fromRow, 0);
+            board->setPiece(fromRow, 3, rook);
+            board->setPiece(fromRow, 0, '.');
+        }
+    } else {
+        // Normal move
+        board->setPiece(toRow, toCol, piece);
+        board->setPiece(fromRow, fromCol, '.');
+    }
+
+    // Update castling rights based on what moved
+    if (tolower(piece) == 'k') {
+        // King moved - lose both castling rights
+        if (isupper(piece)) {
+            board->setCastleKingside(true, false);
+            board->setCastleQueenside(true, false);
+        } else {
+            board->setCastleKingside(false, false);
+            board->setCastleQueenside(false, false);
+        }
+    } else if (tolower(piece) == 'r') {
+        // Rook moved - lose castling right on that side
+        if (fromRow == 7 && fromCol == 0) {
+            // White queenside rook
+            board->setCastleQueenside(true, false);
+        } else if (fromRow == 7 && fromCol == 7) {
+            // White kingside rook
+            board->setCastleKingside(true, false);
+        } else if (fromRow == 0 && fromCol == 0) {
+            // Black queenside rook
+            board->setCastleQueenside(false, false);
+        } else if (fromRow == 0 && fromCol == 7) {
+            // Black kingside rook
+            board->setCastleKingside(false, false);
+        }
+    }
+
+    // If a rook was captured, update castling rights
+    if (info.capturedPiece == 'R') {
+        if (toRow == 7 && toCol == 0) board->setCastleQueenside(true, false);
+        if (toRow == 7 && toCol == 7) board->setCastleKingside(true, false);
+    } else if (info.capturedPiece == 'r') {
+        if (toRow == 0 && toCol == 0) board->setCastleQueenside(false, false);
+        if (toRow == 0 && toCol == 7) board->setCastleKingside(false, false);
+    }
 
     board->setWhiteToMove(!board->isWhiteToMove());
 
@@ -409,8 +534,37 @@ void Moves::unmakeMove(const std::string& move, const MoveInfo& info) {
     int toRow = 7 - (move[3] - '1');
 
     char piece = board->getPiece(toRow, toCol);
-    board->setPiece(fromRow, fromCol, piece);
-    board->setPiece(toRow, toCol, info.capturedPiece);
+
+    // Check if this was a castling move
+    if (tolower(piece) == 'k' && abs(toCol - fromCol) == 2) {
+        // Undo castling
+        // Move king back
+        board->setPiece(fromRow, fromCol, piece);
+        board->setPiece(toRow, toCol, '.');
+
+        // Move rook back
+        if (toCol == 6) {
+            // Kingside castling - move rook back from f to h
+            char rook = board->getPiece(fromRow, 5);
+            board->setPiece(fromRow, 7, rook);
+            board->setPiece(fromRow, 5, '.');
+        } else if (toCol == 2) {
+            // Queenside castling - move rook back from d to a
+            char rook = board->getPiece(fromRow, 3);
+            board->setPiece(fromRow, 0, rook);
+            board->setPiece(fromRow, 3, '.');
+        }
+    } else {
+        // Normal move undo
+        board->setPiece(fromRow, fromCol, piece);
+        board->setPiece(toRow, toCol, info.capturedPiece);
+    }
+
+    // Restore castling rights
+    board->setCastleKingside(true, info.whiteKingside);
+    board->setCastleQueenside(true, info.whiteQueenside);
+    board->setCastleKingside(false, info.blackKingside);
+    board->setCastleQueenside(false, info.blackQueenside);
 
     board->setWhiteToMove(info.wasWhiteToMove);
 }
