@@ -97,6 +97,11 @@ bool isGetMoveRequest(const std::string& request) {
     return request.find("GET /move") == 0;
 }
 
+// Check if request is GET /legal-moves
+bool isGetLegalMovesRequest(const std::string& request) {
+    return request.find("GET /legal-moves") == 0;
+}
+
 // =============================================================================
 // Chess Engine Integration
 // =============================================================================
@@ -150,6 +155,57 @@ std::string processMoveRequest(const std::string& fenString) {
     }
 }
 
+// Process legal moves request: parse FEN, return all legal moves
+std::string processLegalMovesRequest(const std::string& fenString) {
+    try {
+        // Validate FEN string is not empty
+        if (fenString.empty()) {
+            return "{\"moves\":[],\"status\":\"error\",\"message\":\"Missing FEN parameter\"}";
+        }
+
+        std::cout << "Processing legal moves for FEN: " << fenString << std::endl;
+
+        // Initialize board and load FEN position
+        Board board;
+        board.loadFromFEN(fenString);
+
+        // Create Moves object for move generation
+        Moves moves(&board);
+
+        // Generate all legal moves for current position
+        std::vector<std::string> legalMoves = moves.generateLegalMoves();
+
+        // Build JSON array of moves
+        std::ostringstream jsonMoves;
+        jsonMoves << "[";
+        for (size_t i = 0; i < legalMoves.size(); ++i) {
+            jsonMoves << "\"" << legalMoves[i] << "\"";
+            if (i < legalMoves.size() - 1) {
+                jsonMoves << ",";
+            }
+        }
+        jsonMoves << "]";
+
+        std::cout << "Legal moves count: " << legalMoves.size() << std::endl;
+
+        // Return success response
+        return "{\"moves\":" + jsonMoves.str() + ",\"status\":\"ok\"}";
+
+    } catch (const std::exception& e) {
+        // Handle any unexpected errors
+        std::string errorMsg = e.what();
+        // Escape quotes in error message
+        size_t pos = 0;
+        while ((pos = errorMsg.find("\"", pos)) != std::string::npos) {
+            errorMsg.replace(pos, 1, "\\\"");
+            pos += 2;
+        }
+        return "{\"moves\":[],\"status\":\"error\",\"message\":\"" + errorMsg + "\"}";
+    } catch (...) {
+        return "{\"moves\":[],\"status\":\"error\",\"message\":\"Unknown error occurred\"}";
+    }
+}
+
 // =============================================================================
 // HTTP Response Generation
 // =============================================================================
@@ -176,7 +232,7 @@ std::string buildHttpResponse(const std::string& jsonBody) {
 
 // Build 404 Not Found response
 std::string build404Response() {
-    std::string body = "{\"status\":\"error\",\"message\":\"Endpoint not found. Use GET /move?fen=...\"}";
+    std::string body = "{\"status\":\"error\",\"message\":\"Endpoint not found. Use GET /move?fen=... or GET /legal-moves?fen=...\"}";
     std::ostringstream response;
 
     response << "HTTP/1.1 404 Not Found\r\n";
@@ -262,7 +318,9 @@ int main() {
     }
 
     std::cout << "Server listening on port " << PORT << std::endl;
-    std::cout << "Endpoint: GET /move?fen=<FEN_STRING>" << std::endl;
+    std::cout << "Endpoints:" << std::endl;
+    std::cout << "  GET /move?fen=<FEN_STRING>" << std::endl;
+    std::cout << "  GET /legal-moves?fen=<FEN_STRING>" << std::endl;
     std::cout << "Press Ctrl+C to stop\n" << std::endl;
 
     // Main server loop - handle requests one at a time
@@ -295,9 +353,14 @@ int main() {
 
             // Route request
             if (isGetMoveRequest(request)) {
-                // Extract FEN parameter and process
+                // Extract FEN parameter and process move request
                 std::string fenString = extractQueryParam(request, "fen");
                 std::string jsonResponse = processMoveRequest(fenString);
+                response = buildHttpResponse(jsonResponse);
+            } else if (isGetLegalMovesRequest(request)) {
+                // Extract FEN parameter and process legal moves request
+                std::string fenString = extractQueryParam(request, "fen");
+                std::string jsonResponse = processLegalMovesRequest(fenString);
                 response = buildHttpResponse(jsonResponse);
             } else {
                 // Unknown endpoint
