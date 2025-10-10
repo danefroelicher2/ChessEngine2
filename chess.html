@@ -52,12 +52,59 @@
             margin-bottom: 30px;
         }
 
+        .board-container {
+            position: relative;
+            display: inline-block;
+        }
+
         .chessboard {
             display: grid;
             grid-template-columns: repeat(8, 70px);
             grid-template-rows: repeat(8, 70px);
             border: 3px solid #333;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            margin-left: 20px;
+            margin-top: 0;
+        }
+
+        /* Coordinate labels */
+        .rank-labels {
+            position: absolute;
+            left: 0;
+            top: 0;
+            display: flex;
+            flex-direction: column;
+            height: 560px; /* 8 * 70px */
+            justify-content: space-around;
+            align-items: center;
+            width: 20px;
+        }
+
+        .rank-label {
+            font-size: 13px;
+            font-weight: bold;
+            color: #769656;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .file-labels {
+            position: absolute;
+            left: 20px;
+            bottom: -25px;
+            display: flex;
+            width: 560px; /* 8 * 70px */
+            justify-content: space-around;
+        }
+
+        .file-label {
+            font-size: 13px;
+            font-weight: bold;
+            color: #769656;
+            width: 70px;
+            text-align: center;
         }
 
         .square {
@@ -299,6 +346,7 @@
             .chessboard {
                 grid-template-columns: repeat(8, 50px);
                 grid-template-rows: repeat(8, 50px);
+                margin-left: 18px;
             }
 
             .square {
@@ -313,6 +361,27 @@
 
             .container {
                 padding: 20px;
+            }
+
+            .rank-labels {
+                height: 400px; /* 8 * 50px */
+                width: 18px;
+            }
+
+            .rank-label {
+                height: 50px;
+                font-size: 11px;
+            }
+
+            .file-labels {
+                left: 18px;
+                bottom: -22px;
+                width: 400px; /* 8 * 50px */
+            }
+
+            .file-label {
+                width: 50px;
+                font-size: 11px;
             }
         }
     </style>
@@ -329,7 +398,34 @@
 
         <!-- Chessboard -->
         <div class="board-wrapper">
-            <div id="chessboard" class="chessboard"></div>
+            <div class="board-container">
+                <!-- Rank labels (8-1) -->
+                <div class="rank-labels">
+                    <div class="rank-label">8</div>
+                    <div class="rank-label">7</div>
+                    <div class="rank-label">6</div>
+                    <div class="rank-label">5</div>
+                    <div class="rank-label">4</div>
+                    <div class="rank-label">3</div>
+                    <div class="rank-label">2</div>
+                    <div class="rank-label">1</div>
+                </div>
+
+                <!-- Chess board -->
+                <div id="chessboard" class="chessboard"></div>
+
+                <!-- File labels (a-h) -->
+                <div class="file-labels">
+                    <div class="file-label">a</div>
+                    <div class="file-label">b</div>
+                    <div class="file-label">c</div>
+                    <div class="file-label">d</div>
+                    <div class="file-label">e</div>
+                    <div class="file-label">f</div>
+                    <div class="file-label">g</div>
+                    <div class="file-label">h</div>
+                </div>
+            </div>
         </div>
 
         <!-- Controls -->
