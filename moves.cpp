@@ -1,6 +1,5 @@
 #include "moves.h"
 #include <cctype>
-#include <iostream>
 
 Moves::Moves(Board* b) : board(b) {}
 
@@ -463,10 +462,6 @@ MoveInfo Moves::makeMoveWithInfo(const std::string& move) {
     bool isCastling = false;
     if (tolower(piece) == 'k' && abs(toCol - fromCol) == 2) {
         isCastling = true;
-        std::cout << "CASTLING DETECTED in makeMoveWithInfo()!" << std::endl;
-        std::cout << "  Move: " << move << std::endl;
-        std::cout << "  King from: (" << fromRow << "," << fromCol << ") to (" << toRow << "," << toCol << ")" << std::endl;
-
         // Move the king
         board->setPiece(toRow, toCol, piece);
         board->setPiece(fromRow, fromCol, '.');
@@ -474,20 +469,14 @@ MoveInfo Moves::makeMoveWithInfo(const std::string& move) {
         // Move the rook
         if (toCol == 6) {
             // Kingside castling - move rook from h to f
-            std::cout << "  Kingside castling: Moving rook from (" << fromRow << ",7) to (" << fromRow << ",5)" << std::endl;
             char rook = board->getPiece(fromRow, 7);
-            std::cout << "  Rook piece before move: '" << rook << "'" << std::endl;
             board->setPiece(fromRow, 5, rook);
             board->setPiece(fromRow, 7, '.');
-            std::cout << "  Rook at destination (" << fromRow << ",5): '" << board->getPiece(fromRow, 5) << "'" << std::endl;
         } else if (toCol == 2) {
             // Queenside castling - move rook from a to d
-            std::cout << "  Queenside castling: Moving rook from (" << fromRow << ",0) to (" << fromRow << ",3)" << std::endl;
             char rook = board->getPiece(fromRow, 0);
-            std::cout << "  Rook piece before move: '" << rook << "'" << std::endl;
             board->setPiece(fromRow, 3, rook);
             board->setPiece(fromRow, 0, '.');
-            std::cout << "  Rook at destination (" << fromRow << ",3): '" << board->getPiece(fromRow, 3) << "'" << std::endl;
         }
     } else {
         // Normal move
