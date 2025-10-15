@@ -14,7 +14,9 @@
       "Bash(cat:*)",
       "Bash(tee:*)",
       "Read(//c/msys64/mingw64/bin/**)",
-      "Bash(mingw32-make:*)"
+      "Bash(mingw32-make:*)",
+      "Bash(\"C:\\msys64\\mingw64\\bin\\c++.exe\" -std=gnu++17 -c ../main.cpp)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []
