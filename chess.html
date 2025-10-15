@@ -803,6 +803,35 @@
             board[toRow][toCol] = piece;
             board[fromRow][fromCol] = '.';
 
+            // Handle castling rook movement
+            // Check if this was a castling move (king moved 2 squares horizontally)
+            if ((piece === 'K' || piece === 'k') && Math.abs(toCol - fromCol) === 2) {
+                console.log('CASTLING DETECTED in JavaScript makeMove()!');
+                console.log('  Move:', moveStr);
+                console.log('  King from: (' + fromRow + ',' + fromCol + ') to (' + toRow + ',' + toCol + ')');
+
+                // Kingside castle (king moved to g-file, column 6)
+                if (toCol === 6) {
+                    // Move rook from h-file (7) to f-file (5)
+                    console.log('  Kingside castle: Moving rook from (' + fromRow + ',7) to (' + fromRow + ',5)');
+                    const rook = board[fromRow][7];
+                    console.log('  Rook piece before move:', rook);
+                    board[fromRow][5] = rook;
+                    board[fromRow][7] = '.';
+                    console.log('  Rook piece after move at (5):', board[fromRow][5]);
+                }
+                // Queenside castle (king moved to c-file, column 2)
+                else if (toCol === 2) {
+                    // Move rook from a-file (0) to d-file (3)
+                    console.log('  Queenside castle: Moving rook from (' + fromRow + ',0) to (' + fromRow + ',3)');
+                    const rook = board[fromRow][0];
+                    console.log('  Rook piece before move:', rook);
+                    board[fromRow][3] = rook;
+                    board[fromRow][0] = '.';
+                    console.log('  Rook piece after move at (3):', board[fromRow][3]);
+                }
+            }
+
             // Update game state
             whiteToMove = !whiteToMove;
             lastMove = moveStr;

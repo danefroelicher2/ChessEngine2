@@ -12,7 +12,9 @@
       "Bash(C:/msys64/mingw64/bin/g++.exe -std=c++17 -c server.cpp -o server.o)",
       "Bash(C:/msys64/mingw64/bin/g++.exe:*)",
       "Bash(cat:*)",
-      "Bash(tee:*)"
+      "Bash(tee:*)",
+      "Read(//c/msys64/mingw64/bin/**)",
+      "Bash(mingw32-make:*)"
     ],
     "deny": [],
     "ask": []
