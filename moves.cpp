@@ -30,7 +30,17 @@ std::vector<std::string> Moves::generateLegalMoves() {
                     move += char('1' + (7 - fromRow));
                     move += char('a' + fromCol);
                     move += char('1' + (7 - toRow));
-                    moves.push_back(move);
+
+                    // Check for promotion (white pawn to row 0, black pawn to row 7)
+                    if ((isWhite && toRow == 0) || (!isWhite && toRow == 7)) {
+                        // Generate all 4 promotion moves
+                        moves.push_back(move + 'q');
+                        moves.push_back(move + 'r');
+                        moves.push_back(move + 'b');
+                        moves.push_back(move + 'n');
+                    } else {
+                        moves.push_back(move);
+                    }
 
                     // Move forward two squares from starting position
                     if (fromRow == startRow) {
@@ -57,7 +67,17 @@ std::vector<std::string> Moves::generateLegalMoves() {
                             move += char('1' + (7 - fromRow));
                             move += char('a' + toCol);
                             move += char('1' + (7 - toRow));
-                            moves.push_back(move);
+
+                            // Check for promotion (white pawn to row 0, black pawn to row 7)
+                            if ((isWhite && toRow == 0) || (!isWhite && toRow == 7)) {
+                                // Generate all 4 promotion moves
+                                moves.push_back(move + 'q');
+                                moves.push_back(move + 'r');
+                                moves.push_back(move + 'b');
+                                moves.push_back(move + 'n');
+                            } else {
+                                moves.push_back(move);
+                            }
                         }
                     }
                 }
@@ -312,7 +332,7 @@ std::vector<std::string> Moves::generateLegalMoves() {
 }
 
 bool Moves::isLegalMove(const std::string& move) {
-    if (move.length() != 4) return false;
+    if (move.length() != 4 && move.length() != 5) return false;
 
     std::vector<std::string> legalMoves = generateLegalMoves();
     for (const std::string& legal : legalMoves) {
@@ -322,7 +342,7 @@ bool Moves::isLegalMove(const std::string& move) {
 }
 
 void Moves::makeMove(const std::string& move) {
-    if (move.length() != 4) return;
+    if (move.length() != 4 && move.length() != 5) return;
 
     int fromCol = move[0] - 'a';
     int fromRow = 7 - (move[1] - '1');
@@ -330,7 +350,16 @@ void Moves::makeMove(const std::string& move) {
     int toRow = 7 - (move[3] - '1');
 
     char piece = board->getPiece(fromRow, fromCol);
-    board->setPiece(toRow, toCol, piece);
+    char pieceToPlace = piece;
+
+    // Handle pawn promotion
+    if (move.length() == 5) {
+        char promotionPiece = move[4];  // q, r, b, or n
+        bool isWhite = isupper(piece);
+        pieceToPlace = isWhite ? toupper(promotionPiece) : tolower(promotionPiece);
+    }
+
+    board->setPiece(toRow, toCol, pieceToPlace);
     board->setPiece(fromRow, fromCol, '.');
 
     // Toggle side to move
@@ -437,6 +466,7 @@ bool Moves::isKingInCheck() {
 MoveInfo Moves::makeMoveWithInfo(const std::string& move) {
     MoveInfo info;
     info.wasWhiteToMove = board->isWhiteToMove();
+    info.promotedFrom = '.';  // Initialize promotion field
 
     // Save current castling rights
     info.whiteKingside = board->canCastleKingside(true);
@@ -444,7 +474,7 @@ MoveInfo Moves::makeMoveWithInfo(const std::string& move) {
     info.blackKingside = board->canCastleKingside(false);
     info.blackQueenside = board->canCastleQueenside(false);
 
-    if (move.length() != 4) {
+    if (move.length() != 4 && move.length() != 5) {
         info.capturedPiece = '.';
         return info;
     }
@@ -480,7 +510,19 @@ MoveInfo Moves::makeMoveWithInfo(const std::string& move) {
         }
     } else {
         // Normal move
-        board->setPiece(toRow, toCol, piece);
+        char pieceToPlace = piece;
+
+        // Handle pawn promotion
+        if (move.length() == 5) {
+            char promotionPiece = move[4];  // q, r, b, or n
+            // Store the original piece for undo
+            info.promotedFrom = piece;
+            // Convert to correct case based on whose turn it is
+            bool isWhite = isupper(piece);
+            pieceToPlace = isWhite ? toupper(promotionPiece) : tolower(promotionPiece);
+        }
+
+        board->setPiece(toRow, toCol, pieceToPlace);
         board->setPiece(fromRow, fromCol, '.');
     }
 
@@ -526,7 +568,7 @@ MoveInfo Moves::makeMoveWithInfo(const std::string& move) {
 }
 
 void Moves::unmakeMove(const std::string& move, const MoveInfo& info) {
-    if (move.length() != 4) return;
+    if (move.length() != 4 && move.length() != 5) return;
 
     int fromCol = move[0] - 'a';
     int fromRow = 7 - (move[1] - '1');
@@ -534,6 +576,12 @@ void Moves::unmakeMove(const std::string& move, const MoveInfo& info) {
     int toRow = 7 - (move[3] - '1');
 
     char piece = board->getPiece(toRow, toCol);
+
+    // If this was a promotion, restore the pawn instead of the promoted piece
+    char pieceToRestore = piece;
+    if (info.promotedFrom != '.') {
+        pieceToRestore = info.promotedFrom;
+    }
 
     // Check if this was a castling move
     if (tolower(piece) == 'k' && abs(toCol - fromCol) == 2) {
@@ -556,7 +604,7 @@ void Moves::unmakeMove(const std::string& move, const MoveInfo& info) {
         }
     } else {
         // Normal move undo
-        board->setPiece(fromRow, fromCol, piece);
+        board->setPiece(fromRow, fromCol, pieceToRestore);
         board->setPiece(toRow, toCol, info.capturedPiece);
     }
 

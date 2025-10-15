@@ -8,6 +8,7 @@
 struct MoveInfo {
     char capturedPiece;
     bool wasWhiteToMove;
+    char promotedFrom;  // Original piece before promotion ('P'/'p' for promotions, '.' otherwise)
 
     // Castling rights before the move (for undo)
     bool whiteKingside;

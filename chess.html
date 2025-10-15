@@ -340,6 +340,69 @@
         }
 
         /* ============================================
+           Promotion Modal Styles
+           ============================================ */
+        .promotion-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .promotion-dialog {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .promotion-dialog h3 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #333;
+        }
+
+        .promotion-pieces {
+            display: flex;
+            gap: 15px;
+        }
+
+        .promotion-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 80px;
+        }
+
+        .promotion-option:hover {
+            border-color: #4CAF50;
+            background-color: #f0f0f0;
+            transform: scale(1.05);
+        }
+
+        .promotion-piece-icon {
+            font-size: 48px;
+            margin-bottom: 8px;
+        }
+
+        .promotion-option span:last-child {
+            font-size: 14px;
+            color: #666;
+        }
+
+        /* ============================================
            Responsive Design
            ============================================ */
         @media (max-width: 600px) {
@@ -452,6 +515,31 @@
             <div class="info-row">
                 <div class="info-label">Current FEN:</div>
                 <div id="fenString" class="info-value"></div>
+            </div>
+        </div>
+
+        <!-- Promotion Modal -->
+        <div id="promotionModal" class="promotion-modal" style="display: none;">
+            <div class="promotion-dialog">
+                <h3>Choose Promotion Piece</h3>
+                <div class="promotion-pieces">
+                    <div class="promotion-option" data-piece="q">
+                        <span class="promotion-piece-icon" id="promotionQueen"></span>
+                        <span>Queen</span>
+                    </div>
+                    <div class="promotion-option" data-piece="r">
+                        <span class="promotion-piece-icon" id="promotionRook"></span>
+                        <span>Rook</span>
+                    </div>
+                    <div class="promotion-option" data-piece="b">
+                        <span class="promotion-piece-icon" id="promotionBishop"></span>
+                        <span>Bishop</span>
+                    </div>
+                    <div class="promotion-option" data-piece="n">
+                        <span class="promotion-piece-icon" id="promotionKnight"></span>
+                        <span>Knight</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -697,6 +785,14 @@
         // Attempt User Move
         // ============================================
         function attemptUserMove(moveStr) {
+            // Check if this is a promotion move BEFORE checking if it's legal
+            // Promotion moves need special handling
+            if (isPromotionMove(moveStr)) {
+                // Show promotion modal instead of making the move
+                showPromotionModal(moveStr);
+                return;
+            }
+
             // Validate move is legal
             if (!legalMovesForPiece.includes(moveStr)) {
                 showStatus('Illegal move!', 'error');
@@ -780,8 +876,8 @@
         // Parse Move String and Update Board
         // ============================================
         function makeMove(moveStr) {
-            // Move format: "e2e4" (from square to square)
-            if (moveStr.length !== 4) {
+            // Move format: "e2e4" (from square to square) or "e7e8q" (promotion)
+            if (moveStr.length !== 4 && moveStr.length !== 5) {
                 console.error('Invalid move format:', moveStr);
                 return false;
             }
@@ -800,7 +896,18 @@
 
             // Move the piece
             const piece = board[fromRow][fromCol];
-            board[toRow][toCol] = piece;
+            let pieceToPlace = piece;
+
+            // Handle pawn promotion
+            if (moveStr.length === 5) {
+                const promotionPiece = moveStr[4];  // q, r, b, or n
+                // Convert to correct case (uppercase for white, lowercase for black)
+                const isWhite = (piece === 'P');
+                pieceToPlace = isWhite ? promotionPiece.toUpperCase() : promotionPiece.toLowerCase();
+                console.log('PROMOTION! Pawn promoted to:', pieceToPlace);
+            }
+
+            board[toRow][toCol] = pieceToPlace;
             board[fromRow][fromCol] = '.';
 
             // Handle castling rook movement
@@ -853,6 +960,78 @@
         function updateLastMoveDisplay(move) {
             const display = move ? `${move.substring(0, 2)}-${move.substring(2, 4)}` : 'None';
             document.getElementById('lastMove').textContent = display;
+        }
+
+        // ============================================
+        // Promotion Handling
+        // ============================================
+        // Global variable to store pending promotion move
+        let pendingPromotionMove = null;
+
+        // Helper function to check if a move is a promotion
+        function isPromotionMove(moveStr) {
+            if (moveStr.length !== 4) return false;
+
+            const fromCol = moveStr.charCodeAt(0) - 'a'.charCodeAt(0);
+            const fromRow = 8 - parseInt(moveStr[1]);
+            const toRow = 8 - parseInt(moveStr[3]);
+            const piece = board[fromRow][fromCol];
+
+            // Check if it's a pawn moving to the back rank
+            if (piece === 'P' && toRow === 0) return true;  // White promotion
+            if (piece === 'p' && toRow === 7) return true;  // Black promotion
+
+            return false;
+        }
+
+        // Show promotion modal
+        function showPromotionModal(baseMove) {
+            pendingPromotionMove = baseMove;
+
+            // Determine which color is promoting
+            const fromRow = 8 - parseInt(baseMove[1]);
+            const piece = board[fromRow][baseMove.charCodeAt(0) - 'a'.charCodeAt(0)];
+            const isWhite = (piece === 'P');
+
+            // Set the piece icons in the modal
+            document.getElementById('promotionQueen').textContent = isWhite ? PIECES['Q'] : PIECES['q'];
+            document.getElementById('promotionRook').textContent = isWhite ? PIECES['R'] : PIECES['r'];
+            document.getElementById('promotionBishop').textContent = isWhite ? PIECES['B'] : PIECES['b'];
+            document.getElementById('promotionKnight').textContent = isWhite ? PIECES['N'] : PIECES['n'];
+
+            // Show modal
+            document.getElementById('promotionModal').style.display = 'flex';
+
+            // Add click handlers to promotion options
+            document.querySelectorAll('.promotion-option').forEach(option => {
+                option.onclick = function() {
+                    const promotionPiece = this.getAttribute('data-piece');
+                    completePromotion(promotionPiece);
+                };
+            });
+        }
+
+        // Complete promotion after user selects piece
+        function completePromotion(promotionPiece) {
+            // Hide modal
+            document.getElementById('promotionModal').style.display = 'none';
+
+            // Add promotion piece to move (make it 5 characters)
+            const fullMove = pendingPromotionMove + promotionPiece;
+
+            // Make the move with promotion
+            if (makeMove(fullMove)) {
+                updateLastMoveDisplay(fullMove);
+                selectedSquare = null;
+                legalMovesForPiece = [];
+                cachedLegalMoves = null;
+                renderBoard();
+
+                // Trigger engine move
+                getEngineMove(true);
+            }
+
+            pendingPromotionMove = null;
         }
 
         // ============================================
