@@ -81,6 +81,29 @@ std::vector<std::string> Moves::generateLegalMoves() {
                         }
                     }
                 }
+
+                // En passant captures
+                int epRow = board->getEnPassantRow();
+                int epCol = board->getEnPassantCol();
+
+                if (epRow != -1 && epCol != -1) {
+                    // Check if we have a pawn that can capture en passant
+                    // The pawn must be on the correct rank (rank 5 for white, rank 4 for black)
+                    int correctRank = isWhite ? 3 : 4;  // Row 3 = rank 5, Row 4 = rank 4
+
+                    if (fromRow == correctRank) {
+                        // Check if en passant target is diagonally adjacent
+                        if (epRow == fromRow + direction && abs(epCol - fromCol) == 1) {
+                            // This pawn can capture en passant!
+                            std::string move;
+                            move += char('a' + fromCol);
+                            move += char('1' + (7 - fromRow));
+                            move += char('a' + epCol);
+                            move += char('1' + (7 - epRow));
+                            moves.push_back(move);
+                        }
+                    }
+                }
             } else if (pieceType == 'n') {
                 // Knight moves
                 int deltas[8][2] = {{-2, -1}, {-2, 1}, {-1, -2}, {-1, 2}, {1, -2}, {1, 2}, {2, -1}, {2, 1}};
@@ -474,6 +497,16 @@ MoveInfo Moves::makeMoveWithInfo(const std::string& move) {
     info.blackKingside = board->canCastleKingside(false);
     info.blackQueenside = board->canCastleQueenside(false);
 
+    // Save previous en passant target for undo
+    info.previousEnPassantRow = board->getEnPassantRow();
+    info.previousEnPassantCol = board->getEnPassantCol();
+    info.wasEnPassantCapture = false;
+    info.enPassantCapturedRow = -1;
+    info.enPassantCapturedCol = -1;
+
+    // Clear en passant target (will be set again if this move creates a new opportunity)
+    board->clearEnPassantTarget();
+
     if (move.length() != 4 && move.length() != 5) {
         info.capturedPiece = '.';
         return info;
@@ -522,6 +555,29 @@ MoveInfo Moves::makeMoveWithInfo(const std::string& move) {
             pieceToPlace = isWhite ? toupper(promotionPiece) : tolower(promotionPiece);
         }
 
+        // Check if this is an en passant capture
+        if (tolower(piece) == 'p') {
+            int epRow = info.previousEnPassantRow;
+            int epCol = info.previousEnPassantCol;
+
+            // If destination is the en passant target square
+            if (epRow != -1 && toRow == epRow && toCol == epCol) {
+                // This is an en passant capture!
+                info.wasEnPassantCapture = true;
+
+                // The captured pawn is NOT at toRow/toCol, it's beside it
+                int capturedPawnRow = (board->isWhiteToMove()) ? toRow + 1 : toRow - 1;
+                int capturedPawnCol = toCol;
+
+                info.enPassantCapturedRow = capturedPawnRow;
+                info.enPassantCapturedCol = capturedPawnCol;
+                info.capturedPiece = board->getPiece(capturedPawnRow, capturedPawnCol);
+
+                // Remove the captured pawn
+                board->setPiece(capturedPawnRow, capturedPawnCol, '.');
+            }
+        }
+
         board->setPiece(toRow, toCol, pieceToPlace);
         board->setPiece(fromRow, fromCol, '.');
     }
@@ -562,6 +618,16 @@ MoveInfo Moves::makeMoveWithInfo(const std::string& move) {
         if (toRow == 0 && toCol == 7) board->setCastleKingside(false, false);
     }
 
+    // Check if this move creates an en passant opportunity
+    // (pawn moved 2 squares forward from starting position)
+    if (tolower(piece) == 'p' && abs(toRow - fromRow) == 2) {
+        // This is a 2-square pawn advance
+        // Set en passant target to the square the pawn "passed through"
+        int targetRow = (fromRow + toRow) / 2;  // Middle square
+        int targetCol = fromCol;
+        board->setEnPassantTarget(targetRow, targetCol);
+    }
+
     board->setWhiteToMove(!board->isWhiteToMove());
 
     return info;
@@ -569,6 +635,9 @@ MoveInfo Moves::makeMoveWithInfo(const std::string& move) {
 
 void Moves::unmakeMove(const std::string& move, const MoveInfo& info) {
     if (move.length() != 4 && move.length() != 5) return;
+
+    // Restore previous en passant target
+    board->setEnPassantTarget(info.previousEnPassantRow, info.previousEnPassantCol);
 
     int fromCol = move[0] - 'a';
     int fromRow = 7 - (move[1] - '1');
@@ -605,7 +674,15 @@ void Moves::unmakeMove(const std::string& move, const MoveInfo& info) {
     } else {
         // Normal move undo
         board->setPiece(fromRow, fromCol, pieceToRestore);
-        board->setPiece(toRow, toCol, info.capturedPiece);
+
+        if (info.wasEnPassantCapture) {
+            // En passant undo: restore captured pawn to its actual position
+            board->setPiece(toRow, toCol, '.');  // Destination square is empty
+            board->setPiece(info.enPassantCapturedRow, info.enPassantCapturedCol, info.capturedPiece);
+        } else {
+            // Normal capture undo
+            board->setPiece(toRow, toCol, info.capturedPiece);
+        }
     }
 
     // Restore castling rights
@@ -615,4 +692,26 @@ void Moves::unmakeMove(const std::string& move, const MoveInfo& info) {
     board->setCastleQueenside(false, info.blackQueenside);
 
     board->setWhiteToMove(info.wasWhiteToMove);
+}
+
+bool Moves::isCheckmate() {
+    // Checkmate = no legal moves AND king is in check
+    std::vector<std::string> legalMoves = generateLegalMoves();
+
+    if (legalMoves.empty() && isKingInCheck()) {
+        return true;
+    }
+
+    return false;
+}
+
+bool Moves::isStalemate() {
+    // Stalemate = no legal moves AND king is NOT in check
+    std::vector<std::string> legalMoves = generateLegalMoves();
+
+    if (legalMoves.empty() && !isKingInCheck()) {
+        return true;
+    }
+
+    return false;
 }

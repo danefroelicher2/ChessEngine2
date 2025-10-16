@@ -29,6 +29,10 @@ Board::Board() {
     whiteCanCastleQueenside = true;
     blackCanCastleKingside = true;
     blackCanCastleQueenside = true;
+
+    // Initialize en passant (no target at start)
+    enPassantTargetRow = -1;
+    enPassantTargetCol = -1;
 }
 
 char Board::getPiece(int row, int col) const {
@@ -92,6 +96,19 @@ void Board::loadFromFEN(const std::string& fen) {
             if (c == 'k') blackCanCastleKingside = true;
             if (c == 'q') blackCanCastleQueenside = true;
         }
+    }
+
+    // Read en passant target square (e.g., "e3" or "-")
+    std::string enPassantSquare;
+    iss >> enPassantSquare;
+
+    if (enPassantSquare != "-" && enPassantSquare.length() == 2) {
+        // Parse algebraic notation (e.g., "e3")
+        enPassantTargetCol = enPassantSquare[0] - 'a';
+        enPassantTargetRow = 8 - (enPassantSquare[1] - '0');
+    } else {
+        enPassantTargetRow = -1;
+        enPassantTargetCol = -1;
     }
 }
 

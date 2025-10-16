@@ -147,8 +147,22 @@ std::string processMoveRequest(const std::string &fenString)
 
         if (legalMoves.empty())
         {
-            // No legal moves available (checkmate or stalemate)
-            return "{\"move\":\"\",\"status\":\"error\",\"message\":\"No legal moves available\"}";
+            // No legal moves - check if checkmate or stalemate
+            if (moves.isCheckmate())
+            {
+                // Determine winner (the side NOT to move wins)
+                std::string winner = board.isWhiteToMove() ? "black" : "white";
+                return "{\"move\":\"\",\"status\":\"checkmate\",\"winner\":\"" + winner + "\"}";
+            }
+            else if (moves.isStalemate())
+            {
+                return "{\"move\":\"\",\"status\":\"stalemate\",\"message\":\"Draw by stalemate\"}";
+            }
+            else
+            {
+                // Shouldn't reach here, but handle as error
+                return "{\"move\":\"\",\"status\":\"error\",\"message\":\"No legal moves available\"}";
+            }
         }
 
         // Create Engine object and find best move

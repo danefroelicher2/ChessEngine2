@@ -15,13 +15,19 @@ struct MoveInfo {
     bool whiteQueenside;
     bool blackKingside;
     bool blackQueenside;
+
+    // En passant state (for undo)
+    int previousEnPassantRow;  // For undo
+    int previousEnPassantCol;  // For undo
+    bool wasEnPassantCapture;  // Was this move an en passant?
+    int enPassantCapturedRow;  // Row of captured pawn (for undo)
+    int enPassantCapturedCol;  // Col of captured pawn (for undo)
 };
 
 class Moves {
 private:
     Board* board;
 
-    bool isSquareAttacked(int row, int col, bool byWhite);
     bool isKingInCheck();
 
 public:
@@ -32,6 +38,13 @@ public:
     void makeMove(const std::string& move);
     MoveInfo makeMoveWithInfo(const std::string& move);
     void unmakeMove(const std::string& move, const MoveInfo& info);
+
+    // Game state detection
+    bool isCheckmate();
+    bool isStalemate();
+
+    // Square control (for evaluation)
+    bool isSquareAttacked(int row, int col, bool byWhite);
 };
 
 #endif

@@ -14,6 +14,10 @@ private:
     bool blackCanCastleKingside;
     bool blackCanCastleQueenside;
 
+    // En passant target square
+    int enPassantTargetRow;  // -1 if no en passant available
+    int enPassantTargetCol;  // -1 if no en passant available
+
 public:
     Board();
 
@@ -40,6 +44,18 @@ public:
     void setCastleQueenside(bool white, bool canCastle) {
         if (white) whiteCanCastleQueenside = canCastle;
         else blackCanCastleQueenside = canCastle;
+    }
+
+    // En passant getters/setters
+    int getEnPassantRow() const { return enPassantTargetRow; }
+    int getEnPassantCol() const { return enPassantTargetCol; }
+    void setEnPassantTarget(int row, int col) {
+        enPassantTargetRow = row;
+        enPassantTargetCol = col;
+    }
+    void clearEnPassantTarget() {
+        enPassantTargetRow = -1;
+        enPassantTargetCol = -1;
     }
 
     std::string toString() const;

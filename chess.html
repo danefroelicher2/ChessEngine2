@@ -403,6 +403,49 @@
         }
 
         /* ============================================
+           Game Over Modal Styles
+           ============================================ */
+        .game-over-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .game-over-dialog {
+            background-color: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            text-align: center;
+            min-width: 300px;
+        }
+
+        .game-over-dialog h2 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 32px;
+            color: #333;
+        }
+
+        .game-over-dialog p {
+            margin-bottom: 30px;
+            font-size: 18px;
+            color: #666;
+        }
+
+        .game-over-dialog button {
+            padding: 15px 40px;
+            font-size: 18px;
+        }
+
+        /* ============================================
            Responsive Design
            ============================================ */
         @media (max-width: 600px) {
@@ -542,6 +585,15 @@
                 </div>
             </div>
         </div>
+
+        <!-- Game Over Modal -->
+        <div id="gameOverModal" class="game-over-modal" style="display: none;">
+            <div class="game-over-dialog">
+                <h2 id="gameOverTitle"></h2>
+                <p id="gameOverMessage"></p>
+                <button onclick="restartGame()">Play Again</button>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -565,6 +617,7 @@
         let legalMovesForPiece = []; // List of legal moves for currently selected piece
         let cachedLegalMoves = null; // Cached legal moves for current position
         let isProcessing = false; // Prevent moves while engine is thinking
+        let isGameOver = false; // Track if game has ended (checkmate or stalemate)
 
         // API endpoints
         const API_ENDPOINT = 'https://chessengine2.onrender.com/move';
@@ -860,8 +913,27 @@
             // Castling rights (simplified - always assume all castling available at start)
             fen += ' KQkq';
 
-            // En passant target square (simplified - none)
-            fen += ' -';
+            // En passant target square (parse from lastMove)
+            if (lastMove && lastMove.length === 4) {
+                const fromRow = 8 - parseInt(lastMove[1]);
+                const toRow = 8 - parseInt(lastMove[3]);
+                const fromCol = lastMove.charCodeAt(0) - 'a'.charCodeAt(0);
+                const toCol = lastMove.charCodeAt(2) - 'a'.charCodeAt(0);
+                const piece = board[toRow][toCol];
+
+                // Check if last move was a 2-square pawn advance
+                if ((piece === 'P' || piece === 'p') && Math.abs(toRow - fromRow) === 2 && fromCol === toCol) {
+                    // This creates an en passant opportunity
+                    const targetRow = Math.floor((fromRow + toRow) / 2);
+                    const files = 'abcdefgh';
+                    const ranks = '87654321';
+                    fen += ' ' + files[toCol] + ranks[targetRow];
+                } else {
+                    fen += ' -';
+                }
+            } else {
+                fen += ' -';
+            }
 
             // Halfmove clock (simplified)
             fen += ' 0';
@@ -905,6 +977,22 @@
                 const isWhite = (piece === 'P');
                 pieceToPlace = isWhite ? promotionPiece.toUpperCase() : promotionPiece.toLowerCase();
                 console.log('PROMOTION! Pawn promoted to:', pieceToPlace);
+            }
+
+            // Handle en passant capture
+            if ((piece === 'P' || piece === 'p') && toCol !== fromCol && board[toRow][toCol] === '.') {
+                // Pawn moved diagonally to empty square = en passant!
+                console.log('EN PASSANT CAPTURE DETECTED in JavaScript makeMove()!');
+
+                // The captured pawn is on the same rank as the moving pawn, in the destination column
+                const capturedPawnRow = fromRow;
+                const capturedPawnCol = toCol;
+
+                console.log('  Capturing pawn at (' + capturedPawnRow + ',' + capturedPawnCol + ')');
+                console.log('  Moving pawn to (' + toRow + ',' + toCol + ')');
+
+                // Remove the captured pawn
+                board[capturedPawnRow][capturedPawnCol] = '.';
             }
 
             board[toRow][toCol] = pieceToPlace;
@@ -1032,6 +1120,35 @@
             }
 
             pendingPromotionMove = null;
+        }
+
+        // ============================================
+        // Game Over Handling
+        // ============================================
+        function showGameOver(status, winner = null, message = null) {
+            isGameOver = true;
+            const modal = document.getElementById('gameOverModal');
+            const title = document.getElementById('gameOverTitle');
+            const messageEl = document.getElementById('gameOverMessage');
+
+            if (status === 'checkmate') {
+                title.textContent = 'Checkmate!';
+                const winnerCapitalized = winner.charAt(0).toUpperCase() + winner.slice(1);
+                messageEl.textContent = winnerCapitalized + ' wins!';
+            } else if (status === 'stalemate') {
+                title.textContent = 'Stalemate!';
+                messageEl.textContent = 'The game is a draw.';
+            }
+
+            modal.style.display = 'flex';
+        }
+
+        function restartGame() {
+            // Hide game over modal
+            document.getElementById('gameOverModal').style.display = 'none';
+
+            // Reset the board
+            resetBoard();
         }
 
         // ============================================
