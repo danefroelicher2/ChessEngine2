@@ -26,58 +26,58 @@ const int Engine::knightPST[8][8] = {
 };
 
 const int Engine::bishopPST[8][8] = {
-    {0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0}
+    {-20, -10, -10, -10, -10, -10, -10, -20},
+    {-10,   0,   0,   0,   0,   0,   0, -10},
+    {-10,   0,   5,  10,  10,   5,   0, -10},
+    {-10,   5,   5,  10,  10,   5,   5, -10},
+    {-10,   0,  10,  10,  10,  10,   0, -10},
+    {-10,  10,  10,  10,  10,  10,  10, -10},
+    {-10,   5,   0,   0,   0,   0,   5, -10},
+    {-20, -10, -10, -10, -10, -10, -10, -20}
 };
 
 const int Engine::rookPST[8][8] = {
-    {0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0}
+    { 0,  0,  0,  0,  0,  0,  0,  0},
+    { 5, 10, 10, 10, 10, 10, 10,  5},
+    {-5,  0,  0,  0,  0,  0,  0, -5},
+    {-5,  0,  0,  0,  0,  0,  0, -5},
+    {-5,  0,  0,  0,  0,  0,  0, -5},
+    {-5,  0,  0,  0,  0,  0,  0, -5},
+    {-5,  0,  0,  0,  0,  0,  0, -5},
+    { 0,  0,  0,  5,  5,  0,  0,  0}
 };
 
 const int Engine::queenPST[8][8] = {
-    {0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0}
+    {-20, -10, -10,  -5,  -5, -10, -10, -20},
+    {-10,   0,   0,   0,   0,   0,   0, -10},
+    {-10,   0,   5,   5,   5,   5,   0, -10},
+    { -5,   0,   5,   5,   5,   5,   0,  -5},
+    {  0,   0,   5,   5,   5,   5,   0,  -5},
+    {-10,   5,   5,   5,   5,   5,   0, -10},
+    {-10,   0,   5,   0,   0,   0,   0, -10},
+    {-20, -10, -10,  -5,  -5, -10, -10, -20}
 };
 
 const int Engine::kingMiddlegamePST[8][8] = {
-    {0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0}
+    {-30, -40, -40, -50, -50, -40, -40, -30},
+    {-30, -40, -40, -50, -50, -40, -40, -30},
+    {-30, -40, -40, -50, -50, -40, -40, -30},
+    {-30, -40, -40, -50, -50, -40, -40, -30},
+    {-20, -30, -30, -40, -40, -30, -30, -20},
+    {-10, -20, -20, -20, -20, -20, -20, -10},
+    { 20,  20,   0,   0,   0,   0,  20,  20},
+    { 20,  30,  10,   0,   0,  10,  30,  20}
 };
 
 const int Engine::kingEndgamePST[8][8] = {
-    {0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0}
+    {-50, -40, -30, -20, -20, -30, -40, -50},
+    {-30, -20, -10,   0,   0, -10, -20, -30},
+    {-30, -10,  20,  30,  30,  20, -10, -30},
+    {-30, -10,  30,  40,  40,  30, -10, -30},
+    {-30, -10,  30,  40,  40,  30, -10, -30},
+    {-30, -10,  20,  30,  30,  20, -10, -30},
+    {-30, -30,   0,   0,   0,   0, -30, -30},
+    {-50, -30, -30, -30, -30, -30, -30, -50}
 };
 
 Engine::Engine(Board* b, Moves* m) : board(b), moves(m) {}
@@ -92,7 +92,8 @@ int Engine::getPSTValue(char piece, int row, int col, bool isWhite) {
         case 'b': return bishopPST[pstRow][col];
         case 'r': return rookPST[pstRow][col];
         case 'q': return queenPST[pstRow][col];
-        case 'k': return kingMiddlegamePST[pstRow][col];
+        case 'k':
+            return isEndgame() ? kingEndgamePST[pstRow][col] : kingMiddlegamePST[pstRow][col];
         default: return 0;
     }
 }
@@ -569,6 +570,78 @@ int Engine::evaluateMobility() {
     return whiteMobility - blackMobility;
 }
 
+int Engine::evaluateDevelopment() {
+    int score = 0;
+
+    // Only evaluate development in opening/middlegame
+    if (isEndgame()) {
+        return 0;
+    }
+
+    // Check WHITE development
+    // Knights should be developed (not on b1 or g1)
+    if (board->getPiece(7, 1) == 'N') score -= 10;  // Knight still on b1
+    if (board->getPiece(7, 6) == 'N') score -= 10;  // Knight still on g1
+
+    // Bishops should be developed (not on c1 or f1)
+    if (board->getPiece(7, 2) == 'B') score -= 10;  // Bishop still on c1
+    if (board->getPiece(7, 5) == 'B') score -= 10;  // Bishop still on f1
+
+    // Queen should not be developed too early (penalize if moved from d1 before knights/bishops)
+    bool whiteQueenMoved = (board->getPiece(7, 3) != 'Q');
+    bool whiteMinorsStillHome = (board->getPiece(7, 1) == 'N' || board->getPiece(7, 6) == 'N' ||
+                                  board->getPiece(7, 2) == 'B' || board->getPiece(7, 5) == 'B');
+
+    if (whiteQueenMoved && whiteMinorsStillHome) {
+        score -= 20;  // Penalty for early queen development
+    }
+
+    // Rooks should be connected or on open files (bonus if not on starting squares)
+    bool whiteRookA1Moved = (board->getPiece(7, 0) != 'R');
+    bool whiteRookH1Moved = (board->getPiece(7, 7) != 'R');
+
+    // Small bonus for activating rooks
+    if (whiteRookA1Moved) score += 5;
+    if (whiteRookH1Moved) score += 5;
+
+    // Bonus for castling (king not on e1)
+    if (board->getPiece(7, 4) != 'K') {
+        score += 15;  // King has moved (likely castled)
+    }
+
+    // Check BLACK development
+    // Knights should be developed (not on b8 or g8)
+    if (board->getPiece(0, 1) == 'n') score += 10;  // Knight still on b8
+    if (board->getPiece(0, 6) == 'n') score += 10;  // Knight still on g8
+
+    // Bishops should be developed (not on c8 or f8)
+    if (board->getPiece(0, 2) == 'b') score += 10;  // Bishop still on c8
+    if (board->getPiece(0, 5) == 'b') score += 10;  // Bishop still on f8
+
+    // Queen should not be developed too early
+    bool blackQueenMoved = (board->getPiece(0, 3) != 'q');
+    bool blackMinorsStillHome = (board->getPiece(0, 1) == 'n' || board->getPiece(0, 6) == 'n' ||
+                                  board->getPiece(0, 2) == 'b' || board->getPiece(0, 5) == 'b');
+
+    if (blackQueenMoved && blackMinorsStillHome) {
+        score += 20;  // Penalty for early queen development
+    }
+
+    // Rooks activation
+    bool blackRookA8Moved = (board->getPiece(0, 0) != 'r');
+    bool blackRookH8Moved = (board->getPiece(0, 7) != 'r');
+
+    if (blackRookA8Moved) score -= 5;
+    if (blackRookH8Moved) score -= 5;
+
+    // Bonus for castling
+    if (board->getPiece(0, 4) != 'k') {
+        score -= 15;  // King has moved (likely castled)
+    }
+
+    return score;
+}
+
 int Engine::evaluate() {
     int score = 0;
 
@@ -611,6 +684,9 @@ int Engine::evaluate() {
 
     // Add mobility evaluation
     score += evaluateMobility();
+
+    // Add development evaluation
+    score += evaluateDevelopment();
 
     return score;
 }

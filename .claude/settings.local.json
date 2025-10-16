@@ -18,7 +18,9 @@
       "Bash(\"C:\\msys64\\mingw64\\bin\\c++.exe\" -std=gnu++17 -c ../main.cpp)",
       "Bash(git checkout:*)",
       "Bash(make:*)",
-      "Bash(/c/msys64/mingw64/bin/g++.exe:*)"
+      "Bash(/c/msys64/mingw64/bin/g++.exe:*)",
+      "Bash(git fetch:*)",
+      "WebFetch(domain:chessengine2.onrender.com)"
     ],
     "deny": [],
     "ask": []

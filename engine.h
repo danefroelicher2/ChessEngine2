@@ -23,6 +23,7 @@ private:
     int evaluateKingSafety();
     int evaluateCenterControl();
     int evaluateMobility();
+    int evaluateDevelopment();
     bool isEndgame();
     int minimax(int depth, int alpha, int beta, bool maximizing);
     int getPSTValue(char piece, int row, int col, bool isWhite);
