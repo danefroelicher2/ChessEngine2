@@ -42,8 +42,12 @@ private:
 
     // Search statistics (for debugging and analysis)
     long long nodesSearched;
+    long long qNodesSearched;       // Nodes searched in quiescence
     int betaCutoffs;
     int firstMoveCutoffs;
+    int maxQDepthReached;           // Maximum quiescence depth reached
+    long long totalQDepth;          // Sum of all quiescence depths (for average)
+    long long qSearches;            // Number of quiescence searches
 
     int evaluate();
     int evaluatePawnStructure();
@@ -53,6 +57,7 @@ private:
     int evaluateDevelopment();
     bool isEndgame();
     int minimax(int depth, int alpha, int beta, bool maximizing);
+    int quiescence(int alpha, int beta, int qDepth);
     int getPSTValue(char piece, int row, int col, bool isWhite);
     int countPseudoLegalMoves(int row, int col, char piece);
 
@@ -64,6 +69,9 @@ private:
     void updateHistory(const std::string& move, int depth);
     void clearMoveOrdering();
 
+    // Quiescence search helpers
+    std::vector<std::string> generateTacticalMoves();
+
     // Helper to parse move coordinates
     void parseMove(const std::string& move, int& fromRow, int& fromCol, int& toRow, int& toCol);
 
@@ -74,8 +82,11 @@ public:
 
     // Get search statistics
     long long getNodesSearched() const { return nodesSearched; }
+    long long getQNodesSearched() const { return qNodesSearched; }
     int getBetaCutoffs() const { return betaCutoffs; }
     int getFirstMoveCutoffs() const { return firstMoveCutoffs; }
+    int getMaxQDepth() const { return maxQDepthReached; }
+    double getAvgQDepth() const { return qSearches > 0 ? (double)totalQDepth / qSearches : 0.0; }
 };
 
 #endif

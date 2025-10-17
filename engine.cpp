@@ -84,8 +84,12 @@ const int Engine::kingEndgamePST[8][8] = {
 Engine::Engine(Board* b, Moves* m) : board(b), moves(m) {
     clearMoveOrdering();
     nodesSearched = 0;
+    qNodesSearched = 0;
     betaCutoffs = 0;
     firstMoveCutoffs = 0;
+    maxQDepthReached = 0;
+    totalQDepth = 0;
+    qSearches = 0;
 }
 
 int Engine::getPSTValue(char piece, int row, int col, bool isWhite) {
@@ -767,6 +771,120 @@ void Engine::updateHistory(const std::string& move, int depth) {
 }
 
 // =============================================================================
+// Quiescence Search Functions
+// =============================================================================
+
+std::vector<std::string> Engine::generateTacticalMoves() {
+    // Generate all legal moves first
+    std::vector<std::string> allMoves = moves->generateLegalMoves();
+    std::vector<std::string> tacticalMoves;
+    tacticalMoves.reserve(allMoves.size() / 4);  // Estimate: ~25% of moves are captures
+
+    for (const std::string& move : allMoves) {
+        // Parse destination square
+        int toCol = move[2] - 'a';
+        int toRow = 8 - (move[3] - '0');
+
+        // Check if destination square has an enemy piece (capture)
+        char target = board->getPiece(toRow, toCol);
+        if (target != '.') {
+            tacticalMoves.push_back(move);
+        }
+
+        // Note: We're only including captures for now
+        // Can add checks later if needed for stronger play
+    }
+
+    return tacticalMoves;
+}
+
+int Engine::quiescence(int alpha, int beta, int qDepth) {
+    qNodesSearched++;
+
+    // Safety: Maximum quiescence depth limit to prevent infinite loops
+    const int MAX_Q_DEPTH = 10;
+    if (qDepth >= MAX_Q_DEPTH) {
+        return evaluate();
+    }
+
+    // Track statistics
+    qSearches++;
+    totalQDepth += qDepth;
+    if (qDepth > maxQDepthReached) {
+        maxQDepthReached = qDepth;
+    }
+
+    // Stand pat: Evaluate the current position without making any move
+    // This allows us to "stop" if the position is already good enough
+    int standPat = evaluate();
+
+    // Beta cutoff: If standing pat is already better than beta,
+    // the opponent won't let us reach this position
+    if (standPat >= beta) {
+        return beta;
+    }
+
+    // Update alpha if standing pat is better than current alpha
+    // This raises the bar for what we're looking for
+    if (standPat > alpha) {
+        alpha = standPat;
+    }
+
+    // Generate only tactical moves (captures)
+    std::vector<std::string> tacticalMoves = generateTacticalMoves();
+
+    // If no tactical moves, return stand-pat evaluation (position is quiet)
+    if (tacticalMoves.empty()) {
+        return alpha;
+    }
+
+    // Score and sort tactical moves using MVV-LVA from Phase 2.1
+    std::vector<ScoredMove> scoredMoves = scoreMoves(tacticalMoves, -1);  // depth=-1 for quiescence
+
+    // Search each tactical move
+    for (const ScoredMove& scoredMove : scoredMoves) {
+        const std::string& move = scoredMove.move;
+
+        // Delta pruning: Skip captures that can't possibly improve alpha
+        // Parse move to get captured piece value
+        int toCol = move[2] - 'a';
+        int toRow = 8 - (move[3] - '0');
+        char capturedPiece = board->getPiece(toRow, toCol);
+        int capturedValue = getPieceValue(capturedPiece);
+
+        // Delta pruning with 200 centipawn margin
+        // If even capturing this piece + margin doesn't beat alpha, skip it
+        const int DELTA_MARGIN = 200;
+        if (standPat + capturedValue + DELTA_MARGIN < alpha) {
+            continue;  // Futile capture - can't improve position enough
+        }
+
+        // Make the tactical move
+        MoveInfo info = moves->makeMoveWithInfo(move);
+
+        // Recursively search this position
+        // Negamax style: negate the score and swap alpha/beta
+        int score = -quiescence(-beta, -alpha, qDepth + 1);
+
+        // Unmake the move
+        moves->unmakeMove(move, info);
+
+        // Beta cutoff: This move is too good, opponent won't allow it
+        if (score >= beta) {
+            return beta;
+        }
+
+        // Update alpha if we found a better move
+        if (score > alpha) {
+            alpha = score;
+        }
+    }
+
+    // Return the best score found (alpha)
+    return alpha;
+}
+
+// =============================================================================
 // Evaluation Functions
 // =============================================================================
 
@@ -823,7 +941,9 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
     nodesSearched++;
 
     if (depth == 0) {
-        return evaluate();
+        // Instead of immediately returning static evaluation,
+        // call quiescence search to avoid horizon effect
+        return quiescence(alpha, beta, 0);
     }
 
     std::vector<std::string> legalMoves = moves->generateLegalMoves();
@@ -922,8 +1042,12 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
 std::string Engine::getBestMove() {
     // Reset statistics for this search
     nodesSearched = 0;
+    qNodesSearched = 0;
     betaCutoffs = 0;
     firstMoveCutoffs = 0;
+    maxQDepthReached = 0;
+    totalQDepth = 0;
+    qSearches = 0;
 
     std::vector<std::string> legalMoves = moves->generateLegalMoves();
 
@@ -958,12 +1082,20 @@ std::string Engine::getBestMove() {
 
     // Output search statistics
     std::cout << "Search Statistics:" << std::endl;
-    std::cout << "  Nodes searched: " << nodesSearched << std::endl;
+    std::cout << "  Regular nodes: " << nodesSearched << std::endl;
+    std::cout << "  Quiescence nodes: " << qNodesSearched << std::endl;
+    std::cout << "  Total nodes: " << (nodesSearched + qNodesSearched) << std::endl;
     std::cout << "  Beta cutoffs: " << betaCutoffs << std::endl;
     std::cout << "  First move cutoffs: " << firstMoveCutoffs << std::endl;
     if (betaCutoffs > 0) {
         double percentage = (100.0 * firstMoveCutoffs) / betaCutoffs;
         std::cout << "  First move cutoff rate: " << percentage << "%" << std::endl;
+    }
+    std::cout << "  Quiescence searches: " << qSearches << std::endl;
+    std::cout << "  Max Q-depth reached: " << maxQDepthReached << std::endl;
+    if (qSearches > 0) {
+        double avgQDepth = (double)totalQDepth / qSearches;
+        std::cout << "  Avg Q-depth: " << avgQDepth << std::endl;
     }
 
     return bestMove;
