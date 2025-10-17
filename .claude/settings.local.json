@@ -24,7 +24,9 @@
       "mcp__ide__getDiagnostics",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push)"
+      "Bash(git push)",
+      "Bash(./build/test_iterative_deepening.exe:*)",
+      "Bash(./simple_test)"
     ],
     "deny": [],
     "ask": []
