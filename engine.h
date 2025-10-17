@@ -3,11 +3,13 @@
 
 #include <string>
 #include <vector>
+#include <chrono>
 #include "board.h"
 #include "moves.h"
 
 // Maximum search depth for killer moves and history table
 const int MAX_DEPTH = 64;
+const int MAX_SEARCH_DEPTH = 20;  // Maximum iterative deepening depth
 
 // Structure to hold a move with its score for sorting
 struct ScoredMove {
@@ -49,6 +51,11 @@ private:
     long long totalQDepth;          // Sum of all quiescence depths (for average)
     long long qSearches;            // Number of quiescence searches
 
+    // Time management
+    std::chrono::steady_clock::time_point searchStartTime;
+    int timeLimit;                  // Time limit in milliseconds
+    std::string pvMove;             // Principal variation move from previous iteration
+
     int evaluate();
     int evaluatePawnStructure();
     int evaluateKingSafety();
@@ -72,13 +79,19 @@ private:
     // Quiescence search helpers
     std::vector<std::string> generateTacticalMoves();
 
+    // Time management
+    bool isTimeUp();
+
+    // Iterative deepening search
+    std::string searchAtDepth(int depth, int& outScore);
+
     // Helper to parse move coordinates
     void parseMove(const std::string& move, int& fromRow, int& fromCol, int& toRow, int& toCol);
 
 public:
     Engine(Board* b, Moves* m);
 
-    std::string getBestMove();
+    std::string getBestMove(int timeLimitMs = 5000);
 
     // Get search statistics
     long long getNodesSearched() const { return nodesSearched; }

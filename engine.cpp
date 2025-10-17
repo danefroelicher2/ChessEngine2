@@ -90,6 +90,8 @@ Engine::Engine(Board* b, Moves* m) : board(b), moves(m) {
     maxQDepthReached = 0;
     totalQDepth = 0;
     qSearches = 0;
+    timeLimit = 5000;  // Default 5 seconds
+    pvMove = "";
 }
 
 int Engine::getPSTValue(char piece, int row, int col, bool isWhite) {
@@ -801,6 +803,11 @@ std::vector<std::string> Engine::generateTacticalMoves() {
 int Engine::quiescence(int alpha, int beta, int qDepth) {
     qNodesSearched++;
 
+    // Check if time is up - return stand-pat if so
+    if (isTimeUp()) {
+        return evaluate();
+    }
+
     // Safety: Maximum quiescence depth limit to prevent infinite loops
     const int MAX_Q_DEPTH = 10;
     if (qDepth >= MAX_Q_DEPTH) {
@@ -885,6 +892,18 @@ int Engine::quiescence(int alpha, int beta, int qDepth) {
 }
 
 // =============================================================================
+// Time Management Functions
+// =============================================================================
+
+bool Engine::isTimeUp() {
+    auto now = std::chrono::steady_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+        now - searchStartTime
+    ).count();
+    return elapsed >= timeLimit;
+}
+
+// =============================================================================
 // Evaluation Functions
 // =============================================================================
 
@@ -963,6 +982,11 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
         for (const ScoredMove& scoredMove : scoredMoves) {
             const std::string& move = scoredMove.move;
 
+            // Check time periodically (every 2000 nodes)
+            if (nodesSearched % 2000 == 0 && isTimeUp()) {
+                return maxEval > std::numeric_limits<int>::min() ? maxEval : 0;
+            }
+
             // Make move
             MoveInfo info = moves->makeMoveWithInfo(move);
 
@@ -1003,6 +1027,11 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
         for (const ScoredMove& scoredMove : scoredMoves) {
             const std::string& move = scoredMove.move;
 
+            // Check time periodically (every 2000 nodes)
+            if (nodesSearched % 2000 == 0 && isTimeUp()) {
+                return minEval < std::numeric_limits<int>::max() ? minEval : 0;
+            }
+
             // Make move
             MoveInfo info = moves->makeMoveWithInfo(move);
 
@@ -1039,7 +1068,74 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
     }
 }
 
-std::string Engine::getBestMove() {
+std::string Engine::searchAtDepth(int depth, int& outScore) {
+    std::vector<std::string> legalMoves = moves->generateLegalMoves();
+
+    if (legalMoves.empty()) {
+        outScore = 0;
+        return "";
+    }
+
+    // Score and sort moves, prioritizing PV move from previous iteration
+    std::vector<ScoredMove> scoredMoves;
+    scoredMoves.reserve(legalMoves.size());
+
+    for (const std::string& move : legalMoves) {
+        int score = scoreMove(move, depth);
+
+        // Boost PV move score to ensure it's searched first
+        if (!pvMove.empty() && move == pvMove) {
+            score = 10000000;  // Higher than any other score
+        }
+
+        scoredMoves.push_back(ScoredMove(move, score));
+    }
+
+    std::sort(scoredMoves.begin(), scoredMoves.end());
+
+    std::string bestMove = scoredMoves[0].move;
+    int bestScore = board->isWhiteToMove() ? std::numeric_limits<int>::min() : std::numeric_limits<int>::max();
+
+    for (const ScoredMove& scoredMove : scoredMoves) {
+        const std::string& move = scoredMove.move;
+
+        // Check if time is up before searching this move
+        if (isTimeUp()) {
+            break;  // Return best move found so far
+        }
+
+        // Make move
+        MoveInfo info = moves->makeMoveWithInfo(move);
+
+        int score = minimax(depth - 1, std::numeric_limits<int>::min(),
+                           std::numeric_limits<int>::max(), !board->isWhiteToMove());
+
+        // Undo move
+        moves->unmakeMove(move, info);
+
+        // Update best move if this is better
+        if (board->isWhiteToMove()) {
+            if (score > bestScore) {
+                bestScore = score;
+                bestMove = move;
+            }
+        } else {
+            if (score < bestScore) {
+                bestScore = score;
+                bestMove = move;
+            }
+        }
+    }
+
+    outScore = bestScore;
+    return bestMove;
+}
+
+std::string Engine::getBestMove(int timeLimitMs) {
+    // Set time limit and start timer
+    timeLimit = timeLimitMs;
+    searchStartTime = std::chrono::steady_clock::now();
+
     // Reset statistics for this search
     nodesSearched = 0;
     qNodesSearched = 0;
@@ -1055,48 +1151,90 @@ std::string Engine::getBestMove() {
         return "";
     }
 
+    // Initialize with first legal move
     std::string bestMove = legalMoves[0];
-    int bestScore = board->isWhiteToMove() ? std::numeric_limits<int>::min() : std::numeric_limits<int>::max();
+    int bestScore = 0;
+    pvMove = "";  // Clear PV move from previous search
 
-    for (const std::string& move : legalMoves) {
-        // Make move
-        MoveInfo info = moves->makeMoveWithInfo(move);
+    std::cout << "\n=== Iterative Deepening Search ===" << std::endl;
+    std::cout << "Time limit: " << timeLimitMs << "ms" << std::endl;
 
-        int score = minimax(3, std::numeric_limits<int>::min(), std::numeric_limits<int>::max(), !board->isWhiteToMove());
+    // Iterative deepening loop
+    for (int depth = 1; depth <= MAX_SEARCH_DEPTH; depth++) {
+        // Check if we have time to start this depth
+        auto now = std::chrono::steady_clock::now();
+        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+            now - searchStartTime
+        ).count();
 
-        // Undo move
-        moves->unmakeMove(move, info);
+        // If we've used 80% of time, don't start new depth
+        if (elapsed >= timeLimit * 0.8) {
+            std::cout << "Time budget exceeded, stopping at depth " << (depth - 1) << std::endl;
+            break;
+        }
 
-        if (board->isWhiteToMove()) {
-            if (score > bestScore) {
-                bestScore = score;
-                bestMove = move;
-            }
+        // Store nodes before this depth
+        long long nodesBeforeDepth = nodesSearched + qNodesSearched;
+        auto depthStartTime = std::chrono::steady_clock::now();
+
+        // Search at this depth
+        int scoreThisDepth = 0;
+        std::string moveThisDepth = searchAtDepth(depth, scoreThisDepth);
+
+        // Check if search completed (didn't run out of time)
+        if (!isTimeUp() && !moveThisDepth.empty()) {
+            // Update best move from this completed depth
+            bestMove = moveThisDepth;
+            bestScore = scoreThisDepth;
+            pvMove = moveThisDepth;  // Store for next iteration
+
+            // Calculate statistics for this depth
+            auto depthEndTime = std::chrono::steady_clock::now();
+            auto depthTime = std::chrono::duration_cast<std::chrono::milliseconds>(
+                depthEndTime - depthStartTime
+            ).count();
+            long long nodesThisDepth = (nodesSearched + qNodesSearched) - nodesBeforeDepth;
+
+            // Output depth information
+            std::cout << "Depth " << depth << ": " << moveThisDepth
+                      << " (score: " << scoreThisDepth << ")"
+                      << " [" << depthTime << "ms, "
+                      << nodesThisDepth << " nodes]" << std::endl;
         } else {
-            if (score < bestScore) {
-                bestScore = score;
-                bestMove = move;
-            }
+            // Time ran out during this depth - use previous depth result
+            std::cout << "Time expired during depth " << depth
+                      << ", using depth " << (depth - 1) << " result" << std::endl;
+            break;
         }
     }
 
-    // Output search statistics
-    std::cout << "Search Statistics:" << std::endl;
-    std::cout << "  Regular nodes: " << nodesSearched << std::endl;
-    std::cout << "  Quiescence nodes: " << qNodesSearched << std::endl;
-    std::cout << "  Total nodes: " << (nodesSearched + qNodesSearched) << std::endl;
-    std::cout << "  Beta cutoffs: " << betaCutoffs << std::endl;
-    std::cout << "  First move cutoffs: " << firstMoveCutoffs << std::endl;
+    // Calculate total search time
+    auto searchEndTime = std::chrono::steady_clock::now();
+    auto totalTime = std::chrono::duration_cast<std::chrono::milliseconds>(
+        searchEndTime - searchStartTime
+    ).count();
+
+    // Output final statistics
+    std::cout << "\n=== Search Statistics ===" << std::endl;
+    std::cout << "Best move: " << bestMove << " (score: " << bestScore << ")" << std::endl;
+    std::cout << "Total time: " << totalTime << "ms" << std::endl;
+    std::cout << "Regular nodes: " << nodesSearched << std::endl;
+    std::cout << "Quiescence nodes: " << qNodesSearched << std::endl;
+    std::cout << "Total nodes: " << (nodesSearched + qNodesSearched) << std::endl;
+    std::cout << "Nodes/sec: " << (totalTime > 0 ? (nodesSearched + qNodesSearched) * 1000 / totalTime : 0) << std::endl;
+    std::cout << "Beta cutoffs: " << betaCutoffs << std::endl;
+    std::cout << "First move cutoffs: " << firstMoveCutoffs << std::endl;
     if (betaCutoffs > 0) {
         double percentage = (100.0 * firstMoveCutoffs) / betaCutoffs;
-        std::cout << "  First move cutoff rate: " << percentage << "%" << std::endl;
+        std::cout << "First move cutoff rate: " << percentage << "%" << std::endl;
     }
-    std::cout << "  Quiescence searches: " << qSearches << std::endl;
-    std::cout << "  Max Q-depth reached: " << maxQDepthReached << std::endl;
+    std::cout << "Quiescence searches: " << qSearches << std::endl;
+    std::cout << "Max Q-depth: " << maxQDepthReached << std::endl;
     if (qSearches > 0) {
         double avgQDepth = (double)totalQDepth / qSearches;
-        std::cout << "  Avg Q-depth: " << avgQDepth << std::endl;
+        std::cout << "Avg Q-depth: " << avgQDepth << std::endl;
     }
+    std::cout << "==========================\n" << std::endl;
 
     return bestMove;
 }
