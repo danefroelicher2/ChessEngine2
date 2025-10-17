@@ -20,7 +20,8 @@
       "Bash(make:*)",
       "Bash(/c/msys64/mingw64/bin/g++.exe:*)",
       "Bash(git fetch:*)",
-      "WebFetch(domain:chessengine2.onrender.com)"
+      "WebFetch(domain:chessengine2.onrender.com)",
+      "mcp__ide__getDiagnostics"
     ],
     "deny": [],
     "ask": []

@@ -80,7 +80,12 @@ const int Engine::kingEndgamePST[8][8] = {
     {-50, -30, -30, -30, -30, -30, -30, -50}
 };
 
-Engine::Engine(Board* b, Moves* m) : board(b), moves(m) {}
+Engine::Engine(Board* b, Moves* m) : board(b), moves(m) {
+    clearMoveOrdering();
+    nodesSearched = 0;
+    betaCutoffs = 0;
+    firstMoveCutoffs = 0;
+}
 
 int Engine::getPSTValue(char piece, int row, int col, bool isWhite) {
     char type = tolower(piece);
@@ -642,6 +647,128 @@ int Engine::evaluateDevelopment() {
     return score;
 }
 
+// =============================================================================
+// Move Ordering Functions
+// =============================================================================
+
+void Engine::clearMoveOrdering() {
+    // Clear killer moves
+    for (int depth = 0; depth < MAX_DEPTH; depth++) {
+        killerMoves[depth][0] = "";
+        killerMoves[depth][1] = "";
+    }
+
+    // Clear history table
+    for (int fr = 0; fr < 8; fr++) {
+        for (int fc = 0; fc < 8; fc++) {
+            for (int tr = 0; tr < 8; tr++) {
+                for (int tc = 0; tc < 8; tc++) {
+                    historyTable[fr][fc][tr][tc] = 0;
+                }
+            }
+        }
+    }
+}
+
+int Engine::getPieceValue(char piece) {
+    char type = tolower(piece);
+    switch (type) {
+        case 'p': return 100;
+        case 'n': return 320;
+        case 'b': return 330;
+        case 'r': return 500;
+        case 'q': return 900;
+        case 'k': return 20000;
+        default: return 0;
+    }
+}
+
+void Engine::parseMove(const std::string& move, int& fromRow, int& fromCol, int& toRow, int& toCol) {
+    // Move format: "e2e4" or "e7e8q" (with promotion)
+    fromCol = move[0] - 'a';
+    fromRow = 8 - (move[1] - '0');
+    toCol = move[2] - 'a';
+    toRow = 8 - (move[3] - '0');
+}
+
+int Engine::scoreMove(const std::string& move, int depth) {
+    int fromRow, fromCol, toRow, toCol;
+    parseMove(move, fromRow, fromCol, toRow, toCol);
+
+    char movingPiece = board->getPiece(fromRow, fromCol);
+    char capturedPiece = board->getPiece(toRow, toCol);
+
+    // 1. MVV-LVA for captures (highest priority)
+    if (capturedPiece != '.') {
+        int victimValue = getPieceValue(capturedPiece);
+        int attackerValue = getPieceValue(movingPiece);
+        // Score: victimValue * 100 - attackerValue
+        // Add 1,000,000 to ensure all captures are considered before non-captures
+        return 1000000 + (victimValue * 100 - attackerValue);
+    }
+
+    // 2. Killer moves (second priority)
+    if (depth >= 0 && depth < MAX_DEPTH) {
+        if (move == killerMoves[depth][0]) {
+            return 900000;  // First killer
+        }
+        if (move == killerMoves[depth][1]) {
+            return 800000;  // Second killer
+        }
+    }
+
+    // 3. History heuristic (third priority)
+    // Cap history values to prevent overflow
+    int historyScore = historyTable[fromRow][fromCol][toRow][toCol];
+    if (historyScore > 10000) historyScore = 10000;
+    return historyScore;
+}
+
+std::vector<ScoredMove> Engine::scoreMoves(const std::vector<std::string>& moves, int depth) {
+    std::vector<ScoredMove> scoredMoves;
+    scoredMoves.reserve(moves.size());
+
+    for (const std::string& move : moves) {
+        int score = scoreMove(move, depth);
+        scoredMoves.push_back(ScoredMove(move, score));
+    }
+
+    // Sort moves by score (descending - highest scores first)
+    std::sort(scoredMoves.begin(), scoredMoves.end());
+
+    return scoredMoves;
+}
+
+void Engine::updateKillerMove(const std::string& move, int depth) {
+    if (depth < 0 || depth >= MAX_DEPTH) return;
+
+    // Don't store the same move twice
+    if (move == killerMoves[depth][0]) return;
+
+    // Shift moves: second -> discarded, first -> second, new -> first
+    killerMoves[depth][1] = killerMoves[depth][0];
+    killerMoves[depth][0] = move;
+}
+
+void Engine::updateHistory(const std::string& move, int depth) {
+    int fromRow, fromCol, toRow, toCol;
+    parseMove(move, fromRow, fromCol, toRow, toCol);
+
+    // Increment history score (depth squared gives higher weight to deeper moves)
+    // This rewards moves that cause cutoffs deeper in the tree
+    int increment = depth * depth;
+    historyTable[fromRow][fromCol][toRow][toCol] += increment;
+
+    // Cap to prevent overflow
+    if (historyTable[fromRow][fromCol][toRow][toCol] > 100000) {
+        historyTable[fromRow][fromCol][toRow][toCol] = 100000;
+    }
+}
+
+// =============================================================================
+// Evaluation Functions
+// =============================================================================
+
 int Engine::evaluate() {
     int score = 0;
 
@@ -692,6 +819,8 @@ int Engine::evaluate() {
 }
 
 int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
+    nodesSearched++;
+
     if (depth == 0) {
         return evaluate();
     }
@@ -703,9 +832,16 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
         return maximizing ? -999999 : 999999;
     }
 
+    // Score and sort moves for better move ordering
+    std::vector<ScoredMove> scoredMoves = scoreMoves(legalMoves, depth);
+
     if (maximizing) {
         int maxEval = std::numeric_limits<int>::min();
-        for (const std::string& move : legalMoves) {
+        int moveIndex = 0;
+
+        for (const ScoredMove& scoredMove : scoredMoves) {
+            const std::string& move = scoredMove.move;
+
             // Make move
             MoveInfo info = moves->makeMoveWithInfo(move);
 
@@ -714,14 +850,38 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
             // Undo move
             moves->unmakeMove(move, info);
 
-            maxEval = std::max(maxEval, eval);
+            if (eval > maxEval) {
+                maxEval = eval;
+            }
+
             alpha = std::max(alpha, eval);
-            if (beta <= alpha) break;
+            if (beta <= alpha) {
+                // Beta cutoff
+                betaCutoffs++;
+                if (moveIndex == 0) {
+                    firstMoveCutoffs++;
+                }
+
+                // Update move ordering heuristics for non-capture moves
+                // Check if this was a capture by looking at the MoveInfo
+                if (info.capturedPiece == '.') {
+                    updateKillerMove(move, depth);
+                    updateHistory(move, depth);
+                }
+
+                break;
+            }
+
+            moveIndex++;
         }
         return maxEval;
     } else {
         int minEval = std::numeric_limits<int>::max();
-        for (const std::string& move : legalMoves) {
+        int moveIndex = 0;
+
+        for (const ScoredMove& scoredMove : scoredMoves) {
+            const std::string& move = scoredMove.move;
+
             // Make move
             MoveInfo info = moves->makeMoveWithInfo(move);
 
@@ -730,15 +890,40 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
             // Undo move
             moves->unmakeMove(move, info);
 
-            minEval = std::min(minEval, eval);
+            if (eval < minEval) {
+                minEval = eval;
+            }
+
             beta = std::min(beta, eval);
-            if (beta <= alpha) break;
+            if (beta <= alpha) {
+                // Beta cutoff
+                betaCutoffs++;
+                if (moveIndex == 0) {
+                    firstMoveCutoffs++;
+                }
+
+                // Update move ordering heuristics for non-capture moves
+                // Check if this was a capture by looking at the MoveInfo
+                if (info.capturedPiece == '.') {
+                    updateKillerMove(move, depth);
+                    updateHistory(move, depth);
+                }
+
+                break;
+            }
+
+            moveIndex++;
         }
         return minEval;
     }
 }
 
 std::string Engine::getBestMove() {
+    // Reset statistics for this search
+    nodesSearched = 0;
+    betaCutoffs = 0;
+    firstMoveCutoffs = 0;
+
     std::vector<std::string> legalMoves = moves->generateLegalMoves();
 
     if (legalMoves.empty()) {
@@ -768,6 +953,16 @@ std::string Engine::getBestMove() {
                 bestMove = move;
             }
         }
+    }
+
+    // Output search statistics
+    std::cout << "Search Statistics:" << std::endl;
+    std::cout << "  Nodes searched: " << nodesSearched << std::endl;
+    std::cout << "  Beta cutoffs: " << betaCutoffs << std::endl;
+    std::cout << "  First move cutoffs: " << firstMoveCutoffs << std::endl;
+    if (betaCutoffs > 0) {
+        double percentage = (100.0 * firstMoveCutoffs) / betaCutoffs;
+        std::cout << "  First move cutoff rate: " << percentage << "%" << std::endl;
     }
 
     return bestMove;
