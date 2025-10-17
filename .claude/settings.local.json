@@ -21,7 +21,10 @@
       "Bash(/c/msys64/mingw64/bin/g++.exe:*)",
       "Bash(git fetch:*)",
       "WebFetch(domain:chessengine2.onrender.com)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)"
     ],
     "deny": [],
     "ask": []
