@@ -2,6 +2,7 @@
 #include <cctype>
 #include <limits>
 #include <algorithm>
+#include <iostream>
 
 const int Engine::pawnPST[8][8] = {
     {0, 0, 0, 0, 0, 0, 0, 0},
