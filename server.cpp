@@ -27,7 +27,7 @@ typedef int socklen_t;
 #define closesocket close
 #endif
 
-// Server configuration
+// Server configurationn
 const int PORT = 10000;
 const int BUFFER_SIZE = 4096;
 
