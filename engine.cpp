@@ -823,9 +823,9 @@ int Engine::quiescence(int alpha, int beta, int qDepth) {
     }
 
     // Safety: Maximum quiescence depth limit to prevent infinite loops
-    // PERFORMANCE FIX: Reduced from 10 to 3 to prevent Q-search explosion
-    // Q-search was reaching depth 9 and searching 2-5x more nodes than regular search
-    const int MAX_Q_DEPTH = 3;
+    // REVERTED: Back to 10 - Q-depth=3 broke tactical evaluation (false checkmates, missed captures)
+    // Need full Q-search to evaluate captures to completion, even if slower
+    const int MAX_Q_DEPTH = 10;
     if (qDepth >= MAX_Q_DEPTH) {
         return evaluate();
     }
