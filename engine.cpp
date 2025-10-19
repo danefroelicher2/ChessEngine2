@@ -735,8 +735,22 @@ std::vector<ScoredMove> Engine::scoreMoves(const std::vector<std::string>& moves
     std::vector<ScoredMove> scoredMoves;
     scoredMoves.reserve(moves.size());
 
+    // Check TT for best move (for move ordering)
+    std::string ttBestMove = "";
+    uint64_t posHash = board->getHash();
+    TTEntry* ttEntry = transpositionTable.probe(posHash);
+    if (ttEntry != nullptr && !ttEntry->bestMove.empty()) {
+        ttBestMove = ttEntry->bestMove;
+    }
+
     for (const std::string& move : moves) {
         int score = scoreMove(move, depth);
+
+        // Boost TT best move score to ensure it's searched first (even higher than PV move)
+        if (!ttBestMove.empty() && move == ttBestMove) {
+            score = 10000000;  // Highest priority
+        }
+
         scoredMoves.push_back(ScoredMove(move, score));
     }
 
@@ -959,6 +973,26 @@ int Engine::evaluate() {
 int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
     nodesSearched++;
 
+    // Store original alpha for TT bound type determination
+    int originalAlpha = alpha;
+
+    // Probe transposition table
+    uint64_t posHash = board->getHash();
+    TTEntry* ttEntry = transpositionTable.probe(posHash);
+
+    if (ttEntry != nullptr && ttEntry->depth >= depth) {
+        // We've searched this position to sufficient depth before
+        if (ttEntry->bound == EXACT) {
+            return ttEntry->score;  // Exact score - use it!
+        }
+        if (ttEntry->bound == LOWER_BOUND && ttEntry->score >= beta) {
+            return beta;  // Beta cutoff
+        }
+        if (ttEntry->bound == UPPER_BOUND && ttEntry->score <= alpha) {
+            return alpha;  // Alpha not improved
+        }
+    }
+
     if (depth == 0) {
         // Instead of immediately returning static evaluation,
         // call quiescence search to avoid horizon effect
@@ -978,6 +1012,7 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
     if (maximizing) {
         int maxEval = std::numeric_limits<int>::min();
         int moveIndex = 0;
+        std::string bestMoveFound = "";
 
         for (const ScoredMove& scoredMove : scoredMoves) {
             const std::string& move = scoredMove.move;
@@ -997,6 +1032,7 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
 
             if (eval > maxEval) {
                 maxEval = eval;
+                bestMoveFound = move;
             }
 
             alpha = std::max(alpha, eval);
@@ -1019,10 +1055,23 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
 
             moveIndex++;
         }
+
+        // Store in transposition table
+        BoundType bound;
+        if (maxEval <= originalAlpha) {
+            bound = UPPER_BOUND;  // Failed low
+        } else if (maxEval >= beta) {
+            bound = LOWER_BOUND;  // Failed high (beta cutoff)
+        } else {
+            bound = EXACT;  // PV node
+        }
+        transpositionTable.store(posHash, depth, maxEval, bestMoveFound, bound);
+
         return maxEval;
     } else {
         int minEval = std::numeric_limits<int>::max();
         int moveIndex = 0;
+        std::string bestMoveFound = "";
 
         for (const ScoredMove& scoredMove : scoredMoves) {
             const std::string& move = scoredMove.move;
@@ -1042,6 +1091,7 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
 
             if (eval < minEval) {
                 minEval = eval;
+                bestMoveFound = move;
             }
 
             beta = std::min(beta, eval);
@@ -1064,6 +1114,18 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
 
             moveIndex++;
         }
+
+        // Store in transposition table
+        BoundType bound;
+        if (minEval <= originalAlpha) {
+            bound = UPPER_BOUND;  // Failed low
+        } else if (minEval >= beta) {
+            bound = LOWER_BOUND;  // Failed high (beta cutoff)
+        } else {
+            bound = EXACT;  // PV node
+        }
+        transpositionTable.store(posHash, depth, minEval, bestMoveFound, bound);
+
         return minEval;
     }
 }
@@ -1234,6 +1296,15 @@ std::string Engine::getBestMove(int timeLimitMs) {
         double avgQDepth = (double)totalQDepth / qSearches;
         std::cout << "Avg Q-depth: " << avgQDepth << std::endl;
     }
+
+    // Transposition table statistics
+    std::cout << "\n=== Transposition Table Statistics ===" << std::endl;
+    std::cout << "TT hits: " << transpositionTable.getHits() << std::endl;
+    std::cout << "TT misses: " << transpositionTable.getMisses() << std::endl;
+    std::cout << "TT hit rate: " << transpositionTable.getHitRate() << "%" << std::endl;
+    std::cout << "TT stores: " << transpositionTable.getStores() << std::endl;
+    std::cout << "TT collisions: " << transpositionTable.getCollisions() << std::endl;
+
     std::cout << "==========================\n" << std::endl;
 
     return bestMove;

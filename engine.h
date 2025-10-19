@@ -6,6 +6,7 @@
 #include <chrono>
 #include "board.h"
 #include "moves.h"
+#include "transposition_table.h"
 
 // Maximum search depth for killer moves and history table
 const int MAX_DEPTH = 64;
@@ -29,6 +30,7 @@ class Engine {
 private:
     Board* board;
     Moves* moves;
+    TranspositionTable transpositionTable;
 
     static const int pawnPST[8][8];
     static const int knightPST[8][8];

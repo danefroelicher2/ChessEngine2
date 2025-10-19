@@ -2,6 +2,7 @@
 #define BOARD_H
 
 #include <string>
+#include <cstdint>
 
 class Board {
 private:
@@ -17,6 +18,21 @@ private:
     // En passant target square
     int enPassantTargetRow;  // -1 if no en passant available
     int enPassantTargetCol;  // -1 if no en passant available
+
+    // Zobrist hashing
+    uint64_t currentHash;
+
+    // Static Zobrist tables (initialized once)
+    static uint64_t zobristPieces[12][8][8];  // 12 piece types, 8x8 board
+    static uint64_t zobristBlackToMove;
+    static uint64_t zobristCastling[4];  // WK, WQ, BK, BQ
+    static uint64_t zobristEnPassant[8]; // For each file
+    static bool zobristInitialized;
+
+    // Zobrist helper functions
+    static void initZobrist();
+    uint64_t calculateHash();
+    int getPieceIndex(char piece) const;
 
 public:
     Board();
@@ -59,6 +75,16 @@ public:
     }
 
     std::string toString() const;
+
+    // Zobrist hashing
+    uint64_t getHash() const { return currentHash; }
+    void setHash(uint64_t hash) { currentHash = hash; }
+    void recalculateHash() { currentHash = calculateHash(); }
+    void updateHashForMove(int fromRow, int fromCol, int toRow, int toCol,
+                          char movingPiece, char capturedPiece,
+                          bool epCapture, int epCaptureRow, int epCaptureCol,
+                          bool castling, int rookFromCol, int rookToCol,
+                          char promotionPiece);
 };
 
 #endif

@@ -491,6 +491,9 @@ MoveInfo Moves::makeMoveWithInfo(const std::string& move) {
     info.wasWhiteToMove = board->isWhiteToMove();
     info.promotedFrom = '.';  // Initialize promotion field
 
+    // Save previous hash for undo
+    info.previousHash = board->getHash();
+
     // Save current castling rights
     info.whiteKingside = board->canCastleKingside(true);
     info.whiteQueenside = board->canCastleQueenside(true);
@@ -630,6 +633,9 @@ MoveInfo Moves::makeMoveWithInfo(const std::string& move) {
 
     board->setWhiteToMove(!board->isWhiteToMove());
 
+    // Recalculate hash after all changes (simpler and safer than incremental updates)
+    board->recalculateHash();
+
     return info;
 }
 
@@ -692,6 +698,9 @@ void Moves::unmakeMove(const std::string& move, const MoveInfo& info) {
     board->setCastleQueenside(false, info.blackQueenside);
 
     board->setWhiteToMove(info.wasWhiteToMove);
+
+    // Restore the hash from saved state (fastest and most reliable)
+    board->setHash(info.previousHash);
 }
 
 bool Moves::isCheckmate() {

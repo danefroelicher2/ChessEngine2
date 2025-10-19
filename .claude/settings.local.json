@@ -26,7 +26,9 @@
       "Bash(git commit:*)",
       "Bash(git push)",
       "Bash(./build/test_iterative_deepening.exe:*)",
-      "Bash(./simple_test)"
+      "Bash(./simple_test)",
+      "Bash(./test_tt.exe:*)",
+      "Bash(timeout 10 /c/msys64/mingw64/bin/g++.exe:*)"
     ],
     "deny": [],
     "ask": []

@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <cstdint>
 #include "board.h"
 
 struct MoveInfo {
@@ -22,6 +23,9 @@ struct MoveInfo {
     bool wasEnPassantCapture;  // Was this move an en passant?
     int enPassantCapturedRow;  // Row of captured pawn (for undo)
     int enPassantCapturedCol;  // Col of captured pawn (for undo)
+
+    // Zobrist hash (for undo)
+    uint64_t previousHash;
 };
 
 class Moves {
