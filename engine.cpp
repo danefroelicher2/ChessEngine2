@@ -867,19 +867,28 @@ int Engine::quiescence(int alpha, int beta, int qDepth) {
         const std::string& move = scoredMove.move;
 
         // Delta pruning: Skip captures that can't possibly improve alpha
+        // ONLY use delta pruning when we're not desperate (not far behind)
+        // When losing, even "bad" captures might lead to counterplay
+
         // Parse move to get captured piece value
         int toCol = move[2] - 'a';
         int toRow = 8 - (move[3] - '0');
         char capturedPiece = board->getPiece(toRow, toCol);
         int capturedValue = getPieceValue(capturedPiece);
 
-        // FIXED: Use a much larger delta margin to avoid pruning recaptures
-        // When down material (negative standPat), we need to search recaptures!
-        // Using 950 (queen value + margin) ensures we don't prune important recaptures
-        const int DELTA_MARGIN = 950;
-        if (standPat + capturedValue + DELTA_MARGIN < alpha) {
-            continue;  // Futile capture - can't improve position enough
+        // Only apply delta pruning when not too far behind
+        // If standPat < alpha - 200, we're desperate and need to search ALL captures
+        const int DESPERATION_THRESHOLD = 200;  // If losing by 2+ pawns, search everything
+        const int DELTA_MARGIN = 200;           // Normal delta margin
+
+        if (standPat >= alpha - DESPERATION_THRESHOLD) {
+            // Not desperate - apply delta pruning
+            if (standPat + capturedValue + DELTA_MARGIN < alpha) {
+                continue;  // Futile capture - can't improve position enough
+            }
         }
+        // If standPat < alpha - DESPERATION_THRESHOLD, we're desperate
+        // Search ALL captures (no pruning) - we need counterplay!
 
         // Make the tactical move
         MoveInfo info = moves->makeMoveWithInfo(move);
