@@ -32,7 +32,17 @@
       "Bash(if [ -f critical_diagnostic.exe ])",
       "Bash(then echo \"Executable created successfully\")",
       "Bash(else echo \"Compilation still in progress or failed\")",
-      "Bash(fi)"
+      "Bash(fi)",
+      "Bash(./test_tactical_diagnosis.exe)",
+      "Bash(echo \"Exit code: $?\")",
+      "Bash(if [ -f test_tactical_diagnosis.exe ])",
+      "Bash(./simple_test.exe)",
+      "Bash(for i in {1..20})",
+      "Bash(do sleep 5)",
+      "Bash(if [ -f chess_diagnostic.exe ])",
+      "Bash(then echo \"✓ Compilation complete!\")",
+      "Bash(exit 0)",
+      "Bash(done)"
     ],
     "deny": [],
     "ask": []

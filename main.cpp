@@ -1,97 +1,149 @@
 #include <iostream>
+#include <chrono>
 #include "board.h"
 #include "moves.h"
 #include "engine.h"
 
 int main() {
-    Board board;
-    Moves moves(&board);
-    Engine engine(&board, &moves);
+    std::cout << "╔════════════════════════════════════════════════════════════════╗\n";
+    std::cout << "║   TACTICAL FAILURE DIAGNOSTIC                                 ║\n";
+    std::cout << "║   Problem: Engine played Ke2 instead of Rxh4 (hangs queen)    ║\n";
+    std::cout << "╚════════════════════════════════════════════════════════════════╝\n\n";
 
-    std::cout << "Chess Engine - Simple Implementation\n";
-    std::cout << "=====================================\n\n";
+    // Position: Black queen on h4, hanging to Rh1
+    const char* testFEN = "rnb1kbnr/pppppppp/8/8/7q/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
-    std::cout << "Starting position:\n";
-    std::cout << board.toString() << "\n";
+    // =============================================================================
+    // TEST 1: MOVE GENERATION
+    // =============================================================================
+    std::cout << "========================================\n";
+    std::cout << "TEST 1: MOVE GENERATION\n";
+    std::cout << "========================================\n";
+    {
+        Board board;
+        board.loadFromFEN(testFEN);
+        std::cout << board.toString() << "\n";
 
-    // Generate and display legal moves
-    std::vector<std::string> legalMoves = moves.generateLegalMoves();
-    std::cout << "Number of legal moves: " << legalMoves.size() << "\n";
-    std::cout << "First 10 legal moves: ";
-    for (int i = 0; i < 10 && i < legalMoves.size(); i++) {
-        std::cout << legalMoves[i] << " ";
-    }
-    std::cout << "\n\n";
+        Moves moves(&board);
+        std::vector<std::string> legalMoves = moves.generateLegalMoves();
 
-    // Get best move
-    std::cout << "Calculating best move (depth 3)...\n";
-    std::string bestMove = engine.getBestMove();
-    std::cout << "Best move: " << bestMove << "\n\n";
+        std::cout << "Total legal moves: " << legalMoves.size() << "\n";
 
-    // Make the move
-    moves.makeMove(bestMove);
-    std::cout << "After move " << bestMove << ":\n";
-    std::cout << board.toString() << "\n";
-
-    // Test FEN loading
-    std::cout << "Testing FEN loading...\n";
-    board.loadFromFEN("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1");
-    std::cout << "After loading FEN (1.e4):\n";
-    std::cout << board.toString() << "\n";
-
-    // ========================================
-    // TEST: Can engine generate checking moves?
-    // ========================================
-    std::cout << "\n========================================\n";
-    std::cout << "TEST: Checking move generation\n";
-    std::cout << "========================================\n\n";
-
-    // Position after 1.e4 e5 - White to move
-    std::cout << "Loading position after 1.e4 e5 (White to move):\n";
-    board.loadFromFEN("rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2");
-    std::cout << board.toString() << "\n";
-
-    // Generate all legal moves
-    legalMoves = moves.generateLegalMoves();
-    std::cout << "Total legal moves for White: " << legalMoves.size() << "\n\n";
-
-    // Check if d1h5 (Queen to h5, checking the king) is in the list
-    bool foundQh5 = false;
-    std::cout << "Looking for d1h5 (Qh5+ - checks Black king)...\n";
-    for (const std::string& move : legalMoves) {
-        if (move == "d1h5") {
-            foundQh5 = true;
-            std::cout << "✓ FOUND: d1h5 (Qh5+) is in legal moves!\n";
-            break;
+        bool foundRxh4 = false;
+        for (const auto& move : legalMoves) {
+            if (move == "h1h4") {
+                foundRxh4 = true;
+                break;
+            }
         }
-    }
 
-    if (!foundQh5) {
-        std::cout << "✗ NOT FOUND: d1h5 (Qh5+) is NOT in legal moves!\n";
-        std::cout << "This is a BUG - checking moves are being filtered out!\n";
-    }
-
-    // Print all Queen moves
-    std::cout << "\nAll Queen moves from d1:\n";
-    for (const std::string& move : legalMoves) {
-        if (move.substr(0, 2) == "d1") {
-            std::cout << "  " << move << "\n";
-        }
-    }
-
-    // Print all moves (for debugging)
-    std::cout << "\nALL legal moves:\n";
-    for (size_t i = 0; i < legalMoves.size(); i++) {
-        std::cout << legalMoves[i];
-        if ((i + 1) % 10 == 0) {
+        if (foundRxh4) {
+            std::cout << "Result: ✓ PASS - h1h4 (Rxh4) found in legal moves\n\n";
+        } else {
+            std::cout << "Result: ✗ FAIL - h1h4 NOT in legal moves!\n";
+            std::cout << "Moves from h1:\n";
+            for (const auto& move : legalMoves) {
+                if (move.substr(0, 2) == "h1") {
+                    std::cout << "  " << move << "\n";
+                }
+            }
             std::cout << "\n";
-        } else if (i + 1 < legalMoves.size()) {
-            std::cout << " ";
         }
     }
-    std::cout << "\n\n========================================\n";
 
-    std::cout << "Chess engine initialized successfully!\n";
+    // =============================================================================
+    // TEST 2: EVALUATION
+    // =============================================================================
+    std::cout << "========================================\n";
+    std::cout << "TEST 2: EVALUATION\n";
+    std::cout << "========================================\n";
+    {
+        // Before capture
+        Board board1;
+        board1.loadFromFEN(testFEN);
+        Moves moves1(&board1);
+        Engine engine1(&board1, &moves1);
+        int eval1 = engine1.evaluate();
+
+        std::cout << "Position BEFORE Rxh4: " << eval1 << " centipawns\n";
+
+        // After capture
+        Board board2;
+        board2.loadFromFEN("rnb1kbnr/pppppppp/8/8/7R/8/PPPPPPPP/RNBQKBN1 b Qkq - 0 1");
+        Moves moves2(&board2);
+        Engine engine2(&board2, &moves2);
+        int eval2 = engine2.evaluate();
+
+        std::cout << "Position AFTER Rxh4:  " << eval2 << " centipawns\n";
+
+        int diff = eval2 - eval1;
+        std::cout << "Difference: " << diff << " (expected ~900)\n";
+
+        if (diff >= 700) {
+            std::cout << "Result: ✓ PASS - Evaluation correctly values queen capture\n\n";
+        } else {
+            std::cout << "Result: ✗ FAIL - Evaluation doesn't value queen capture!\n\n";
+        }
+    }
+
+    // =============================================================================
+    // TEST 3: DEPTH TEST (1 second)
+    // =============================================================================
+    std::cout << "========================================\n";
+    std::cout << "TEST 3: DEPTH TEST (1 second)\n";
+    std::cout << "========================================\n";
+    {
+        Board board;
+        board.loadFromFEN(testFEN);
+        Moves moves(&board);
+        Engine engine(&board, &moves);
+
+        auto start = std::chrono::steady_clock::now();
+        std::string move = engine.getBestMove(1000);
+        auto end = std::chrono::steady_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+        std::cout << "\nBest move: " << move << "\n";
+        std::cout << "Time: " << duration << "ms\n";
+        std::cout << "Nodes: " << engine.getNodesSearched() << "\n";
+        std::cout << "Result: " << (move == "h1h4" ? "✓ PASS" : "✗ FAIL") << "\n\n";
+    }
+
+    // =============================================================================
+    // TEST 4: DEPTH TEST (5 seconds)
+    // =============================================================================
+    std::cout << "========================================\n";
+    std::cout << "TEST 4: DEPTH TEST (5 seconds)\n";
+    std::cout << "========================================\n";
+    {
+        Board board;
+        board.loadFromFEN(testFEN);
+        Moves moves(&board);
+        Engine engine(&board, &moves);
+
+        auto start = std::chrono::steady_clock::now();
+        std::string move = engine.getBestMove(5000);
+        auto end = std::chrono::steady_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+        std::cout << "\nBest move: " << move << "\n";
+        std::cout << "Time: " << duration << "ms\n";
+        std::cout << "Nodes: " << engine.getNodesSearched() << "\n";
+        std::cout << "Result: " << (move == "h1h4" ? "✓ PASS" : "✗ FAIL") << "\n\n";
+    }
+
+    // =============================================================================
+    // SUMMARY
+    // =============================================================================
+    std::cout << "========================================\n";
+    std::cout << "DIAGNOSTIC SUMMARY\n";
+    std::cout << "========================================\n";
+    std::cout << "Look at the depth reached in the output above.\n";
+    std::cout << "\nPossible diagnoses:\n";
+    std::cout << "1. If Rxh4 not in legal moves → Move generation bug\n";
+    std::cout << "2. If eval diff < 700 → Material evaluation bug\n";
+    std::cout << "3. If more time helps → Depth/performance problem\n";
+    std::cout << "4. If depth >= 5 but wrong → Search logic bug\n";
 
     return 0;
 }
