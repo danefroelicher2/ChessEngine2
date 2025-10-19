@@ -28,7 +28,11 @@
       "Bash(./build/test_iterative_deepening.exe:*)",
       "Bash(./simple_test)",
       "Bash(./test_tt.exe:*)",
-      "Bash(timeout 10 /c/msys64/mingw64/bin/g++.exe:*)"
+      "Bash(timeout 10 /c/msys64/mingw64/bin/g++.exe:*)",
+      "Bash(if [ -f critical_diagnostic.exe ])",
+      "Bash(then echo \"Executable created successfully\")",
+      "Bash(else echo \"Compilation still in progress or failed\")",
+      "Bash(fi)"
     ],
     "deny": [],
     "ask": []

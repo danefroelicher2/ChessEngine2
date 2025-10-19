@@ -28,6 +28,14 @@ add_executable(test_tactical_bug
     engine.cpp
 )
 
+# Executable 4: Critical diagnostic tests
+add_executable(critical_diagnostic
+    critical_diagnostic.cpp
+    board.cpp
+    moves.cpp
+    engine.cpp
+)
+
 # Link socket libraries on Windows
 if(WIN32)
     target_link_libraries(chess_server ws2_32)
