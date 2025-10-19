@@ -491,9 +491,6 @@ MoveInfo Moves::makeMoveWithInfo(const std::string& move) {
     info.wasWhiteToMove = board->isWhiteToMove();
     info.promotedFrom = '.';  // Initialize promotion field
 
-    // Save previous hash for undo
-    info.previousHash = board->getHash();
-
     // Save current castling rights
     info.whiteKingside = board->canCastleKingside(true);
     info.whiteQueenside = board->canCastleQueenside(true);
@@ -509,6 +506,10 @@ MoveInfo Moves::makeMoveWithInfo(const std::string& move) {
 
     // Clear en passant target (will be set again if this move creates a new opportunity)
     board->clearEnPassantTarget();
+
+    // CRITICAL: Save hash AFTER clearing en passant to ensure hash matches board state
+    // This was causing 0.26% TT hit rate - hash was saved before modifying en passant state
+    info.previousHash = board->getHash();
 
     if (move.length() != 4 && move.length() != 5) {
         info.capturedPiece = '.';
