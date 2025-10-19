@@ -9,6 +9,7 @@
 #include <sstream>
 #include <cstring>
 #include <algorithm>
+#include <cstdlib>  // for getenv
 
 // Platform-specific socket headers
 #ifdef _WIN32
@@ -27,8 +28,17 @@ typedef int socklen_t;
 #define closesocket close
 #endif
 
-// Server configurationn
-const int PORT = 10000;
+// Server configuration
+// Read PORT from environment variable (required for Render deployment)
+int getPortFromEnv() {
+    const char* portEnv = std::getenv("PORT");
+    if (portEnv != nullptr) {
+        return std::atoi(portEnv);
+    }
+    return 10000;  // Default fallback for local development
+}
+
+const int PORT = getPortFromEnv();
 const int BUFFER_SIZE = 4096;
 
 // =============================================================================
@@ -374,12 +384,14 @@ int main()
         return 1;
     }
 
-    std::cout << "Server listening on port " << PORT << std::endl;
+    // Startup logging for Render deployment detection
+    std::cout << "Server listening on 0.0.0.0:" << PORT << std::endl;
+    std::cout << "Ready to accept connections" << std::endl;
     std::cout << "Endpoints:" << std::endl;
     std::cout << "  GET /move?fen=<FEN_STRING>" << std::endl;
     std::cout << "  GET /legal-moves?fen=<FEN_STRING>" << std::endl;
-    std::cout << "Press Ctrl+C to stop\n"
-              << std::endl;
+    std::cout << "Press Ctrl+C to stop\n" << std::endl;
+    std::flush(std::cout);  // Force output to appear immediately
 
     // Main server loop - handle requests one at a time
     while (true)
