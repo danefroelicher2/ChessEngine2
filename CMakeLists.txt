@@ -20,6 +20,14 @@ add_executable(chess_server
     engine.cpp
 )
 
+# Executable 3: Tactical bug diagnostic tests
+add_executable(test_tactical_bug
+    test_tactical_bug.cpp
+    board.cpp
+    moves.cpp
+    engine.cpp
+)
+
 # Link socket libraries on Windows
 if(WIN32)
     target_link_libraries(chess_server ws2_32)

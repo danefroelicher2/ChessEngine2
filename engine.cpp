@@ -873,9 +873,10 @@ int Engine::quiescence(int alpha, int beta, int qDepth) {
         char capturedPiece = board->getPiece(toRow, toCol);
         int capturedValue = getPieceValue(capturedPiece);
 
-        // Delta pruning with 200 centipawn margin
-        // If even capturing this piece + margin doesn't beat alpha, skip it
-        const int DELTA_MARGIN = 200;
+        // FIXED: Use a much larger delta margin to avoid pruning recaptures
+        // When down material (negative standPat), we need to search recaptures!
+        // Using 950 (queen value + margin) ensures we don't prune important recaptures
+        const int DELTA_MARGIN = 950;
         if (standPat + capturedValue + DELTA_MARGIN < alpha) {
             continue;  // Futile capture - can't improve position enough
         }
