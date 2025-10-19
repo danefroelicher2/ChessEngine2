@@ -8,6 +8,10 @@
 #include "moves.h"
 #include "transposition_table.h"
 
+// Performance diagnostic flag
+// Set to 1 for fast tactical search, 0 for full positional evaluation
+#define FAST_EVAL_MODE 1
+
 // Maximum search depth for killer moves and history table
 const int MAX_DEPTH = 64;
 const int MAX_SEARCH_DEPTH = 20;  // Maximum iterative deepening depth

@@ -962,20 +962,23 @@ int Engine::evaluate() {
         }
     }
 
-    // Add pawn structure evaluation
-    score += evaluatePawnStructure();
-
-    // Add king safety evaluation
-    score += evaluateKingSafety();
-
-    // Add center control evaluation
-    score += evaluateCenterControl();
-
-    // Add mobility evaluation
-    score += evaluateMobility();
-
-    // Add development evaluation
-    score += evaluateDevelopment();
+    // CONDITIONAL: Positional evaluation functions
+    #if FAST_EVAL_MODE == 0
+        // Full evaluation (better positional play, slower search)
+        score += evaluatePawnStructure();
+        score += evaluateKingSafety();
+        score += evaluateCenterControl();
+        score += evaluateMobility();        // VERY EXPENSIVE
+        score += evaluateDevelopment();
+    #else
+        // Fast evaluation (tactical focus, deeper search)
+        score += evaluatePawnStructure();   // Keep - relatively fast
+        score += evaluateKingSafety();      // Keep - important for king safety
+        // DISABLED for speed testing:
+        // score += evaluateCenterControl();  // Skip - moderate cost
+        // score += evaluateMobility();       // Skip - VERY expensive
+        // score += evaluateDevelopment();    // Skip - opening only
+    #endif
 
     return score;
 }
@@ -1229,6 +1232,11 @@ std::string Engine::getBestMove(int timeLimitMs) {
     pvMove = "";  // Clear PV move from previous search
 
     std::cout << "\n=== Iterative Deepening Search ===" << std::endl;
+    #if FAST_EVAL_MODE == 1
+        std::cout << "FAST_EVAL_MODE: Enabled (tactical focus)" << std::endl;
+    #else
+        std::cout << "FAST_EVAL_MODE: Disabled (full evaluation)" << std::endl;
+    #endif
     std::cout << "Time limit: " << timeLimitMs << "ms" << std::endl;
 
     // Iterative deepening loop
