@@ -735,21 +735,21 @@ std::vector<ScoredMove> Engine::scoreMoves(const std::vector<std::string>& moves
     std::vector<ScoredMove> scoredMoves;
     scoredMoves.reserve(moves.size());
 
-    // Check TT for best move (for move ordering)
-    std::string ttBestMove = "";
-    uint64_t posHash = board->getHash();
-    TTEntry* ttEntry = transpositionTable.probe(posHash);
-    if (ttEntry != nullptr && !ttEntry->bestMove.empty()) {
-        ttBestMove = ttEntry->bestMove;
-    }
+    // TEMPORARY: DISABLE TT LOOKUP FOR MOVE ORDERING - Testing if broken TT is hurting performance
+    // std::string ttBestMove = "";
+    // uint64_t posHash = board->getHash();
+    // TTEntry* ttEntry = transpositionTable.probe(posHash);
+    // if (ttEntry != nullptr && !ttEntry->bestMove.empty()) {
+    //     ttBestMove = ttEntry->bestMove;
+    // }
 
     for (const std::string& move : moves) {
         int score = scoreMove(move, depth);
 
-        // Boost TT best move score to ensure it's searched first (even higher than PV move)
-        if (!ttBestMove.empty() && move == ttBestMove) {
-            score = 10000000;  // Highest priority
-        }
+        // TEMPORARY: DISABLE TT BEST MOVE BOOST
+        // if (!ttBestMove.empty() && move == ttBestMove) {
+        //     score = 10000000;  // Highest priority
+        // }
 
         scoredMoves.push_back(ScoredMove(move, score));
     }
@@ -989,22 +989,22 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
     // Store original alpha for TT bound type determination
     int originalAlpha = alpha;
 
-    // Probe transposition table
-    uint64_t posHash = board->getHash();
-    TTEntry* ttEntry = transpositionTable.probe(posHash);
+    // TEMPORARY: DISABLE TT PROBE - Testing if broken TT is hurting performance
+    // uint64_t posHash = board->getHash();
+    // TTEntry* ttEntry = transpositionTable.probe(posHash);
 
-    if (ttEntry != nullptr && ttEntry->depth >= depth) {
-        // We've searched this position to sufficient depth before
-        if (ttEntry->bound == EXACT) {
-            return ttEntry->score;  // Exact score - use it!
-        }
-        if (ttEntry->bound == LOWER_BOUND && ttEntry->score >= beta) {
-            return beta;  // Beta cutoff
-        }
-        if (ttEntry->bound == UPPER_BOUND && ttEntry->score <= alpha) {
-            return alpha;  // Alpha not improved
-        }
-    }
+    // if (ttEntry != nullptr && ttEntry->depth >= depth) {
+    //     // We've searched this position to sufficient depth before
+    //     if (ttEntry->bound == EXACT) {
+    //         return ttEntry->score;  // Exact score - use it!
+    //     }
+    //     if (ttEntry->bound == LOWER_BOUND && ttEntry->score >= beta) {
+    //         return beta;  // Beta cutoff
+    //     }
+    //     if (ttEntry->bound == UPPER_BOUND && ttEntry->score <= alpha) {
+    //         return alpha;  // Alpha not improved
+    //     }
+    // }
 
     if (depth == 0) {
         // Instead of immediately returning static evaluation,
@@ -1069,16 +1069,16 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
             moveIndex++;
         }
 
-        // Store in transposition table
-        BoundType bound;
-        if (maxEval <= originalAlpha) {
-            bound = UPPER_BOUND;  // Failed low
-        } else if (maxEval >= beta) {
-            bound = LOWER_BOUND;  // Failed high (beta cutoff)
-        } else {
-            bound = EXACT;  // PV node
-        }
-        transpositionTable.store(posHash, depth, maxEval, bestMoveFound, bound);
+        // TEMPORARY: DISABLE TT STORE - Testing if broken TT is hurting performance
+        // BoundType bound;
+        // if (maxEval <= originalAlpha) {
+        //     bound = UPPER_BOUND;  // Failed low
+        // } else if (maxEval >= beta) {
+        //     bound = LOWER_BOUND;  // Failed high (beta cutoff)
+        // } else {
+        //     bound = EXACT;  // PV node
+        // }
+        // transpositionTable.store(posHash, depth, maxEval, bestMoveFound, bound);
 
         return maxEval;
     } else {
@@ -1128,16 +1128,16 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
             moveIndex++;
         }
 
-        // Store in transposition table
-        BoundType bound;
-        if (minEval <= originalAlpha) {
-            bound = UPPER_BOUND;  // Failed low
-        } else if (minEval >= beta) {
-            bound = LOWER_BOUND;  // Failed high (beta cutoff)
-        } else {
-            bound = EXACT;  // PV node
-        }
-        transpositionTable.store(posHash, depth, minEval, bestMoveFound, bound);
+        // TEMPORARY: DISABLE TT STORE - Testing if broken TT is hurting performance
+        // BoundType bound;
+        // if (minEval <= originalAlpha) {
+        //     bound = UPPER_BOUND;  // Failed low
+        // } else if (minEval >= beta) {
+        //     bound = LOWER_BOUND;  // Failed high (beta cutoff)
+        // } else {
+        //     bound = EXACT;  // PV node
+        // }
+        // transpositionTable.store(posHash, depth, minEval, bestMoveFound, bound);
 
         return minEval;
     }
