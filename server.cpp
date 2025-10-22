@@ -138,6 +138,12 @@ bool isSaveOpeningMoveRequest(const std::string &request)
     return request.find("GET /save-opening-move") == 0;
 }
 
+// Check if request is GET /get-opening-move
+bool isGetOpeningMoveRequest(const std::string &request)
+{
+    return request.find("GET /get-opening-move") == 0;
+}
+
 // =============================================================================
 // Chess Engine Integration
 // =============================================================================
@@ -519,6 +525,108 @@ std::string processSaveOpeningMoveRequest(const std::string &opening, const std:
     }
 }
 
+// Process get opening move request
+std::string processGetOpeningMoveRequest(const std::string &opening, const std::string &fen)
+{
+    try
+    {
+        // Validate parameters
+        if (opening.empty() || fen.empty())
+        {
+            return "{\"status\":\"error\",\"message\":\"Missing required parameters: opening, fen\"}";
+        }
+
+        std::cout << "Looking up FEN: " << fen << " in opening: " << opening << std::endl;
+
+        // Build file path
+        std::string filename = "openings/" + opening + ".json";
+
+        // Read existing file
+        std::ifstream inFile(filename);
+        if (!inFile.is_open())
+        {
+            std::cout << "  → not found (file doesn't exist)" << std::endl;
+            return "{\"status\":\"ok\",\"move\":\"\",\"found\":false}";
+        }
+
+        // Read entire file into string
+        std::string jsonContent((std::istreambuf_iterator<char>(inFile)),
+                                std::istreambuf_iterator<char>());
+        inFile.close();
+
+        // Escape the FEN for searching in JSON
+        std::string escapedFen = escapeJsonString(fen);
+        std::string fenPattern = "\"" + escapedFen + "\"";
+
+        // Search for the FEN in the positions object
+        size_t fenPos = jsonContent.find(fenPattern);
+        if (fenPos == std::string::npos)
+        {
+            std::cout << "  → not found" << std::endl;
+            return "{\"status\":\"ok\",\"move\":\"\",\"found\":false}";
+        }
+
+        // Find the "best_move" value for this FEN
+        // Look for "best_move":"..." after the FEN position
+        size_t bestMoveStart = jsonContent.find("\"best_move\":", fenPos);
+        if (bestMoveStart == std::string::npos)
+        {
+            std::cout << "  → not found (no best_move field)" << std::endl;
+            return "{\"status\":\"ok\",\"move\":\"\",\"found\":false}";
+        }
+
+        // Find the opening quote of the move value
+        size_t moveValueStart = jsonContent.find("\"", bestMoveStart + 12);
+        if (moveValueStart == std::string::npos)
+        {
+            std::cout << "  → not found (invalid JSON)" << std::endl;
+            return "{\"status\":\"ok\",\"move\":\"\",\"found\":false}";
+        }
+
+        // Find the closing quote
+        size_t moveValueEnd = jsonContent.find("\"", moveValueStart + 1);
+        if (moveValueEnd == std::string::npos)
+        {
+            std::cout << "  → not found (invalid JSON)" << std::endl;
+            return "{\"status\":\"ok\",\"move\":\"\",\"found\":false}";
+        }
+
+        // Extract the move
+        std::string move = jsonContent.substr(moveValueStart + 1, moveValueEnd - moveValueStart - 1);
+
+        // Verify this best_move belongs to the FEN we're looking for
+        // (make sure we didn't find a best_move from a different position)
+        // Check that the best_move is within a reasonable distance from the FEN
+        if (bestMoveStart - fenPos > 200)
+        {
+            // Too far away, probably a different entry
+            std::cout << "  → not found (best_move too far from FEN)" << std::endl;
+            return "{\"status\":\"ok\",\"move\":\"\",\"found\":false}";
+        }
+
+        std::cout << "  → found: " << move << std::endl;
+
+        // Return success response with move
+        return "{\"status\":\"ok\",\"move\":\"" + escapeJsonString(move) + "\",\"found\":true}";
+    }
+    catch (const std::exception &e)
+    {
+        std::string errorMsg = e.what();
+        // Escape quotes in error message
+        size_t pos = 0;
+        while ((pos = errorMsg.find("\"", pos)) != std::string::npos)
+        {
+            errorMsg.replace(pos, 1, "\\\"");
+            pos += 2;
+        }
+        return "{\"status\":\"error\",\"message\":\"" + errorMsg + "\"}";
+    }
+    catch (...)
+    {
+        return "{\"status\":\"error\",\"message\":\"Unknown error occurred while retrieving opening move\"}";
+    }
+}
+
 // =============================================================================
 // HTTP Response Generation
 // =============================================================================
@@ -547,7 +655,7 @@ std::string buildHttpResponse(const std::string &jsonBody)
 // Build 404 Not Found response
 std::string build404Response()
 {
-    std::string body = "{\"status\":\"error\",\"message\":\"Endpoint not found. Use GET /move?fen=..., GET /legal-moves?fen=..., or GET /save-opening-move?opening=...&fen=...&move=...\"}";
+    std::string body = "{\"status\":\"error\",\"message\":\"Endpoint not found. Available endpoints: GET /move?fen=..., GET /legal-moves?fen=..., GET /save-opening-move?opening=...&fen=...&move=..., GET /get-opening-move?opening=...&fen=...\"}";
     std::ostringstream response;
 
     response << "HTTP/1.1 404 Not Found\r\n";
@@ -703,6 +811,14 @@ int main()
                 std::string fenString = extractQueryParam(request, "fen");
                 std::string move = extractQueryParam(request, "move");
                 std::string jsonResponse = processSaveOpeningMoveRequest(opening, fenString, move);
+                response = buildHttpResponse(jsonResponse);
+            }
+            else if (isGetOpeningMoveRequest(request))
+            {
+                // Extract parameters and process get opening move request
+                std::string opening = extractQueryParam(request, "opening");
+                std::string fenString = extractQueryParam(request, "fen");
+                std::string jsonResponse = processGetOpeningMoveRequest(opening, fenString);
                 response = buildHttpResponse(jsonResponse);
             }
             else
