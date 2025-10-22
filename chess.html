@@ -1632,17 +1632,21 @@
                 showStatus('Deleting from opening book...', 'thinking');
 
                 console.log('Deleting FEN:', lastEngineFEN);
+                console.log('Encoded FEN:', encodedFEN);
                 console.log('From opening:', opening);
 
-                const response = await fetch(
-                    `${API_ENDPOINT.replace('/move', '')}/delete-opening-move?opening=${opening}&fen=${encodedFEN}`
-                );
+                const deleteURL = `${API_ENDPOINT.replace('/move', '')}/delete-opening-move?opening=${opening}&fen=${encodedFEN}`;
+                console.log('DELETE URL:', deleteURL);
+
+                const response = await fetch(deleteURL);
+                console.log('Response status:', response.status);
 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
                 const data = await response.json();
+                console.log('Delete response:', data);
 
                 if (data.status === 'ok') {
                     console.log('✓ Position deleted from opening book');
@@ -1970,8 +1974,13 @@
                                 setEngineIdle();
 
                                 // Show the "Forget Move" button
-                                document.getElementById('forgetMoveBtn').style.display = 'inline-block';
+                                const forgetBtn = document.getElementById('forgetMoveBtn');
+                                forgetBtn.style.display = 'inline-block';
 
+                                console.log('✅ FORGET MOVE BUTTON SHOWN');
+                                console.log('Button element:', forgetBtn);
+                                console.log('Button display style:', forgetBtn.style.display);
+                                console.log('Button computed display:', window.getComputedStyle(forgetBtn).display);
                                 console.log('Successfully played learned move');
                                 console.log('Last engine move captured:', lastEngineMove);
                                 console.log('FEN before move:', lastEngineFEN);

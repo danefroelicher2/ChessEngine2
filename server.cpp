@@ -644,33 +644,46 @@ std::string processDeleteOpeningMoveRequest(const std::string &opening, const st
             return "{\"status\":\"error\",\"message\":\"Missing required parameters: opening, fen\"}";
         }
 
-        std::cout << "Deleting position: " << fen << " from opening: " << opening << std::endl;
+        std::cout << "=== DELETE REQUEST ===" << std::endl;
+        std::cout << "DEBUG: Raw FEN from request: " << fen << std::endl;
+        std::cout << "DEBUG: Opening: " << opening << std::endl;
 
         // Build file path
         std::string filename = "openings/" + opening + ".json";
+        std::cout << "DEBUG: File path: " << filename << std::endl;
 
         // Read existing file
         std::ifstream inFile(filename);
         if (!inFile.is_open())
         {
+            std::cout << "ERROR: Could not open file: " << filename << std::endl;
             return "{\"status\":\"error\",\"message\":\"Opening file not found: " + filename + "\"}";
         }
 
         std::string jsonContent((std::istreambuf_iterator<char>(inFile)),
                                 std::istreambuf_iterator<char>());
         inFile.close();
+        std::cout << "DEBUG: File read successfully, size: " << jsonContent.length() << " bytes" << std::endl;
 
         // Escape the FEN for searching
         std::string escapedFen = escapeJsonString(fen);
         std::string fenPattern = "\"" + escapedFen + "\"";
+        std::cout << "DEBUG: Escaped FEN for search: " << escapedFen << std::endl;
+        std::cout << "DEBUG: FEN pattern to find: " << fenPattern << std::endl;
 
         // Find the FEN in the JSON
         size_t fenPos = jsonContent.find(fenPattern);
+        std::cout << "DEBUG: Search result position: " << fenPos << std::endl;
+
         if (fenPos == std::string::npos)
         {
+            std::cout << "DEBUG: FEN NOT FOUND in JSON!" << std::endl;
+            std::cout << "DEBUG: JSON content (first 500 chars): " << jsonContent.substr(0, 500) << std::endl;
             std::cout << "  → Position not in book (nothing to delete)" << std::endl;
             return "{\"status\":\"ok\",\"message\":\"Position was not in book\"}";
         }
+
+        std::cout << "DEBUG: FEN FOUND at position: " << fenPos << std::endl;
 
         // Find the entry boundaries
         // Backtrack to find the start of this line (find the opening quote before the FEN)
@@ -722,7 +735,14 @@ std::string processDeleteOpeningMoveRequest(const std::string &opening, const st
         }
 
         // Delete the entry (from lineStart to entryEnd inclusive)
+        std::cout << "DEBUG: Entry starts at: " << lineStart << std::endl;
+        std::cout << "DEBUG: Entry ends at: " << entryEnd << std::endl;
+        std::cout << "DEBUG: Has comma after: " << hasCommaAfter << std::endl;
+        std::cout << "DEBUG: Deleting range: [" << lineStart << " to " << entryEnd << "] (length: " << (entryEnd - lineStart + 1) << ")" << std::endl;
+        std::cout << "DEBUG: Content to delete: " << jsonContent.substr(lineStart, std::min((size_t)200, entryEnd - lineStart + 1)) << std::endl;
+
         jsonContent.erase(lineStart, entryEnd - lineStart + 1);
+        std::cout << "DEBUG: Entry erased from JSON string" << std::endl;
 
         // Update positions_learned count (decrement by 1)
         int currentCount = extractJsonNumberValue(jsonContent, "positions_learned");
@@ -768,16 +788,37 @@ std::string processDeleteOpeningMoveRequest(const std::string &opening, const st
         }
 
         // Write back to file
+        std::cout << "DEBUG: Writing modified JSON back to file..." << std::endl;
         std::ofstream outFile(filename);
         if (!outFile.is_open())
         {
+            std::cout << "ERROR: Could not open file for writing: " << filename << std::endl;
             return "{\"status\":\"error\",\"message\":\"Could not write to file\"}";
         }
 
         outFile << jsonContent;
         outFile.close();
+        std::cout << "DEBUG: File written successfully" << std::endl;
+
+        // Verify deletion
+        std::cout << "DEBUG: Verifying deletion..." << std::endl;
+        std::ifstream verifyFile(filename);
+        std::string verifyContent((std::istreambuf_iterator<char>(verifyFile)),
+                                   std::istreambuf_iterator<char>());
+        verifyFile.close();
+
+        if (verifyContent.find(escapedFen) != std::string::npos)
+        {
+            std::cout << "ERROR: FEN still exists after deletion!" << std::endl;
+            std::cout << "VERIFICATION FAILED!" << std::endl;
+        }
+        else
+        {
+            std::cout << "VERIFIED: FEN successfully deleted from file" << std::endl;
+        }
 
         std::cout << "  → Position deleted! Positions remaining: " << currentCount << std::endl;
+        std::cout << "=== DELETE COMPLETE ===" << std::endl;
 
         return "{\"status\":\"ok\",\"message\":\"Position deleted\",\"positions_learned\":" + std::to_string(currentCount) + "}";
     }
