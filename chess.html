@@ -756,6 +756,7 @@
         let cachedLegalMoves = null; // Cached legal moves for current position
         let isProcessing = false; // Prevent moves while engine is thinking
         let isGameOver = false; // Track if game has ended (checkmate or stalemate)
+        let isLearnMode = false; // Track if Learn Mode is active
 
         // API endpoints
         const API_ENDPOINT = 'https://chessengine2.onrender.com/move';
@@ -1003,9 +1004,19 @@
                 cachedLegalMoves = null; // Clear cache for new position
                 renderBoard();
 
-                // Now trigger engine move automatically
-                // This runs in the background without blocking
-                getEngineMove(true);
+                // Check if Learn Mode is active and engine should respond
+                const engineColor = document.getElementById('engineColor').value;
+                const isEngineWhite = engineColor === 'white';
+                const engineShouldRespond = (whiteToMove === isEngineWhite);
+
+                if (isLearnMode && engineShouldRespond) {
+                    // In Learn Mode: check if we should ask for a move
+                    checkIfEngineShouldAskForMove();
+                } else {
+                    // Normal mode: trigger engine move automatically
+                    // This runs in the background without blocking
+                    getEngineMove(true);
+                }
             } else {
                 // Invalid move format (shouldn't happen if validation passed)
                 selectedSquare = null;
@@ -1253,8 +1264,18 @@
                 cachedLegalMoves = null;
                 renderBoard();
 
-                // Trigger engine move
-                getEngineMove(true);
+                // Check if Learn Mode is active and engine should respond
+                const engineColor = document.getElementById('engineColor').value;
+                const isEngineWhite = engineColor === 'white';
+                const engineShouldRespond = (whiteToMove === isEngineWhite);
+
+                if (isLearnMode && engineShouldRespond) {
+                    // In Learn Mode: check if we should ask for a move
+                    checkIfEngineShouldAskForMove();
+                } else {
+                    // Normal mode: trigger engine move
+                    getEngineMove(true);
+                }
             }
 
             pendingPromotionMove = null;
@@ -1404,6 +1425,82 @@
         }
 
         // ============================================
+        // Learn Mode Functions
+        // ============================================
+
+        // Toggle Learn Mode ON/OFF
+        function toggleLearnMode() {
+            isLearnMode = !isLearnMode;
+
+            const learnModeBtn = document.getElementById('learnModeBtn');
+            const openingSelect = document.getElementById('openingSelect');
+            const learnModeSection = document.getElementById('learnModeSection');
+
+            if (isLearnMode) {
+                // Turn ON
+                learnModeBtn.textContent = 'Learn Mode: ON';
+                learnModeBtn.classList.add('active');
+                learnModeSection.classList.add('active');
+                openingSelect.disabled = false;
+                console.log('Learn Mode: ON');
+            } else {
+                // Turn OFF
+                learnModeBtn.textContent = 'Learn Mode: OFF';
+                learnModeBtn.classList.remove('active');
+                learnModeSection.classList.remove('active');
+                openingSelect.disabled = true;
+                console.log('Learn Mode: OFF');
+            }
+        }
+
+        // Show the Move Input Modal
+        function showMoveInputModal() {
+            const modal = document.getElementById('moveInputModal');
+            const input = document.getElementById('moveInput');
+
+            modal.style.display = 'flex';
+
+            // Focus the input field after a short delay to ensure modal is visible
+            setTimeout(() => {
+                input.focus();
+            }, 100);
+
+            console.log('Move Input Modal shown');
+        }
+
+        // Hide the Move Input Modal
+        function hideMoveInputModal() {
+            const modal = document.getElementById('moveInputModal');
+            const input = document.getElementById('moveInput');
+
+            modal.style.display = 'none';
+            input.value = ''; // Clear the input field
+
+            console.log('Move Input Modal hidden');
+        }
+
+        // Handle the "Teach Move" action
+        function handleTeachMove() {
+            const input = document.getElementById('moveInput');
+            const move = input.value.trim();
+
+            if (move) {
+                console.log('Teaching move:', move);
+                // TODO: Validate move format and save to opening book
+                hideMoveInputModal();
+            } else {
+                console.log('No move entered');
+            }
+        }
+
+        // Check if engine should ask for a move (placeholder for next step)
+        function checkIfEngineShouldAskForMove() {
+            // TODO: Check if current position exists in opening book
+            // If not found, show the move input modal
+            console.log('TODO: Check if engine knows this position');
+        }
+
+        // ============================================
         // Initialize on Page Load
         // ============================================
         window.onload = function() {
@@ -1411,6 +1508,27 @@
             renderBoard();
             console.log('Chess board initialized!');
             console.log('API Endpoint:', API_ENDPOINT);
+
+            // Wire up Learn Mode button
+            const learnModeBtn = document.getElementById('learnModeBtn');
+            learnModeBtn.addEventListener('click', toggleLearnMode);
+
+            // Wire up Move Input Modal buttons
+            const teachMoveBtn = document.getElementById('teachMoveBtn');
+            const cancelMoveBtn = document.getElementById('cancelMoveBtn');
+
+            teachMoveBtn.addEventListener('click', handleTeachMove);
+            cancelMoveBtn.addEventListener('click', hideMoveInputModal);
+
+            // Wire up Enter key support in move input field
+            const moveInput = document.getElementById('moveInput');
+            moveInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    handleTeachMove();
+                }
+            });
+
+            console.log('Learn Mode event handlers initialized');
         };
     </script>
 </body>
