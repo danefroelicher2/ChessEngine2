@@ -484,6 +484,29 @@
             justify-content: center;
         }
 
+        .learn-mode-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .danger-btn {
+            background-color: #d32f2f;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+
+        .danger-btn:hover {
+            background-color: #b71c1c;
+        }
+
         select:disabled {
             background: #e9ecef;
             cursor: not-allowed;
@@ -652,11 +675,19 @@
                 <div class="learn-mode-header">
                     <button id="learnModeBtn">Learn Mode: OFF</button>
                 </div>
-                <div class="opening-selection">
-                    <label for="openingSelect">Teaching:</label>
-                    <select id="openingSelect" disabled>
-                        <option value="caro_kann_classical">Caro-Kann Classical</option>
-                    </select>
+                <div class="learn-mode-controls">
+                    <div class="opening-selection">
+                        <label for="openingSelect">Teaching:</label>
+                        <select id="openingSelect" disabled>
+                            <option value="caro_kann_classical">Caro-Kann Classical</option>
+                        </select>
+                    </div>
+                    <button id="forgetMoveBtn"
+                            onclick="forgetLastMove()"
+                            class="danger-btn"
+                            style="display: none;">
+                        Forget Move
+                    </button>
                 </div>
             </div>
 
@@ -757,6 +788,8 @@
         let isProcessing = false; // Prevent moves while engine is thinking
         let isGameOver = false; // Track if game has ended (checkmate or stalemate)
         let isLearnMode = false; // Track if Learn Mode is active
+        let lastEngineMove = null; // Tracks the last move the engine made
+        let lastEngineFEN = null; // FEN before the engine moved
 
         // API endpoints
         const API_ENDPOINT = 'https://chessengine2.onrender.com/move';
@@ -997,6 +1030,11 @@
 
             // Make the move IMMEDIATELY for instant visual feedback
             if (makeMove(moveStr)) {
+                // Hide forget button after user moves
+                document.getElementById('forgetMoveBtn').style.display = 'none';
+                lastEngineMove = null;
+                lastEngineFEN = null;
+
                 // Update display instantly
                 updateLastMoveDisplay(moveStr);
                 selectedSquare = null;
@@ -1435,6 +1473,7 @@
             const learnModeBtn = document.getElementById('learnModeBtn');
             const openingSelect = document.getElementById('openingSelect');
             const learnModeSection = document.getElementById('learnModeSection');
+            const forgetMoveBtn = document.getElementById('forgetMoveBtn');
 
             if (isLearnMode) {
                 // Turn ON
@@ -1449,6 +1488,12 @@
                 learnModeBtn.classList.remove('active');
                 learnModeSection.classList.remove('active');
                 openingSelect.disabled = true;
+
+                // Hide forget button and clear state
+                forgetMoveBtn.style.display = 'none';
+                lastEngineMove = null;
+                lastEngineFEN = null;
+
                 console.log('Learn Mode: OFF');
             }
         }
@@ -1552,6 +1597,76 @@
                 }
             } catch (error) {
                 console.error('Error saving move:', error);
+                showStatus('Error: ' + error.message, 'error');
+                setTimeout(hideStatus, 5000);
+            }
+        }
+
+        // Undo the engine's last move, delete from opening book, and prompt re-teach
+        async function forgetLastMove() {
+            if (!lastEngineMove || !lastEngineFEN) {
+                showStatus('No engine move to forget', 'error');
+                setTimeout(hideStatus, 2000);
+                return;
+            }
+
+            console.log('=== FORGETTING LAST ENGINE MOVE ===');
+            console.log('Move to undo:', lastEngineMove);
+            console.log('Restoring FEN:', lastEngineFEN);
+
+            try {
+                // Step 1: Show status
+                showStatus('Undoing move...', 'thinking');
+
+                // Step 2: Restore board to position before engine moved
+                loadBoardFromFEN(lastEngineFEN);
+                renderBoard();
+                cachedLegalMoves = null; // Clear cached moves
+
+                console.log('✓ Board restored');
+
+                // Step 3: Delete position from opening book
+                const opening = document.getElementById('openingSelect').value;
+                const encodedFEN = encodeURIComponent(lastEngineFEN);
+
+                showStatus('Deleting from opening book...', 'thinking');
+
+                console.log('Deleting FEN:', lastEngineFEN);
+                console.log('From opening:', opening);
+
+                const response = await fetch(
+                    `${API_ENDPOINT.replace('/move', '')}/delete-opening-move?opening=${opening}&fen=${encodedFEN}`
+                );
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.status === 'ok') {
+                    console.log('✓ Position deleted from opening book');
+                    console.log('Positions remaining:', data.positions_learned);
+
+                    // Step 4: Brief pause (500ms) so user sees the undo
+                    showStatus('Move forgotten! Teaching mode...', 'success');
+                    await new Promise(resolve => setTimeout(resolve, 500));
+
+                    // Step 5: Clear state and hide button
+                    document.getElementById('forgetMoveBtn').style.display = 'none';
+                    lastEngineMove = null;
+                    lastEngineFEN = null;
+
+                    // Step 6: Show teaching modal
+                    hideStatus();
+                    showMoveInputModal();
+
+                    console.log('✓ Ready to re-teach position');
+                } else {
+                    throw new Error(data.message || 'Failed to delete position');
+                }
+            } catch (error) {
+                console.error('❌ Error forgetting move:', error);
                 showStatus('Error: ' + error.message, 'error');
                 setTimeout(hideStatus, 5000);
             }
@@ -1757,6 +1872,54 @@
             return { valid: true, errors: [] };
         }
 
+        // Load board state from FEN string
+        function loadBoardFromFEN(fen) {
+            console.log('Loading board from FEN:', fen);
+
+            const parts = fen.split(' ');
+            const position = parts[0];
+
+            // Clear the board
+            for (let i = 0; i < 64; i++) {
+                board[i] = EMPTY;
+            }
+
+            // Parse piece positions
+            let rank = 7; // Start from rank 8 (index 7)
+            let file = 0;
+
+            for (let char of position) {
+                if (char === '/') {
+                    rank--;
+                    file = 0;
+                } else if (char >= '1' && char <= '8') {
+                    // Empty squares
+                    file += parseInt(char);
+                } else {
+                    // Piece
+                    const square = rank * 8 + file;
+                    board[square] = charToPiece(char);
+                    file++;
+                }
+            }
+
+            // Update turn
+            whiteToMove = (parts[1] === 'w');
+
+            console.log('Board loaded. White to move:', whiteToMove);
+        }
+
+        // Convert FEN character to piece constant
+        function charToPiece(char) {
+            const pieceMap = {
+                'P': WHITE_PAWN, 'N': WHITE_KNIGHT, 'B': WHITE_BISHOP,
+                'R': WHITE_ROOK, 'Q': WHITE_QUEEN, 'K': WHITE_KING,
+                'p': BLACK_PAWN, 'n': BLACK_KNIGHT, 'b': BLACK_BISHOP,
+                'r': BLACK_ROOK, 'q': BLACK_QUEEN, 'k': BLACK_KING
+            };
+            return pieceMap[char] || EMPTY;
+        }
+
         // Check if engine should ask for a move
         async function checkIfEngineShouldAskForMove() {
             try {
@@ -1786,6 +1949,9 @@
                         // Position found in opening book!
                         console.log('Position found in opening book! Move:', data.move);
 
+                        // Capture FEN before engine moves
+                        lastEngineFEN = boardToFEN();
+
                         // Convert the move to internal format
                         const convertedMove = await convertAlgebraicToInternal(data.move);
 
@@ -1794,11 +1960,20 @@
                             console.log('Auto-playing learned move:', convertedMove);
 
                             if (makeMove(convertedMove)) {
+                                // Capture the move that was made
+                                lastEngineMove = convertedMove;
+
                                 updateLastMoveDisplay(convertedMove);
                                 cachedLegalMoves = null;
                                 renderBoard();
                                 setEngineIdle();
+
+                                // Show the "Forget Move" button
+                                document.getElementById('forgetMoveBtn').style.display = 'inline-block';
+
                                 console.log('Successfully played learned move');
+                                console.log('Last engine move captured:', lastEngineMove);
+                                console.log('FEN before move:', lastEngineFEN);
                             } else {
                                 throw new Error('Failed to make the learned move on board');
                             }
