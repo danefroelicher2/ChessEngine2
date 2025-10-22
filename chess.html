@@ -1793,17 +1793,58 @@
                     const candidateMoves = cachedLegalMoves.filter(m => m.endsWith(targetSquare));
                     console.log('Candidate moves ending with', targetSquare + ':', candidateMoves);
 
-                    // For pawns: match moves that are 4 characters (simple pawn moves like "e2e4")
+                    // For PAWNS: filter out knight starting squares
                     if (pieceLetter === 'p') {
-                        const pawnMove = candidateMoves.find(m => m.length === 4);
+                        const pawnMove = candidateMoves.find(m => {
+                            if (m.length !== 4) return false;
+                            const fromSquare = m.substring(0, 2);
+                            // Knights start on b and g files, rank 1 or 8
+                            const isKnightSquare = (fromSquare[0] === 'b' || fromSquare[0] === 'g') &&
+                                                   (fromSquare[1] === '1' || fromSquare[1] === '8');
+                            const isValidPawn = !isKnightSquare;
+                            if (!isValidPawn) {
+                                console.log('Rejecting', m, '- starts from knight square');
+                            }
+                            return isValidPawn;  // Return true if NOT a knight square
+                        });
+
                         if (pawnMove) {
                             console.log('Pawn move matched:', pawnMove);
                             return pawnMove;
                         }
                     }
 
-                    // For other pieces: typically 4 characters too, but we need better logic
-                    // For now, return the first candidate if only one exists
+                    // For KNIGHTS: specifically match knight moves
+                    if (pieceLetter === 'n') {
+                        const knightMove = candidateMoves.find(m => {
+                            if (m.length !== 4) return false;
+                            const fromSquare = m.substring(0, 2);
+                            const fromFile = fromSquare[0];
+                            const toFile = targetSquare[0];
+                            const fromRank = parseInt(fromSquare[1]);
+                            const toRank = parseInt(targetSquare[1]);
+
+                            const fileDiff = Math.abs(fromFile.charCodeAt(0) - toFile.charCodeAt(0));
+                            const rankDiff = Math.abs(fromRank - toRank);
+
+                            // Knight moves: (2,1) or (1,2) in file and rank
+                            const isKnightMove = (fileDiff === 2 && rankDiff === 1) || (fileDiff === 1 && rankDiff === 2);
+
+                            if (isKnightMove) {
+                                console.log('Valid knight move:', m);
+                                return true;
+                            }
+
+                            return false;
+                        });
+
+                        if (knightMove) {
+                            console.log('Knight move matched:', knightMove);
+                            return knightMove;
+                        }
+                    }
+
+                    // For other pieces: return the first candidate if only one exists
                     if (candidateMoves.length === 1) {
                         console.log('Single candidate move matched:', candidateMoves[0]);
                         return candidateMoves[0];
