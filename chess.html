@@ -1489,6 +1489,15 @@
                 return;
             }
 
+            // Validate move notation format
+            const validation = validateMoveNotation(move);
+            if (!validation.valid) {
+                console.error('Invalid move notation:', validation.errors);
+                showStatus('Invalid notation: ' + validation.errors[0], 'error');
+                setTimeout(hideStatus, 4000);
+                return;
+            }
+
             try {
                 // Get current board state
                 const fen = boardToFEN();
@@ -1548,7 +1557,7 @@
             }
         }
 
-        // Convert algebraic notation (e.g., "c6", "Nf3") to internal format (e.g., "c7c6")
+        // Convert algebraic notation (e.g., "pc6", "Nf3", "short castle") to internal format (e.g., "c7c6")
         async function convertAlgebraicToInternal(algebraicMove) {
             try {
                 // Get legal moves for current position
@@ -1556,35 +1565,196 @@
                     cachedLegalMoves = await getLegalMoves();
                 }
 
-                // Try to find a matching move
-                // Check for exact match first (e.g., "e2e4")
-                if (cachedLegalMoves.includes(algebraicMove)) {
-                    return algebraicMove;
+                const move = algebraicMove.trim();
+
+                // Log for debugging
+                console.log('Parsing move notation:', move);
+                console.log('Legal moves available:', cachedLegalMoves);
+
+                // ========================================
+                // RULE 1: Check for exact match first
+                // ========================================
+                if (cachedLegalMoves.includes(move)) {
+                    console.log('Exact match found:', move);
+                    return move;
                 }
 
-                // Check if any legal move ends with this notation
-                // For example, if user types "c6", find move ending in "c6" like "c7c6"
-                for (const move of cachedLegalMoves) {
-                    if (move.endsWith(algebraicMove)) {
-                        return move;
+                // ========================================
+                // RULE 2: Handle CASTLING
+                // ========================================
+                const lowerMove = move.toLowerCase();
+
+                if (lowerMove === 'short castle') {
+                    // Kingside castling - find e1g1 or e8g8
+                    const castleMove = cachedLegalMoves.find(m =>
+                        m === 'e1g1' || m === 'e8g8'
+                    );
+                    if (castleMove) {
+                        console.log('Short castle matched:', castleMove);
+                        return castleMove;
                     }
                 }
 
-                // Check for pawn moves without file letter (e.g., user types "6" for "c6")
-                for (const move of cachedLegalMoves) {
-                    const toSquare = move.substring(2, 4);
-                    if (toSquare === algebraicMove || toSquare.endsWith(algebraicMove)) {
-                        return move;
+                if (lowerMove === 'long castle') {
+                    // Queenside castling - find e1c1 or e8c8
+                    const castleMove = cachedLegalMoves.find(m =>
+                        m === 'e1c1' || m === 'e8c8'
+                    );
+                    if (castleMove) {
+                        console.log('Long castle matched:', castleMove);
+                        return castleMove;
                     }
                 }
 
-                // Could not find matching move
-                console.error('Could not convert move:', algebraicMove, 'Legal moves:', cachedLegalMoves);
+                // ========================================
+                // RULE 3: Handle CAPTURES
+                // Format: "pd5 takes pe4"
+                // ========================================
+                if (move.toLowerCase().includes(' takes ')) {
+                    const parts = move.split(/\s+takes\s+/i);
+                    if (parts.length === 2) {
+                        const attacker = parts[0].trim();  // e.g., "pd5" or "Nf3"
+                        const victim = parts[1].trim();     // e.g., "pe4" or "rd8"
+
+                        // Validate format: piece + square (both parts)
+                        const attackerMatch = attacker.match(/^([pnbrqk])([a-h][1-8])$/i);
+                        const victimMatch = victim.match(/^([pnbrqk])([a-h][1-8])$/i);
+
+                        if (attackerMatch && victimMatch) {
+                            const fromSquare = attackerMatch[2].toLowerCase();
+                            const toSquare = victimMatch[2].toLowerCase();
+
+                            // Validate squares are lowercase
+                            if (attackerMatch[2] !== fromSquare || victimMatch[2] !== toSquare) {
+                                console.error('Invalid capture: squares must be lowercase');
+                                return null;
+                            }
+
+                            // Build move string: from + to (e.g., "d5e4")
+                            const captureMove = fromSquare + toSquare;
+
+                            // Check if this move exists in legal moves
+                            if (cachedLegalMoves.includes(captureMove)) {
+                                console.log('Capture move matched:', captureMove);
+                                return captureMove;
+                            }
+                        }
+                    }
+                }
+
+                // ========================================
+                // RULE 4: Handle STANDARD PIECE MOVES
+                // Format: [Piece][square] (e.g., "pc6", "Nf3")
+                // ========================================
+                const pieceMatch = move.match(/^([pnbrqk])([a-h][1-8])$/i);
+
+                if (pieceMatch) {
+                    const pieceLetter = pieceMatch[1].toLowerCase();
+                    const targetSquare = pieceMatch[2];
+
+                    // Validate square is lowercase
+                    if (targetSquare !== targetSquare.toLowerCase()) {
+                        console.error('Invalid notation: square must be lowercase');
+                        return null;
+                    }
+
+                    console.log('Looking for piece move:', pieceLetter, 'to', targetSquare);
+
+                    // Map piece letters to internal representations
+                    const pieceMap = {
+                        'p': 'pawn',
+                        'n': 'knight',
+                        'b': 'bishop',
+                        'r': 'rook',
+                        'q': 'queen',
+                        'k': 'king'
+                    };
+
+                    // Find all moves that end with the target square
+                    const candidateMoves = cachedLegalMoves.filter(m => m.endsWith(targetSquare));
+                    console.log('Candidate moves ending with', targetSquare + ':', candidateMoves);
+
+                    // For pawns: match moves that are 4 characters (simple pawn moves like "e2e4")
+                    if (pieceLetter === 'p') {
+                        const pawnMove = candidateMoves.find(m => m.length === 4);
+                        if (pawnMove) {
+                            console.log('Pawn move matched:', pawnMove);
+                            return pawnMove;
+                        }
+                    }
+
+                    // For other pieces: typically 4 characters too, but we need better logic
+                    // For now, return the first candidate if only one exists
+                    if (candidateMoves.length === 1) {
+                        console.log('Single candidate move matched:', candidateMoves[0]);
+                        return candidateMoves[0];
+                    }
+
+                    // If multiple candidates, we need disambiguation (future enhancement)
+                    if (candidateMoves.length > 1) {
+                        console.warn('Multiple moves possible to', targetSquare + '. Need disambiguation.');
+                        console.warn('Candidates:', candidateMoves);
+                        // For now, return the first one
+                        return candidateMoves[0];
+                    }
+                }
+
+                // ========================================
+                // RULE 5: No match found
+                // ========================================
+                console.error('Could not parse move notation:', move);
+                console.error('Legal moves:', cachedLegalMoves);
                 return null;
+
             } catch (error) {
                 console.error('Error converting move:', error);
                 return null;
             }
+        }
+
+        // Validate move notation format before processing
+        function validateMoveNotation(move) {
+            const errors = [];
+
+            // Check for castling
+            const lowerMove = move.toLowerCase();
+            if (lowerMove === 'short castle' || lowerMove === 'long castle') {
+                return { valid: true, errors: [] };
+            }
+
+            // Check for capture notation
+            if (move.toLowerCase().includes(' takes ')) {
+                const parts = move.split(/\s+takes\s+/i);
+                if (parts.length !== 2) {
+                    errors.push('Capture format should be: [piece][square] takes [piece][square]');
+                    return { valid: false, errors };
+                }
+
+                for (const part of parts) {
+                    const match = part.trim().match(/^([pnbrqk])([a-h][1-8])$/i);
+                    if (!match) {
+                        errors.push(`Invalid format: ${part}. Should be piece + square (e.g., pd5, Nf3)`);
+                    } else if (match[2] !== match[2].toLowerCase()) {
+                        errors.push(`Square must be lowercase: ${match[2]} → ${match[2].toLowerCase()}`);
+                    }
+                }
+
+                return { valid: errors.length === 0, errors };
+            }
+
+            // Check for standard piece move
+            const match = move.match(/^([pnbrqk])([a-h][1-8])$/i);
+            if (!match) {
+                errors.push('Format should be: [piece][square] (e.g., pc6, Nf3, ke2)');
+                return { valid: false, errors };
+            }
+
+            if (match[2] !== match[2].toLowerCase()) {
+                errors.push(`Square must be lowercase: ${match[2]} → ${match[2].toLowerCase()}`);
+                return { valid: false, errors };
+            }
+
+            return { valid: true, errors: [] };
         }
 
         // Check if engine should ask for a move
