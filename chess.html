@@ -1480,24 +1480,179 @@
         }
 
         // Handle the "Teach Move" action
-        function handleTeachMove() {
+        async function handleTeachMove() {
             const input = document.getElementById('moveInput');
             const move = input.value.trim();
 
-            if (move) {
-                console.log('Teaching move:', move);
-                // TODO: Validate move format and save to opening book
-                hideMoveInputModal();
-            } else {
+            if (!move) {
                 console.log('No move entered');
+                return;
+            }
+
+            try {
+                // Get current board state
+                const fen = boardToFEN();
+                const opening = document.getElementById('openingSelect').value;
+
+                console.log('Teaching move:', move, 'for FEN:', fen);
+
+                // Show status message
+                showStatus('Saving move to opening book...', 'thinking');
+
+                // Call save endpoint
+                const encodedFEN = encodeURIComponent(fen);
+                const response = await fetch(
+                    `${API_ENDPOINT.replace('/move', '')}/save-opening-move?opening=${opening}&fen=${encodedFEN}&move=${move}`
+                );
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.status === 'ok') {
+                    console.log('Move saved successfully! Positions learned:', data.positions_learned);
+
+                    // Hide modal
+                    hideMoveInputModal();
+                    hideStatus();
+
+                    // Now make the move on the board
+                    // The move input might be in different formats (e.g., "c6", "Nf3", "O-O")
+                    // We need to convert it to our internal format (e.g., "c7c6")
+                    const convertedMove = await convertAlgebraicToInternal(move);
+
+                    if (convertedMove) {
+                        // Make the move
+                        if (makeMove(convertedMove)) {
+                            updateLastMoveDisplay(convertedMove);
+                            cachedLegalMoves = null;
+                            renderBoard();
+                            console.log('Move played on board:', convertedMove);
+                        } else {
+                            showStatus('Saved to book but failed to make move on board', 'error');
+                            setTimeout(hideStatus, 3000);
+                        }
+                    } else {
+                        showStatus('Move saved but could not play it (invalid format)', 'error');
+                        setTimeout(hideStatus, 3000);
+                    }
+                } else {
+                    throw new Error(data.message || 'Failed to save move');
+                }
+            } catch (error) {
+                console.error('Error saving move:', error);
+                showStatus('Error: ' + error.message, 'error');
+                setTimeout(hideStatus, 5000);
             }
         }
 
-        // Check if engine should ask for a move (placeholder for next step)
-        function checkIfEngineShouldAskForMove() {
-            // TODO: Check if current position exists in opening book
-            // If not found, show the move input modal
-            console.log('TODO: Check if engine knows this position');
+        // Convert algebraic notation (e.g., "c6", "Nf3") to internal format (e.g., "c7c6")
+        async function convertAlgebraicToInternal(algebraicMove) {
+            try {
+                // Get legal moves for current position
+                if (!cachedLegalMoves) {
+                    cachedLegalMoves = await getLegalMoves();
+                }
+
+                // Try to find a matching move
+                // Check for exact match first (e.g., "e2e4")
+                if (cachedLegalMoves.includes(algebraicMove)) {
+                    return algebraicMove;
+                }
+
+                // Check if any legal move ends with this notation
+                // For example, if user types "c6", find move ending in "c6" like "c7c6"
+                for (const move of cachedLegalMoves) {
+                    if (move.endsWith(algebraicMove)) {
+                        return move;
+                    }
+                }
+
+                // Check for pawn moves without file letter (e.g., user types "6" for "c6")
+                for (const move of cachedLegalMoves) {
+                    const toSquare = move.substring(2, 4);
+                    if (toSquare === algebraicMove || toSquare.endsWith(algebraicMove)) {
+                        return move;
+                    }
+                }
+
+                // Could not find matching move
+                console.error('Could not convert move:', algebraicMove, 'Legal moves:', cachedLegalMoves);
+                return null;
+            } catch (error) {
+                console.error('Error converting move:', error);
+                return null;
+            }
+        }
+
+        // Check if engine should ask for a move
+        async function checkIfEngineShouldAskForMove() {
+            try {
+                // Get current board state
+                const fen = boardToFEN();
+                const opening = document.getElementById('openingSelect').value;
+
+                console.log('Checking if engine knows position:', fen);
+
+                // Show thinking status
+                setEngineThinking();
+
+                // Call get endpoint
+                const encodedFEN = encodeURIComponent(fen);
+                const response = await fetch(
+                    `${API_ENDPOINT.replace('/move', '')}/get-opening-move?opening=${opening}&fen=${encodedFEN}`
+                );
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.status === 'ok') {
+                    if (data.found && data.move) {
+                        // Position found in opening book!
+                        console.log('Position found in opening book! Move:', data.move);
+
+                        // Convert the move to internal format
+                        const convertedMove = await convertAlgebraicToInternal(data.move);
+
+                        if (convertedMove) {
+                            // Make the move automatically
+                            console.log('Auto-playing learned move:', convertedMove);
+
+                            if (makeMove(convertedMove)) {
+                                updateLastMoveDisplay(convertedMove);
+                                cachedLegalMoves = null;
+                                renderBoard();
+                                setEngineIdle();
+                                console.log('Successfully played learned move');
+                            } else {
+                                throw new Error('Failed to make the learned move on board');
+                            }
+                        } else {
+                            throw new Error('Could not convert learned move: ' + data.move);
+                        }
+                    } else {
+                        // Position NOT in opening book - ask user to teach it
+                        console.log('Position not in opening book - showing teach modal');
+                        setEngineIdle();
+                        showMoveInputModal();
+                    }
+                } else {
+                    throw new Error(data.message || 'Failed to check opening book');
+                }
+            } catch (error) {
+                console.error('Error checking opening book:', error);
+                setEngineIdle();
+                showStatus('Error checking opening book: ' + error.message, 'error');
+                setTimeout(hideStatus, 5000);
+
+                // Fall back to showing the modal so user can still teach
+                showMoveInputModal();
+            }
         }
 
         // ============================================
