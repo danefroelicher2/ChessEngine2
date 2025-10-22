@@ -144,6 +144,12 @@ bool isGetOpeningMoveRequest(const std::string &request)
     return request.find("GET /get-opening-move") == 0;
 }
 
+// Check if request is GET /delete-opening-move
+bool isDeleteOpeningMoveRequest(const std::string &request)
+{
+    return request.find("GET /delete-opening-move") == 0;
+}
+
 // =============================================================================
 // Chess Engine Integration
 // =============================================================================
@@ -627,6 +633,164 @@ std::string processGetOpeningMoveRequest(const std::string &opening, const std::
     }
 }
 
+// Process delete opening move request
+std::string processDeleteOpeningMoveRequest(const std::string &opening, const std::string &fen)
+{
+    try
+    {
+        // Validate parameters
+        if (opening.empty() || fen.empty())
+        {
+            return "{\"status\":\"error\",\"message\":\"Missing required parameters: opening, fen\"}";
+        }
+
+        std::cout << "Deleting position: " << fen << " from opening: " << opening << std::endl;
+
+        // Build file path
+        std::string filename = "openings/" + opening + ".json";
+
+        // Read existing file
+        std::ifstream inFile(filename);
+        if (!inFile.is_open())
+        {
+            return "{\"status\":\"error\",\"message\":\"Opening file not found: " + filename + "\"}";
+        }
+
+        std::string jsonContent((std::istreambuf_iterator<char>(inFile)),
+                                std::istreambuf_iterator<char>());
+        inFile.close();
+
+        // Escape the FEN for searching
+        std::string escapedFen = escapeJsonString(fen);
+        std::string fenPattern = "\"" + escapedFen + "\"";
+
+        // Find the FEN in the JSON
+        size_t fenPos = jsonContent.find(fenPattern);
+        if (fenPos == std::string::npos)
+        {
+            std::cout << "  → Position not in book (nothing to delete)" << std::endl;
+            return "{\"status\":\"ok\",\"message\":\"Position was not in book\"}";
+        }
+
+        // Find the entry boundaries
+        // Backtrack to find the start of this line (find the opening quote before the FEN)
+        size_t lineStart = jsonContent.rfind("\n", fenPos);
+        if (lineStart == std::string::npos)
+            lineStart = 0;
+
+        // Skip any leading whitespace on this line
+        while (lineStart < fenPos && (jsonContent[lineStart] == '\n' || jsonContent[lineStart] == ' ' || jsonContent[lineStart] == '\t'))
+        {
+            lineStart++;
+        }
+
+        // Forward to find the end of this entry (closing brace)
+        size_t entryEnd = jsonContent.find("}", fenPos);
+        if (entryEnd == std::string::npos)
+        {
+            return "{\"status\":\"error\",\"message\":\"Malformed JSON: could not find entry end\"}";
+        }
+
+        // Check if there's a comma after the closing brace
+        size_t checkPos = entryEnd + 1;
+        bool hasCommaAfter = false;
+
+        while (checkPos < jsonContent.length() && (jsonContent[checkPos] == ' ' || jsonContent[checkPos] == '\t' || jsonContent[checkPos] == '\n'))
+        {
+            checkPos++;
+        }
+
+        if (checkPos < jsonContent.length() && jsonContent[checkPos] == ',')
+        {
+            hasCommaAfter = true;
+            entryEnd = checkPos; // Include the comma in deletion
+        }
+
+        // If no comma after, check if there's a comma before (last entry in object)
+        if (!hasCommaAfter)
+        {
+            size_t checkBefore = lineStart;
+            while (checkBefore > 0 && (jsonContent[checkBefore - 1] == ' ' || jsonContent[checkBefore - 1] == '\t' || jsonContent[checkBefore - 1] == '\n'))
+            {
+                checkBefore--;
+            }
+
+            if (checkBefore > 0 && jsonContent[checkBefore - 1] == ',')
+            {
+                lineStart = checkBefore - 1; // Include preceding comma
+            }
+        }
+
+        // Delete the entry (from lineStart to entryEnd inclusive)
+        jsonContent.erase(lineStart, entryEnd - lineStart + 1);
+
+        // Update positions_learned count (decrement by 1)
+        int currentCount = extractJsonNumberValue(jsonContent, "positions_learned");
+        if (currentCount > 0)
+            currentCount--;
+
+        // Replace the count in the JSON
+        std::string countPattern = "\"positions_learned\":";
+        size_t countPos = jsonContent.find(countPattern);
+
+        if (countPos != std::string::npos)
+        {
+            size_t valueStart = countPos + countPattern.length();
+
+            // Skip whitespace
+            while (valueStart < jsonContent.length() && (jsonContent[valueStart] == ' ' || jsonContent[valueStart] == '\t'))
+                valueStart++;
+
+            size_t valueEnd = valueStart;
+
+            // Find end of number
+            while (valueEnd < jsonContent.length() && jsonContent[valueEnd] >= '0' && jsonContent[valueEnd] <= '9')
+                valueEnd++;
+
+            // Replace the old count with new count
+            jsonContent.replace(valueStart, valueEnd - valueStart, std::to_string(currentCount));
+        }
+
+        // Update last_updated timestamp
+        std::string timestamp = getCurrentTimestamp();
+        std::string lastUpdatedPattern = "\"last_updated\":\"";
+        size_t lastUpdatedPos = jsonContent.find(lastUpdatedPattern);
+
+        if (lastUpdatedPos != std::string::npos)
+        {
+            size_t timestampStart = lastUpdatedPos + lastUpdatedPattern.length();
+            size_t timestampEnd = jsonContent.find("\"", timestampStart);
+
+            if (timestampEnd != std::string::npos)
+            {
+                jsonContent.replace(timestampStart, timestampEnd - timestampStart, timestamp);
+            }
+        }
+
+        // Write back to file
+        std::ofstream outFile(filename);
+        if (!outFile.is_open())
+        {
+            return "{\"status\":\"error\",\"message\":\"Could not write to file\"}";
+        }
+
+        outFile << jsonContent;
+        outFile.close();
+
+        std::cout << "  → Position deleted! Positions remaining: " << currentCount << std::endl;
+
+        return "{\"status\":\"ok\",\"message\":\"Position deleted\",\"positions_learned\":" + std::to_string(currentCount) + "}";
+    }
+    catch (const std::exception &e)
+    {
+        return "{\"status\":\"error\",\"message\":\"Exception: " + std::string(e.what()) + "\"}";
+    }
+    catch (...)
+    {
+        return "{\"status\":\"error\",\"message\":\"Unknown error occurred while deleting position\"}";
+    }
+}
+
 // =============================================================================
 // HTTP Response Generation
 // =============================================================================
@@ -655,7 +819,7 @@ std::string buildHttpResponse(const std::string &jsonBody)
 // Build 404 Not Found response
 std::string build404Response()
 {
-    std::string body = "{\"status\":\"error\",\"message\":\"Endpoint not found. Available endpoints: GET /move?fen=..., GET /legal-moves?fen=..., GET /save-opening-move?opening=...&fen=...&move=..., GET /get-opening-move?opening=...&fen=...\"}";
+    std::string body = "{\"status\":\"error\",\"message\":\"Endpoint not found. Available endpoints: GET /move?fen=..., GET /legal-moves?fen=..., GET /save-opening-move?opening=...&fen=...&move=..., GET /get-opening-move?opening=...&fen=..., GET /delete-opening-move?opening=...&fen=...\"}";
     std::ostringstream response;
 
     response << "HTTP/1.1 404 Not Found\r\n";
@@ -819,6 +983,14 @@ int main()
                 std::string opening = extractQueryParam(request, "opening");
                 std::string fenString = extractQueryParam(request, "fen");
                 std::string jsonResponse = processGetOpeningMoveRequest(opening, fenString);
+                response = buildHttpResponse(jsonResponse);
+            }
+            else if (isDeleteOpeningMoveRequest(request))
+            {
+                // Extract parameters and process delete opening move request
+                std::string opening = extractQueryParam(request, "opening");
+                std::string fenString = extractQueryParam(request, "fen");
+                std::string jsonResponse = processDeleteOpeningMoveRequest(opening, fenString);
                 response = buildHttpResponse(jsonResponse);
             }
             else
