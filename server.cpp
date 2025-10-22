@@ -9,7 +9,7 @@
 #include <sstream>
 #include <cstring>
 #include <algorithm>
-#include <cstdlib>  // for getenv
+#include <cstdlib> // for getenv
 
 // Platform-specific socket headers
 #ifdef _WIN32
@@ -30,12 +30,14 @@ typedef int socklen_t;
 
 // Server configuration
 // Read PORT from environment variable (required for Render deployment)
-int getPortFromEnv() {
-    const char* portEnv = std::getenv("PORT");
-    if (portEnv != nullptr) {
+int getPortFromEnv()
+{
+    const char *portEnv = std::getenv("PORT");
+    if (portEnv != nullptr)
+    {
         return std::atoi(portEnv);
     }
-    return 10000;  // Default fallback for local development
+    return 10000; // Default fallback for local development
 }
 
 const int PORT = getPortFromEnv();
@@ -390,8 +392,9 @@ int main()
     std::cout << "Endpoints:" << std::endl;
     std::cout << "  GET /move?fen=<FEN_STRING>" << std::endl;
     std::cout << "  GET /legal-moves?fen=<FEN_STRING>" << std::endl;
-    std::cout << "Press Ctrl+C to stop\n" << std::endl;
-    std::flush(std::cout);  // Force output to appear immediately
+    std::cout << "Press Ctrl+C to stop\n"
+              << std::endl;
+    std::flush(std::cout); // Force output to appear immediately
 
     // Main server loop - handle requests one at a time
     while (true)
