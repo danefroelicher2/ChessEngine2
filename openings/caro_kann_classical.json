@@ -1,0 +1,11 @@
+{
+  "opening_name": "Caro-Kann Defense - Classical Variation",
+  "side": "black",
+  "description": "Response to 1.e4 with 1...c6",
+  "positions": {},
+  "stats": {
+    "positions_learned": 0,
+    "last_updated": "",
+    "deepest_line": 0
+  }
+}
