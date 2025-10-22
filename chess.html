@@ -1879,27 +1879,30 @@
             const parts = fen.split(' ');
             const position = parts[0];
 
-            // Clear the board
-            for (let i = 0; i < 64; i++) {
-                board[i] = EMPTY;
+            // Clear the board (2D array)
+            board = [];
+            for (let row = 0; row < 8; row++) {
+                board[row] = [];
+                for (let col = 0; col < 8; col++) {
+                    board[row][col] = '.';
+                }
             }
 
             // Parse piece positions
-            let rank = 7; // Start from rank 8 (index 7)
-            let file = 0;
+            let row = 0; // Start from rank 8 (row 0)
+            let col = 0;
 
             for (let char of position) {
                 if (char === '/') {
-                    rank--;
-                    file = 0;
+                    row++;
+                    col = 0;
                 } else if (char >= '1' && char <= '8') {
-                    // Empty squares
-                    file += parseInt(char);
+                    // Empty squares - skip ahead
+                    col += parseInt(char);
                 } else {
-                    // Piece
-                    const square = rank * 8 + file;
-                    board[square] = charToPiece(char);
-                    file++;
+                    // Piece - directly use the FEN character
+                    board[row][col] = char;
+                    col++;
                 }
             }
 
@@ -1909,15 +1912,13 @@
             console.log('Board loaded. White to move:', whiteToMove);
         }
 
-        // Convert FEN character to piece constant
+        // Convert FEN character to piece (no conversion needed - FEN uses same format)
         function charToPiece(char) {
-            const pieceMap = {
-                'P': WHITE_PAWN, 'N': WHITE_KNIGHT, 'B': WHITE_BISHOP,
-                'R': WHITE_ROOK, 'Q': WHITE_QUEEN, 'K': WHITE_KING,
-                'p': BLACK_PAWN, 'n': BLACK_KNIGHT, 'b': BLACK_BISHOP,
-                'r': BLACK_ROOK, 'q': BLACK_QUEEN, 'k': BLACK_KING
-            };
-            return pieceMap[char] || EMPTY;
+            // Board uses same representation as FEN:
+            // White: K, Q, R, B, N, P (uppercase)
+            // Black: k, q, r, b, n, p (lowercase)
+            // Empty: '.'
+            return char;
         }
 
         // Check if engine should ask for a move
