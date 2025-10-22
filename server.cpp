@@ -10,6 +10,8 @@
 #include <cstring>
 #include <algorithm>
 #include <cstdlib> // for getenv
+#include <fstream> // for file I/O
+#include <ctime>   // for timestamp
 
 // Platform-specific socket headers
 #ifdef _WIN32
@@ -128,6 +130,12 @@ bool isGetMoveRequest(const std::string &request)
 bool isGetLegalMovesRequest(const std::string &request)
 {
     return request.find("GET /legal-moves") == 0;
+}
+
+// Check if request is GET /save-opening-move
+bool isSaveOpeningMoveRequest(const std::string &request)
+{
+    return request.find("GET /save-opening-move") == 0;
 }
 
 // =============================================================================
@@ -266,6 +274,252 @@ std::string processLegalMovesRequest(const std::string &fenString)
 }
 
 // =============================================================================
+// Opening Book Management
+// =============================================================================
+
+// Get current timestamp in ISO 8601 format
+std::string getCurrentTimestamp()
+{
+    time_t now = time(nullptr);
+    char buffer[32];
+    strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%SZ", gmtime(&now));
+    return std::string(buffer);
+}
+
+// Escape special characters in JSON strings
+std::string escapeJsonString(const std::string &str)
+{
+    std::string escaped;
+    for (char c : str)
+    {
+        if (c == '"')
+            escaped += "\\\"";
+        else if (c == '\\')
+            escaped += "\\\\";
+        else if (c == '\n')
+            escaped += "\\n";
+        else if (c == '\r')
+            escaped += "\\r";
+        else if (c == '\t')
+            escaped += "\\t";
+        else
+            escaped += c;
+    }
+    return escaped;
+}
+
+// Simple function to find and extract a JSON string value
+std::string extractJsonStringValue(const std::string &json, const std::string &key)
+{
+    std::string searchPattern = "\"" + key + "\":\"";
+    size_t startPos = json.find(searchPattern);
+    if (startPos == std::string::npos)
+        return "";
+
+    startPos += searchPattern.length();
+    size_t endPos = json.find("\"", startPos);
+    if (endPos == std::string::npos)
+        return "";
+
+    return json.substr(startPos, endPos - startPos);
+}
+
+// Simple function to find and extract a JSON number value
+int extractJsonNumberValue(const std::string &json, const std::string &key)
+{
+    std::string searchPattern = "\"" + key + "\":";
+    size_t startPos = json.find(searchPattern);
+    if (startPos == std::string::npos)
+        return 0;
+
+    startPos += searchPattern.length();
+    // Skip whitespace
+    while (startPos < json.length() && (json[startPos] == ' ' || json[startPos] == '\t'))
+        startPos++;
+
+    size_t endPos = startPos;
+    while (endPos < json.length() && (json[endPos] >= '0' && json[endPos] <= '9'))
+        endPos++;
+
+    if (endPos == startPos)
+        return 0;
+
+    return std::atoi(json.substr(startPos, endPos - startPos).c_str());
+}
+
+// Process save opening move request
+std::string processSaveOpeningMoveRequest(const std::string &opening, const std::string &fen, const std::string &move)
+{
+    try
+    {
+        // Validate parameters
+        if (opening.empty() || fen.empty() || move.empty())
+        {
+            return "{\"status\":\"error\",\"message\":\"Missing required parameters: opening, fen, move\"}";
+        }
+
+        std::cout << "Saving opening move: " << opening << " | FEN: " << fen << " | Move: " << move << std::endl;
+
+        // Build file path
+        std::string filename = "openings/" + opening + ".json";
+
+        // Read existing file
+        std::ifstream inFile(filename);
+        if (!inFile.is_open())
+        {
+            return "{\"status\":\"error\",\"message\":\"Opening file not found: " + filename + "\"}";
+        }
+
+        // Read entire file into string
+        std::string jsonContent((std::istreambuf_iterator<char>(inFile)),
+                                std::istreambuf_iterator<char>());
+        inFile.close();
+
+        // Extract current positions count
+        int currentCount = extractJsonNumberValue(jsonContent, "positions_learned");
+
+        // Find the "positions" object and check if this FEN already exists
+        size_t positionsStart = jsonContent.find("\"positions\":");
+        if (positionsStart == std::string::npos)
+        {
+            return "{\"status\":\"error\",\"message\":\"Invalid JSON structure: missing positions object\"}";
+        }
+
+        // Check if this FEN already exists
+        std::string escapedFen = escapeJsonString(fen);
+        std::string fenPattern = "\"" + escapedFen + "\"";
+        bool fenExists = (jsonContent.find(fenPattern) != std::string::npos);
+
+        // Get current timestamp
+        std::string timestamp = getCurrentTimestamp();
+
+        // Build the new position entry
+        std::ostringstream newEntry;
+        newEntry << "    \"" << escapedFen << "\": {\n";
+        newEntry << "      \"best_move\": \"" << escapeJsonString(move) << "\",\n";
+        newEntry << "      \"timestamp\": \"" << timestamp << "\"\n";
+        newEntry << "    }";
+
+        // Find where to insert/update
+        size_t positionsObjectStart = jsonContent.find("{", positionsStart + 12);
+        if (positionsObjectStart == std::string::npos)
+        {
+            return "{\"status\":\"error\",\"message\":\"Invalid JSON structure\"}";
+        }
+
+        size_t positionsObjectEnd = jsonContent.find("}", positionsObjectStart);
+        std::string positionsContent = jsonContent.substr(positionsObjectStart + 1, positionsObjectEnd - positionsObjectStart - 1);
+
+        // Build new positions content
+        std::string newPositionsContent;
+        if (positionsContent.find_first_not_of(" \t\n\r") == std::string::npos)
+        {
+            // Empty positions object
+            newPositionsContent = "\n" + newEntry.str() + "\n  ";
+        }
+        else
+        {
+            // Has existing positions
+            // Remove the old entry if it exists
+            if (fenExists)
+            {
+                size_t oldEntryStart = jsonContent.find(fenPattern);
+                if (oldEntryStart != std::string::npos)
+                {
+                    // Find the start of this entry (backtrack to find the key start)
+                    size_t entryKeyStart = jsonContent.rfind("\"", oldEntryStart - 1);
+                    size_t entryStart = jsonContent.rfind("\n", entryKeyStart);
+
+                    // Find the end of this entry (forward to find the closing brace)
+                    size_t entryEnd = jsonContent.find("}", oldEntryStart);
+                    entryEnd = jsonContent.find_first_of(",\n", entryEnd);
+
+                    if (entryStart != std::string::npos && entryEnd != std::string::npos)
+                    {
+                        // Check if there's a comma after
+                        bool hasCommaAfter = (jsonContent[entryEnd] == ',');
+
+                        // Remove old entry
+                        std::string before = jsonContent.substr(0, entryStart + 1);
+                        std::string after = jsonContent.substr(entryEnd + (hasCommaAfter ? 1 : 0));
+
+                        jsonContent = before + after;
+                    }
+                }
+            }
+
+            // Re-find positions after potential modification
+            positionsStart = jsonContent.find("\"positions\":");
+            positionsObjectStart = jsonContent.find("{", positionsStart + 12);
+            positionsObjectEnd = jsonContent.find("}", positionsObjectStart);
+            positionsContent = jsonContent.substr(positionsObjectStart + 1, positionsObjectEnd - positionsObjectStart - 1);
+
+            // Add new entry
+            if (positionsContent.find_first_not_of(" \t\n\r") == std::string::npos)
+            {
+                newPositionsContent = "\n" + newEntry.str() + "\n  ";
+            }
+            else
+            {
+                newPositionsContent = positionsContent + ",\n" + newEntry.str() + "\n  ";
+            }
+        }
+
+        // Rebuild JSON with new positions
+        std::string beforePositions = jsonContent.substr(0, positionsObjectStart + 1);
+        std::string afterPositions = jsonContent.substr(positionsObjectEnd);
+
+        // Update count if new position
+        int newCount = fenExists ? currentCount : currentCount + 1;
+
+        // Rebuild the entire JSON
+        std::ostringstream finalJson;
+        finalJson << "{\n";
+        finalJson << "  \"opening_name\": \"" << extractJsonStringValue(jsonContent, "opening_name") << "\",\n";
+        finalJson << "  \"side\": \"" << extractJsonStringValue(jsonContent, "side") << "\",\n";
+        finalJson << "  \"description\": \"" << extractJsonStringValue(jsonContent, "description") << "\",\n";
+        finalJson << "  \"positions\": {" << newPositionsContent << "},\n";
+        finalJson << "  \"stats\": {\n";
+        finalJson << "    \"positions_learned\": " << newCount << ",\n";
+        finalJson << "    \"last_updated\": \"" << timestamp << "\",\n";
+        finalJson << "    \"deepest_line\": " << extractJsonNumberValue(jsonContent, "deepest_line") << "\n";
+        finalJson << "  }\n";
+        finalJson << "}\n";
+
+        // Write back to file
+        std::ofstream outFile(filename);
+        if (!outFile.is_open())
+        {
+            return "{\"status\":\"error\",\"message\":\"Failed to write to file: " + filename + "\"}";
+        }
+
+        outFile << finalJson.str();
+        outFile.close();
+
+        std::cout << "Saved move for FEN: " << fen << " → move: " << move << std::endl;
+
+        // Return success response
+        return "{\"status\":\"ok\",\"positions_learned\":" + std::to_string(newCount) + "}";
+    }
+    catch (const std::exception &e)
+    {
+        std::string errorMsg = e.what();
+        // Escape quotes in error message
+        size_t pos = 0;
+        while ((pos = errorMsg.find("\"", pos)) != std::string::npos)
+        {
+            errorMsg.replace(pos, 1, "\\\"");
+            pos += 2;
+        }
+        return "{\"status\":\"error\",\"message\":\"" + errorMsg + "\"}";
+    }
+    catch (...)
+    {
+        return "{\"status\":\"error\",\"message\":\"Unknown error occurred while saving opening move\"}";
+    }
+}
+
+// =============================================================================
 // HTTP Response Generation
 // =============================================================================
 
@@ -293,7 +547,7 @@ std::string buildHttpResponse(const std::string &jsonBody)
 // Build 404 Not Found response
 std::string build404Response()
 {
-    std::string body = "{\"status\":\"error\",\"message\":\"Endpoint not found. Use GET /move?fen=... or GET /legal-moves?fen=...\"}";
+    std::string body = "{\"status\":\"error\",\"message\":\"Endpoint not found. Use GET /move?fen=..., GET /legal-moves?fen=..., or GET /save-opening-move?opening=...&fen=...&move=...\"}";
     std::ostringstream response;
 
     response << "HTTP/1.1 404 Not Found\r\n";
@@ -440,6 +694,15 @@ int main()
                 // Extract FEN parameter and process legal moves request
                 std::string fenString = extractQueryParam(request, "fen");
                 std::string jsonResponse = processLegalMovesRequest(fenString);
+                response = buildHttpResponse(jsonResponse);
+            }
+            else if (isSaveOpeningMoveRequest(request))
+            {
+                // Extract parameters and process save opening move request
+                std::string opening = extractQueryParam(request, "opening");
+                std::string fenString = extractQueryParam(request, "fen");
+                std::string move = extractQueryParam(request, "move");
+                std::string jsonResponse = processSaveOpeningMoveRequest(opening, fenString, move);
                 response = buildHttpResponse(jsonResponse);
             }
             else
