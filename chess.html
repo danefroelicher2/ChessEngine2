@@ -639,6 +639,84 @@
         }
 
         /* ============================================
+           Move Navigation Controls
+           ============================================ */
+        .navigation-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+            margin-top: 15px;
+            margin-bottom: 15px;
+            padding: 12px;
+            background-color: #f5f5f5;
+            border-radius: 8px;
+        }
+
+        .navigation-controls button {
+            padding: 8px 16px;
+            border: 2px solid #ccc;
+            background-color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            min-width: 100px;
+        }
+
+        .navigation-controls button:hover:not(:disabled) {
+            background-color: #e3f2fd;
+            border-color: #2196f3;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .navigation-controls button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .navigation-controls button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            background-color: #f5f5f5;
+        }
+
+        .move-counter {
+            padding: 8px 20px;
+            background-color: white;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-weight: 600;
+            color: #333;
+            min-width: 140px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        /* Indicator when viewing history */
+        body.viewing-history .chessboard {
+            border: 4px solid #2196f3;
+            box-shadow: 0 0 30px rgba(33, 150, 243, 0.5);
+        }
+
+        body.viewing-history .move-counter {
+            background-color: #2196f3;
+            color: white;
+            border-color: #2196f3;
+            animation: counter-pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes counter-pulse {
+            0%, 100% {
+                box-shadow: 0 0 10px rgba(33, 150, 243, 0.5);
+            }
+            50% {
+                box-shadow: 0 0 20px rgba(33, 150, 243, 0.8);
+            }
+        }
+
+        /* ============================================
            Responsive Design
            ============================================ */
         @media (max-width: 600px) {
@@ -725,6 +803,20 @@
                     <div class="file-label">h</div>
                 </div>
             </div>
+        </div>
+
+        <!-- Move Navigation Controls -->
+        <div class="navigation-controls">
+            <button id="backBtn" onclick="goBackOneMove()" title="Previous move" disabled>
+                ⬅️ Back
+            </button>
+            <button id="forwardBtn" onclick="goForwardOneMove()" title="Next move" disabled>
+                ➡️ Forward
+            </button>
+            <button id="fastForwardBtn" onclick="goToCurrentPosition()" title="Jump to current position" disabled>
+                ⏩ Latest
+            </button>
+            <span id="moveCounter" class="move-counter">Start Position</span>
         </div>
 
         <!-- Controls -->
@@ -860,6 +952,11 @@
         let dragOffsetX = 0;
         let dragOffsetY = 0;
         let lastDragEnd = 0; // Timestamp to prevent click after drag
+
+        // Move history tracking
+        let moveHistory = [];           // Array of all moves: [{from, to, piece, notation, fen}, ...]
+        let currentMoveIndex = -1;      // Which move we're viewing (-1 = start position)
+        let isViewingHistory = false;   // Are we reviewing history or at current position?
 
         // API endpoints
         const API_ENDPOINT = 'https://chessengine2.onrender.com/move';
@@ -1292,9 +1389,148 @@
         }
 
         // ============================================
+        // Move History Navigation Functions
+        // ============================================
+
+        // Go back one move in history
+        function goBackOneMove() {
+            if (currentMoveIndex < 0) {
+                console.log('Already at starting position');
+                return;
+            }
+
+            currentMoveIndex--;
+            isViewingHistory = true;
+
+            console.log('Going back to move', currentMoveIndex);
+
+            // Load the position at this point in history
+            if (currentMoveIndex === -1) {
+                // Back to starting position
+                loadStartingPosition();
+            } else {
+                // Load position after this move
+                loadPositionFromHistory(currentMoveIndex);
+            }
+
+            updateNavigationButtons();
+            document.body.classList.add('viewing-history');
+        }
+
+        // Go forward one move in history
+        function goForwardOneMove() {
+            if (currentMoveIndex >= moveHistory.length - 1) {
+                console.log('Already at latest position');
+                return;
+            }
+
+            currentMoveIndex++;
+
+            console.log('Going forward to move', currentMoveIndex);
+
+            loadPositionFromHistory(currentMoveIndex);
+
+            // Check if we're back at current position
+            if (currentMoveIndex === moveHistory.length - 1) {
+                isViewingHistory = false;
+                document.body.classList.remove('viewing-history');
+            }
+
+            updateNavigationButtons();
+        }
+
+        // Jump to current/latest position
+        function goToCurrentPosition() {
+            if (currentMoveIndex === moveHistory.length - 1) {
+                console.log('Already at current position');
+                return;
+            }
+
+            console.log('Fast forwarding to current position');
+
+            currentMoveIndex = moveHistory.length - 1;
+            isViewingHistory = false;
+
+            if (currentMoveIndex === -1) {
+                loadStartingPosition();
+            } else {
+                loadPositionFromHistory(currentMoveIndex);
+            }
+
+            updateNavigationButtons();
+            document.body.classList.remove('viewing-history');
+        }
+
+        // Load position from history
+        function loadPositionFromHistory(index) {
+            if (index < 0 || index >= moveHistory.length) return;
+
+            const moveRecord = moveHistory[index];
+            console.log('Loading position from move', index, ':', moveRecord.notation);
+
+            // Load FEN to restore exact position
+            loadBoardFromFEN(moveRecord.fen);
+
+            // Update display
+            renderBoard();
+            updateLastMoveDisplay(moveRecord.notation);
+        }
+
+        // Load starting position
+        function loadStartingPosition() {
+            console.log('Loading starting position');
+
+            const startingFEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+            loadBoardFromFEN(startingFEN);
+
+            renderBoard();
+            updateLastMoveDisplay(null);
+        }
+
+        // Update button states based on current position
+        function updateNavigationButtons() {
+            const backBtn = document.getElementById('backBtn');
+            const forwardBtn = document.getElementById('forwardBtn');
+            const fastForwardBtn = document.getElementById('fastForwardBtn');
+            const moveCounter = document.getElementById('moveCounter');
+
+            // Back button: disabled if at start
+            backBtn.disabled = (currentMoveIndex < 0);
+
+            // Forward button: disabled if at current position
+            forwardBtn.disabled = (currentMoveIndex >= moveHistory.length - 1);
+
+            // Fast forward button: disabled if at current position
+            fastForwardBtn.disabled = (currentMoveIndex >= moveHistory.length - 1);
+
+            // Update move counter text
+            if (moveHistory.length === 0) {
+                moveCounter.textContent = 'Start Position';
+            } else if (currentMoveIndex === -1) {
+                moveCounter.textContent = 'Start Position';
+            } else if (currentMoveIndex === moveHistory.length - 1 && !isViewingHistory) {
+                moveCounter.textContent = `Move ${moveHistory.length}`;
+            } else {
+                moveCounter.textContent = `Move ${currentMoveIndex + 1} of ${moveHistory.length}`;
+            }
+
+            console.log('Navigation updated - viewing move', currentMoveIndex, 'of', moveHistory.length);
+        }
+
+        // ============================================
         // Attempt User Move
         // ============================================
         async function attemptUserMove(moveStr) {
+            // Prevent making moves while viewing history
+            if (isViewingHistory) {
+                showStatus('Return to current position to make moves', 'error');
+                setTimeout(hideStatus, 2000);
+                selectedSquare = null;
+                legalMovesForPiece = [];
+                renderBoard();
+                return;
+            }
+
             // Check if this is a promotion move BEFORE checking if it's legal
             // Promotion moves need special handling
             if (isPromotionMove(moveStr)) {
@@ -1350,6 +1586,25 @@
                 document.getElementById('forgetMoveBtn').style.display = 'none';
                 lastEngineMove = null;
                 lastEngineFEN = null;
+
+                // Record move in history
+                const moveRecord = {
+                    from: moveStr.substring(0, 2),
+                    to: moveStr.substring(2, 4),
+                    notation: moveStr,
+                    fen: boardToFEN(),
+                    timestamp: Date.now(),
+                    wasWhiteMove: !whiteToMove  // It's now the other player's turn
+                };
+
+                moveHistory.push(moveRecord);
+                currentMoveIndex = moveHistory.length - 1;
+                isViewingHistory = false;
+
+                console.log('Move recorded in history. Total moves:', moveHistory.length);
+
+                // Update navigation buttons
+                updateNavigationButtons();
 
                 // Update display instantly
                 updateLastMoveDisplay(moveStr);
@@ -1643,6 +1898,26 @@
                     return;
                 }
 
+                // Record promotion move in history
+                const moveRecord = {
+                    from: fullMove.substring(0, 2),
+                    to: fullMove.substring(2, 4),
+                    notation: fullMove,
+                    fen: boardToFEN(),
+                    timestamp: Date.now(),
+                    wasWhiteMove: !whiteToMove,
+                    promotion: promotionPiece
+                };
+
+                moveHistory.push(moveRecord);
+                currentMoveIndex = moveHistory.length - 1;
+                isViewingHistory = false;
+
+                console.log('Promotion move recorded in history. Total moves:', moveHistory.length);
+
+                // Update navigation buttons
+                updateNavigationButtons();
+
                 updateLastMoveDisplay(fullMove);
                 selectedSquare = null;
                 legalMovesForPiece = [];
@@ -1731,6 +2006,12 @@
         // Get Engine Move via API
         // ============================================
         async function getEngineMove(autoCall = false) {
+            // Prevent engine moves while viewing history
+            if (isViewingHistory) {
+                console.log('Cannot get engine move while viewing history');
+                return;
+            }
+
             const engineColor = document.getElementById('engineColor').value;
             const isEngineWhite = engineColor === 'white';
 
@@ -1771,6 +2052,26 @@
                 if (data.status === 'ok' && data.move) {
                     // Make the move
                     if (makeMove(data.move)) {
+                        // Record engine move in history
+                        const moveRecord = {
+                            from: data.move.substring(0, 2),
+                            to: data.move.substring(2, 4),
+                            notation: data.move,
+                            fen: boardToFEN(),
+                            timestamp: Date.now(),
+                            wasWhiteMove: !whiteToMove,
+                            isEngineMove: true
+                        };
+
+                        moveHistory.push(moveRecord);
+                        currentMoveIndex = moveHistory.length - 1;
+                        isViewingHistory = false;
+
+                        console.log('Engine move recorded in history. Total moves:', moveHistory.length);
+
+                        // Update navigation buttons
+                        updateNavigationButtons();
+
                         updateLastMoveDisplay(data.move);
                         cachedLegalMoves = null; // Clear cache after engine move
                         renderBoard();
@@ -1807,6 +2108,16 @@
             updateLastMoveDisplay(null);
             hideStatus();
             setEngineIdle();
+
+            // Reset move history
+            moveHistory = [];
+            currentMoveIndex = -1;
+            isViewingHistory = false;
+
+            updateNavigationButtons();
+            document.body.classList.remove('viewing-history');
+
+            console.log('Move history cleared');
         }
 
         // ============================================
@@ -2440,6 +2751,27 @@
                                 // Capture the move that was made
                                 lastEngineMove = convertedMove;
 
+                                // Record learned engine move in history
+                                const moveRecord = {
+                                    from: convertedMove.substring(0, 2),
+                                    to: convertedMove.substring(2, 4),
+                                    notation: convertedMove,
+                                    fen: boardToFEN(),
+                                    timestamp: Date.now(),
+                                    wasWhiteMove: !whiteToMove,
+                                    isEngineMove: true,
+                                    isLearnedMove: true
+                                };
+
+                                moveHistory.push(moveRecord);
+                                currentMoveIndex = moveHistory.length - 1;
+                                isViewingHistory = false;
+
+                                console.log('Learned engine move recorded in history. Total moves:', moveHistory.length);
+
+                                // Update navigation buttons
+                                updateNavigationButtons();
+
                                 updateLastMoveDisplay(convertedMove);
                                 cachedLegalMoves = null;
                                 renderBoard();
@@ -2538,6 +2870,41 @@
             document.addEventListener('mouseup', handleMouseUp);
 
             console.log('Drag-and-drop event handlers initialized');
+
+            // Keyboard shortcuts for move navigation
+            document.addEventListener('keydown', function(event) {
+                // Only handle if not typing in an input field
+                if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+                    return;
+                }
+
+                // Left arrow - go back
+                if (event.key === 'ArrowLeft') {
+                    event.preventDefault();
+                    goBackOneMove();
+                }
+                // Right arrow - go forward
+                else if (event.key === 'ArrowRight') {
+                    event.preventDefault();
+                    goForwardOneMove();
+                }
+                // Home - go to start
+                else if (event.key === 'Home') {
+                    event.preventDefault();
+                    currentMoveIndex = -1;
+                    isViewingHistory = true;
+                    loadStartingPosition();
+                    updateNavigationButtons();
+                    document.body.classList.add('viewing-history');
+                }
+                // End - go to current
+                else if (event.key === 'End') {
+                    event.preventDefault();
+                    goToCurrentPosition();
+                }
+            });
+
+            console.log('Keyboard shortcuts initialized');
         };
     </script>
 </body>
