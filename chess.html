@@ -114,9 +114,13 @@
             justify-content: center;
             align-items: center;
             font-size: 48px;
-            cursor: pointer;
-            transition: background-color 0.2s;
+            cursor: grab;
+            transition: background-color 0.2s, opacity 0.2s;
             user-select: none;
+        }
+
+        .square:active {
+            cursor: grabbing;
         }
 
         .square.light {
@@ -619,6 +623,22 @@
         }
 
         /* ============================================
+           Drag and Drop Styles
+           ============================================ */
+        body.dragging {
+            cursor: grabbing !important;
+        }
+
+        body.dragging * {
+            cursor: grabbing !important;
+        }
+
+        /* Style for square being dragged from */
+        .square.dragging-from {
+            opacity: 0.4;
+        }
+
+        /* ============================================
            Responsive Design
            ============================================ */
         @media (max-width: 600px) {
@@ -832,6 +852,15 @@
         let isTeachingMove = false; // Track if we're in visual teaching mode
         let teachingFEN = null; // FEN of position being taught
 
+        // Drag and drop state
+        let isDragging = false;
+        let draggedPiece = null;
+        let draggedFromSquare = null; // {row, col}
+        let draggedElement = null;
+        let dragOffsetX = 0;
+        let dragOffsetY = 0;
+        let lastDragEnd = 0; // Timestamp to prevent click after drag
+
         // API endpoints
         const API_ENDPOINT = 'https://chessengine2.onrender.com/move';
         const LEGAL_MOVES_ENDPOINT = 'https://chessengine2.onrender.com/legal-moves';
@@ -903,6 +932,9 @@
                     // Add click handler
                     square.addEventListener('click', () => handleSquareClick(row, col));
 
+                    // Add mousedown handler for drag-and-drop
+                    square.addEventListener('mousedown', (event) => handleMouseDown(event, row, col));
+
                     chessboard.appendChild(square);
                 }
             }
@@ -942,6 +974,11 @@
         async function handleSquareClick(row, col) {
             // Ignore clicks while engine is thinking
             if (isProcessing) {
+                return;
+            }
+
+            // Ignore clicks that happen immediately after drag
+            if (Date.now() - lastDragEnd < 100) {
                 return;
             }
 
@@ -1031,6 +1068,199 @@
                 const moveStr = coordsToAlgebraic(fromRow, fromCol) + coordsToAlgebraic(row, col);
                 attemptUserMove(moveStr);
             }
+        }
+
+        // ============================================
+        // Drag and Drop Functions
+        // ============================================
+
+        // Handle mouse down - start dragging
+        async function handleMouseDown(event, row, col) {
+            // Ignore if engine is thinking
+            if (isProcessing) {
+                return;
+            }
+
+            // Ignore if click happened immediately after drag
+            if (Date.now() - lastDragEnd < 100) {
+                return;
+            }
+
+            const piece = board[row][col];
+
+            // Check if there's a piece on this square
+            if (piece === '.') return;
+
+            // Check if it's the right player's turn (or teaching mode)
+            const engineColor = document.getElementById('engineColor').value;
+            const isEngineWhite = engineColor === 'white';
+            const isEngineTurn = (whiteToMove === isEngineWhite);
+            const isUserTurn = (whiteToMove && !isEngineWhite) || (!whiteToMove && isEngineWhite);
+
+            // Determine if this piece can be moved
+            const pieceColor = getPieceColor(piece);
+            const expectedColor = whiteToMove ? 'white' : 'black';
+            const canMovePiece = (pieceColor === expectedColor);
+
+            // Check permissions
+            if (isEngineTurn && !isTeachingMove) {
+                // It's engine's turn and we're not teaching
+                return;
+            }
+
+            // User can only move their own pieces (or engine pieces during teaching)
+            if (!canMovePiece && !isTeachingMove) {
+                return;
+            }
+
+            // If teaching mode, verify we're moving engine's pieces
+            if (isTeachingMove && isEngineTurn) {
+                if (pieceColor !== expectedColor) {
+                    return;
+                }
+            }
+
+            // Start dragging
+            isDragging = true;
+            draggedFromSquare = { row, col };
+            draggedPiece = piece;
+
+            // Add dragging class to body
+            document.body.classList.add('dragging');
+
+            // Get the square element
+            const squareElement = event.currentTarget;
+
+            // Create a clone of the piece for dragging
+            draggedElement = document.createElement('div');
+            draggedElement.textContent = PIECES[piece];
+            draggedElement.style.position = 'fixed';
+            draggedElement.style.fontSize = '48px';
+            draggedElement.style.zIndex = '10000';
+            draggedElement.style.pointerEvents = 'none';
+            draggedElement.style.cursor = 'grabbing';
+            draggedElement.style.userSelect = 'none';
+            document.body.appendChild(draggedElement);
+
+            // Calculate offset so piece stays centered under cursor
+            const rect = squareElement.getBoundingClientRect();
+            dragOffsetX = rect.width / 2;
+            dragOffsetY = rect.height / 2;
+
+            // Position at cursor
+            draggedElement.style.left = (event.clientX - dragOffsetX) + 'px';
+            draggedElement.style.top = (event.clientY - dragOffsetY) + 'px';
+
+            // Fetch legal moves if not cached
+            if (!cachedLegalMoves) {
+                try {
+                    cachedLegalMoves = await getLegalMoves();
+                } catch (error) {
+                    console.error('Error fetching legal moves:', error);
+                    // Cancel drag
+                    if (draggedElement) {
+                        document.body.removeChild(draggedElement);
+                    }
+                    isDragging = false;
+                    draggedPiece = null;
+                    draggedFromSquare = null;
+                    draggedElement = null;
+                    return;
+                }
+            }
+
+            // Show legal moves for this piece
+            selectedSquare = { row, col };
+            const fromSquare = coordsToAlgebraic(row, col);
+            legalMovesForPiece = cachedLegalMoves.filter(move => move.startsWith(fromSquare));
+
+            // Dim the source square
+            squareElement.style.opacity = '0.5';
+
+            renderBoard();
+
+            console.log('Started dragging piece:', piece, 'from:', row, col);
+        }
+
+        // Track mouse movement while dragging
+        function handleMouseMove(event) {
+            if (!isDragging || !draggedElement) return;
+
+            // Move piece to follow cursor
+            draggedElement.style.left = (event.clientX - dragOffsetX) + 'px';
+            draggedElement.style.top = (event.clientY - dragOffsetY) + 'px';
+        }
+
+        // Complete the drag
+        async function handleMouseUp(event) {
+            if (!isDragging) return;
+
+            console.log('Drag ended at:', event.clientX, event.clientY);
+
+            // Find which square the piece was dropped on
+            const elementsUnderCursor = document.elementsFromPoint(event.clientX, event.clientY);
+            const squareElement = elementsUnderCursor.find(el => el.classList.contains('square'));
+
+            let dropRow = null;
+            let dropCol = null;
+
+            if (squareElement) {
+                // Extract row/col from square element
+                dropRow = parseInt(squareElement.dataset.row);
+                dropCol = parseInt(squareElement.dataset.col);
+
+                console.log('Dropped on square:', dropRow, dropCol);
+            }
+
+            // Remove dragged element
+            if (draggedElement && draggedElement.parentNode) {
+                document.body.removeChild(draggedElement);
+            }
+
+            // Restore original square opacity
+            const originalSquare = document.querySelector(`[data-row="${draggedFromSquare.row}"][data-col="${draggedFromSquare.col}"]`);
+            if (originalSquare) {
+                originalSquare.style.opacity = '';
+            }
+
+            // Attempt to make the move
+            if (dropRow !== null && dropCol !== null) {
+                const fromRow = draggedFromSquare.row;
+                const fromCol = draggedFromSquare.col;
+
+                // Check if dropped on different square
+                if (dropRow !== fromRow || dropCol !== fromCol) {
+                    console.log('Attempting move from', fromRow, fromCol, 'to', dropRow, dropCol);
+
+                    // Build move string
+                    const moveStr = coordsToAlgebraic(fromRow, fromCol) + coordsToAlgebraic(dropRow, dropCol);
+
+                    // Use existing move function
+                    await attemptUserMove(moveStr);
+                } else {
+                    // Dropped on same square - deselect
+                    console.log('Dropped on same square - deselecting');
+                    selectedSquare = null;
+                    legalMovesForPiece = [];
+                    renderBoard();
+                }
+            } else {
+                // Invalid drop - reset
+                console.log('Invalid drop - resetting board');
+                selectedSquare = null;
+                legalMovesForPiece = [];
+                renderBoard();
+            }
+
+            // Remove dragging class from body
+            document.body.classList.remove('dragging');
+
+            // Reset drag state
+            isDragging = false;
+            draggedPiece = null;
+            draggedFromSquare = null;
+            draggedElement = null;
+            lastDragEnd = Date.now();
         }
 
         // ============================================
@@ -2302,6 +2532,12 @@
             });
 
             console.log('Learn Mode event handlers initialized');
+
+            // Add document-level drag-and-drop event listeners
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+
+            console.log('Drag-and-drop event handlers initialized');
         };
     </script>
 </body>
