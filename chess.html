@@ -305,6 +305,19 @@
             border: 2px solid #f5c6cb;
         }
 
+        .status-message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #28a745;
+        }
+
+        .status-message.teaching {
+            background: #ff9800;
+            color: white;
+            border: 2px solid #f57c00;
+            font-weight: bold;
+        }
+
         /* ============================================
            Engine Status Display
            ============================================ */
@@ -580,6 +593,32 @@
         }
 
         /* ============================================
+           Teaching Mode Visual Indicators
+           ============================================ */
+        body.teaching-mode {
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+        }
+
+        body.teaching-mode .container {
+            box-shadow: 0 20px 60px rgba(255, 152, 0, 0.5);
+        }
+
+        body.teaching-mode .chessboard {
+            border: 4px solid #ff9800;
+            box-shadow: 0 0 30px rgba(255, 152, 0, 0.7);
+            animation: teaching-pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes teaching-pulse {
+            0%, 100% {
+                box-shadow: 0 0 30px rgba(255, 152, 0, 0.7);
+            }
+            50% {
+                box-shadow: 0 0 50px rgba(255, 152, 0, 0.9);
+            }
+        }
+
+        /* ============================================
            Responsive Design
            ============================================ */
         @media (max-width: 600px) {
@@ -790,6 +829,8 @@
         let isLearnMode = false; // Track if Learn Mode is active
         let lastEngineMove = null; // Tracks the last move the engine made
         let lastEngineFEN = null; // FEN before the engine moved
+        let isTeachingMove = false; // Track if we're in visual teaching mode
+        let teachingFEN = null; // FEN of position being taught
 
         // API endpoints
         const API_ENDPOINT = 'https://chessengine2.onrender.com/move';
@@ -908,12 +949,26 @@
             const engineColor = document.getElementById('engineColor').value;
             const isEngineWhite = engineColor === 'white';
             const isUserTurn = (whiteToMove && !isEngineWhite) || (!whiteToMove && isEngineWhite);
+            const isEngineTurn = (whiteToMove === isEngineWhite);
 
             // If no piece is selected
             if (selectedSquare === null) {
-                // User can only select their own pieces on their turn
-                if (piece === '.' || !isUserTurn) {
+                // Allow moving engine pieces ONLY if teaching mode is active
+                if (isEngineTurn && !isTeachingMove) {
+                    // It's engine's turn and we're not teaching - don't allow user to move
+                    showStatus("It's the engine's turn!", 'error');
+                    setTimeout(hideStatus, 2000);
                     return;
+                }
+
+                // User can only select their own pieces on their turn (or engine pieces during teaching)
+                if (piece === '.' || (!isUserTurn && !isTeachingMove)) {
+                    return;
+                }
+
+                // If teaching mode is active, allow moving engine pieces
+                if (isTeachingMove && isEngineTurn) {
+                    console.log('Teaching mode: allowing user to move engine pieces');
                 }
 
                 const pieceColor = getPieceColor(piece);
@@ -1009,7 +1064,7 @@
         // ============================================
         // Attempt User Move
         // ============================================
-        function attemptUserMove(moveStr) {
+        async function attemptUserMove(moveStr) {
             // Check if this is a promotion move BEFORE checking if it's legal
             // Promotion moves need special handling
             if (isPromotionMove(moveStr)) {
@@ -1030,6 +1085,37 @@
 
             // Make the move IMMEDIATELY for instant visual feedback
             if (makeMove(moveStr)) {
+                // Check if this was a teaching move BEFORE clearing state
+                if (isTeachingMove) {
+                    console.log('=== TEACHING MOVE MADE ===');
+                    console.log('Taught move:', moveStr);
+                    console.log('For FEN:', teachingFEN);
+
+                    // Convert internal format to algebraic notation for saving
+                    const moveNotation = await convertInternalToAlgebraic(moveStr);
+
+                    // Save the move to opening book
+                    await saveTeachingMove(teachingFEN, moveNotation || moveStr);
+
+                    // Exit teaching mode
+                    isTeachingMove = false;
+                    teachingFEN = null;
+                    document.body.classList.remove('teaching-mode');
+
+                    hideStatus();
+                    console.log('✅ Teaching complete');
+
+                    // Update display
+                    updateLastMoveDisplay(moveStr);
+                    selectedSquare = null;
+                    legalMovesForPiece = [];
+                    cachedLegalMoves = null;
+                    renderBoard();
+
+                    // Don't trigger automatic engine response after teaching
+                    return;
+                }
+
                 // Hide forget button after user moves
                 document.getElementById('forgetMoveBtn').style.display = 'none';
                 lastEngineMove = null;
@@ -1287,7 +1373,7 @@
         }
 
         // Complete promotion after user selects piece
-        function completePromotion(promotionPiece) {
+        async function completePromotion(promotionPiece) {
             // Hide modal
             document.getElementById('promotionModal').style.display = 'none';
 
@@ -1296,6 +1382,37 @@
 
             // Make the move with promotion
             if (makeMove(fullMove)) {
+                // Check if this was a teaching move
+                if (isTeachingMove) {
+                    console.log('=== TEACHING PROMOTION MOVE ===');
+                    console.log('Taught move:', fullMove);
+                    console.log('For FEN:', teachingFEN);
+
+                    // Convert internal format to algebraic notation for saving
+                    const moveNotation = await convertInternalToAlgebraic(fullMove);
+
+                    // Save the move to opening book
+                    await saveTeachingMove(teachingFEN, moveNotation || fullMove);
+
+                    // Exit teaching mode
+                    isTeachingMove = false;
+                    teachingFEN = null;
+                    document.body.classList.remove('teaching-mode');
+
+                    hideStatus();
+                    console.log('✅ Teaching complete');
+
+                    // Update display
+                    updateLastMoveDisplay(fullMove);
+                    selectedSquare = null;
+                    legalMovesForPiece = [];
+                    cachedLegalMoves = null;
+                    renderBoard();
+
+                    pendingPromotionMove = null;
+                    return;
+                }
+
                 updateLastMoveDisplay(fullMove);
                 selectedSquare = null;
                 legalMovesForPiece = [];
@@ -1676,6 +1793,90 @@
             }
         }
 
+        // Save a move that was taught by visual piece movement
+        async function saveTeachingMove(fen, move) {
+            try {
+                const opening = document.getElementById('openingSelect').value;
+
+                console.log('Saving teaching move:', move, 'for FEN:', fen);
+
+                showStatus('Saving move to opening book...', 'thinking');
+
+                const encodedFEN = encodeURIComponent(fen);
+                const response = await fetch(
+                    `${API_ENDPOINT.replace('/move', '')}/save-opening-move?opening=${opening}&fen=${encodedFEN}&move=${move}`
+                );
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.status === 'ok') {
+                    console.log('✅ Move saved successfully! Positions learned:', data.positions_learned);
+                    showStatus('Move saved! ✓', 'success');
+                    setTimeout(hideStatus, 2000);
+                } else {
+                    throw new Error(data.message || 'Failed to save move');
+                }
+            } catch (error) {
+                console.error('Error saving teaching move:', error);
+                showStatus('Error: ' + error.message, 'error');
+                setTimeout(hideStatus, 5000);
+            }
+        }
+
+        // Convert internal format (e.g., "c7c6") to algebraic notation (e.g., "pc6")
+        async function convertInternalToAlgebraic(internalMove) {
+            try {
+                // For now, we'll use a simple conversion
+                // The API accepts moves in the format that convertAlgebraicToInternal produces
+                // So we need to reverse that process
+
+                if (internalMove.length < 4) {
+                    console.error('Invalid internal move format:', internalMove);
+                    return internalMove;
+                }
+
+                const fromSquare = internalMove.substring(0, 2);
+                const toSquare = internalMove.substring(2, 4);
+                const promotion = internalMove.length === 5 ? internalMove[4] : null;
+
+                // Get the piece at the from square (before the move was made, we need to look at current board)
+                // Actually, the move has already been made, so we need to look at the destination
+                const toCol = toSquare.charCodeAt(0) - 'a'.charCodeAt(0);
+                const toRow = 8 - parseInt(toSquare[1]);
+                const piece = board[toRow][toCol];
+
+                if (piece === '.') {
+                    console.error('No piece at destination square');
+                    return internalMove;
+                }
+
+                // Map piece to letter
+                const pieceMap = {
+                    'p': 'p', 'P': 'p',
+                    'n': 'n', 'N': 'n',
+                    'b': 'b', 'B': 'b',
+                    'r': 'r', 'R': 'r',
+                    'q': 'q', 'Q': 'q',
+                    'k': 'k', 'K': 'k'
+                };
+
+                const pieceLetter = pieceMap[piece] || 'p';
+
+                // Format: piece + destination square (e.g., "pc6", "Nf3")
+                const algebraic = pieceLetter + toSquare;
+
+                console.log('Converted', internalMove, 'to', algebraic);
+                return algebraic;
+            } catch (error) {
+                console.error('Error converting internal to algebraic:', error);
+                return internalMove; // Return original if conversion fails
+            }
+        }
+
         // Convert algebraic notation (e.g., "pc6", "Nf3", "short castle") to internal format (e.g., "c7c6")
         async function convertAlgebraicToInternal(algebraicMove) {
             try {
@@ -2032,10 +2233,28 @@
                             throw new Error('Could not convert learned move: ' + data.move);
                         }
                     } else {
-                        // Position NOT in opening book - ask user to teach it
-                        console.log('Position not in opening book - showing teach modal');
+                        // Position NOT in opening book - enable visual teaching mode
+                        console.log('Position not in opening book - enabling visual teaching');
+
+                        // Capture the FEN of the position being taught
+                        teachingFEN = boardToFEN();
+                        console.log('Teaching FEN:', teachingFEN);
+
                         setEngineIdle();
-                        showMoveInputModal();
+
+                        // Show teaching status
+                        showStatus('Unknown position! Move the engine\'s piece yourself.', 'teaching');
+
+                        // Enable teaching mode flag
+                        isTeachingMove = true;
+
+                        // Highlight that we're in teaching mode
+                        document.body.classList.add('teaching-mode');
+
+                        // Hide forget button during teaching
+                        document.getElementById('forgetMoveBtn').style.display = 'none';
+
+                        console.log('✅ Teaching mode enabled - you can now move engine pieces');
                     }
                 } else {
                     throw new Error(data.message || 'Failed to check opening book');
@@ -2046,8 +2265,11 @@
                 showStatus('Error checking opening book: ' + error.message, 'error');
                 setTimeout(hideStatus, 5000);
 
-                // Fall back to showing the modal so user can still teach
-                showMoveInputModal();
+                // Fall back to visual teaching mode
+                teachingFEN = boardToFEN();
+                isTeachingMove = true;
+                document.body.classList.add('teaching-mode');
+                console.log('Enabled teaching mode after error');
             }
         }
 
