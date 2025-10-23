@@ -20,8 +20,8 @@
             min-height: 100vh;
             display: flex;
             justify-content: center;
-            align-items: flex-start;
-            padding: 20px;
+            align-items: center;
+            padding: 15px;
         }
 
         /* ============================================
@@ -31,8 +31,8 @@
             background: white;
             border-radius: 20px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            padding: 40px 50px;
-            max-width: 1600px;
+            padding: 30px 50px 40px 50px;
+            max-width: 1700px;
             width: 95%;
             display: flex;
             flex-direction: column;
@@ -43,7 +43,7 @@
             text-align: center;
             color: #333;
             margin-bottom: 0;
-            font-size: 32px;
+            font-size: 36px;
         }
 
         /* ============================================
@@ -52,7 +52,7 @@
         /* Main horizontal layout: Board on left, controls on right */
         .main-content {
             display: flex;
-            gap: 40px;
+            gap: 45px;
             align-items: flex-start;
             justify-content: center;
             width: 100%;
@@ -62,7 +62,7 @@
         .board-section {
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 18px;
             flex: 0 0 auto;
         }
 
@@ -70,9 +70,9 @@
         .controls-section {
             display: flex;
             flex-direction: column;
-            gap: 20px;
-            flex: 0 0 400px;
-            min-width: 400px;
+            gap: 22px;
+            flex: 0 0 420px;
+            min-width: 420px;
         }
 
         .controls-section .controls {
@@ -114,11 +114,11 @@
 
         .chessboard {
             display: grid;
-            grid-template-columns: repeat(8, 105px);
-            grid-template-rows: repeat(8, 105px);
+            grid-template-columns: repeat(8, 115px);
+            grid-template-rows: repeat(8, 115px);
             border: 3px solid #333;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            margin-left: 30px;
+            margin-left: 32px;
             margin-top: 0;
         }
 
@@ -129,17 +129,17 @@
             top: 0;
             display: flex;
             flex-direction: column;
-            height: 840px; /* 8 * 105px */
+            height: 920px; /* 8 * 115px */
             justify-content: space-around;
             align-items: center;
-            width: 30px;
+            width: 32px;
         }
 
         .rank-label {
-            font-size: 16px;
+            font-size: 17px;
             font-weight: bold;
             color: #769656;
-            height: 105px;
+            height: 115px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -147,28 +147,28 @@
 
         .file-labels {
             position: absolute;
-            left: 30px;
-            bottom: -30px;
+            left: 32px;
+            bottom: -32px;
             display: flex;
-            width: 840px; /* 8 * 105px */
+            width: 920px; /* 8 * 115px */
             justify-content: space-around;
         }
 
         .file-label {
-            font-size: 16px;
+            font-size: 17px;
             font-weight: bold;
             color: #769656;
-            width: 105px;
+            width: 115px;
             text-align: center;
         }
 
         .square {
-            width: 105px;
-            height: 105px;
+            width: 115px;
+            height: 115px;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 68px;
+            font-size: 74px;
             cursor: grab;
             transition: background-color 0.2s, opacity 0.2s;
             user-select: none;
@@ -753,8 +753,8 @@
             padding: 15px;
             background-color: #f5f5f5;
             border-radius: 8px;
-            width: 840px;
-            margin-left: 30px;
+            width: 920px;
+            margin-left: 32px;
         }
 
         .navigation-controls button {
@@ -823,7 +823,7 @@
         /* ============================================
            Responsive Design
            ============================================ */
-        @media (max-width: 1400px) {
+        @media (max-width: 1500px) {
             /* Stack layout vertically on smaller screens */
             .main-content {
                 flex-direction: column;
@@ -832,12 +832,12 @@
 
             .controls-section {
                 width: 100%;
-                max-width: 840px;
+                max-width: 920px;
                 flex: 1 1 auto;
             }
 
             .navigation-controls {
-                margin-left: 30px;
+                margin-left: 32px;
             }
         }
 
