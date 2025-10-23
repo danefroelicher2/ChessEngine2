@@ -117,10 +117,31 @@
             cursor: grab;
             transition: background-color 0.2s, opacity 0.2s;
             user-select: none;
+            /* Default piece styling - white pieces (uppercase Unicode) */
+            color: #FFFFFF;
+            text-shadow:
+                -1.5px -1.5px 0 #000000,
+                1.5px -1.5px 0 #000000,
+                -1.5px 1.5px 0 #000000,
+                1.5px 1.5px 0 #000000,
+                0 0 4px rgba(0, 0, 0, 0.6);
+            filter: brightness(1.05) contrast(1.1);
         }
 
         .square:active {
             cursor: grabbing;
+        }
+
+        /* Black pieces styling - dark with subtle outline */
+        .square.black-piece {
+            color: #404040;
+            text-shadow:
+                -1px -1px 0 #000000,
+                1px -1px 0 #000000,
+                -1px 1px 0 #000000,
+                1px 1px 0 #000000,
+                0 0 3px rgba(0, 0, 0, 0.4);
+            filter: brightness(0.95) contrast(1.05);
         }
 
         .square.light {
@@ -1083,6 +1104,10 @@
                     const piece = board[row][col];
                     if (piece !== '.') {
                         square.textContent = PIECES[piece];
+                        // Add class for black pieces (lowercase letters)
+                        if (piece === piece.toLowerCase()) {
+                            square.classList.add('black-piece');
+                        }
                     }
 
                     // Add click handler
