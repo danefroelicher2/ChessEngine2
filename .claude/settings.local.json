@@ -43,7 +43,8 @@
       "Bash(then echo \"✓ Compilation complete!\")",
       "Bash(exit 0)",
       "Bash(done)",
-      "Bash(git push origin main)"
+      "Bash(git push origin main)",
+      "Bash(start chrome chess.html)"
     ],
     "deny": [],
     "ask": []

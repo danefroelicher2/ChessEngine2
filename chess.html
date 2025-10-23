@@ -20,7 +20,7 @@
             min-height: 100vh;
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start;
             padding: 20px;
         }
 
@@ -31,16 +31,71 @@
             background: white;
             border-radius: 20px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            padding: 40px;
-            max-width: 700px;
-            width: 100%;
+            padding: 30px;
+            max-width: 1400px;
+            width: 95%;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
         }
 
         h1 {
             text-align: center;
             color: #333;
-            margin-bottom: 30px;
+            margin-bottom: 0;
             font-size: 32px;
+        }
+
+        /* ============================================
+           Main Layout Sections
+           ============================================ */
+        /* Main horizontal layout: Board on left, controls on right */
+        .main-content {
+            display: flex;
+            gap: 30px;
+            align-items: flex-start;
+            justify-content: center;
+            width: 100%;
+        }
+
+        /* Left side: Board and navigation */
+        .board-section {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            flex: 0 0 auto;
+        }
+
+        /* Right side: All controls */
+        .controls-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            flex: 0 0 350px;
+            min-width: 350px;
+        }
+
+        .controls-section .controls {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 0;
+        }
+
+        .controls-section .learn-mode-section {
+            margin-bottom: 0;
+        }
+
+        .controls-section .info-panel {
+            margin-top: 0;
+        }
+
+        .controls-section button {
+            width: 100%;
+        }
+
+        .controls-section select {
+            width: 100%;
         }
 
         /* ============================================
@@ -49,7 +104,7 @@
         .board-wrapper {
             display: flex;
             justify-content: center;
-            margin-bottom: 30px;
+            margin-bottom: 0;
         }
 
         .board-container {
@@ -59,11 +114,11 @@
 
         .chessboard {
             display: grid;
-            grid-template-columns: repeat(8, 70px);
-            grid-template-rows: repeat(8, 70px);
+            grid-template-columns: repeat(8, 85px);
+            grid-template-rows: repeat(8, 85px);
             border: 3px solid #333;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            margin-left: 20px;
+            margin-left: 25px;
             margin-top: 0;
         }
 
@@ -74,17 +129,17 @@
             top: 0;
             display: flex;
             flex-direction: column;
-            height: 560px; /* 8 * 70px */
+            height: 680px; /* 8 * 85px */
             justify-content: space-around;
             align-items: center;
-            width: 20px;
+            width: 25px;
         }
 
         .rank-label {
-            font-size: 13px;
+            font-size: 14px;
             font-weight: bold;
             color: #769656;
-            height: 70px;
+            height: 85px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -92,28 +147,28 @@
 
         .file-labels {
             position: absolute;
-            left: 20px;
-            bottom: -25px;
+            left: 25px;
+            bottom: -28px;
             display: flex;
-            width: 560px; /* 8 * 70px */
+            width: 680px; /* 8 * 85px */
             justify-content: space-around;
         }
 
         .file-label {
-            font-size: 13px;
+            font-size: 14px;
             font-weight: bold;
             color: #769656;
-            width: 70px;
+            width: 85px;
             text-align: center;
         }
 
         .square {
-            width: 70px;
-            height: 70px;
+            width: 85px;
+            height: 85px;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 48px;
+            font-size: 56px;
             cursor: grab;
             transition: background-color 0.2s, opacity 0.2s;
             user-select: none;
@@ -692,11 +747,13 @@
             gap: 10px;
             align-items: center;
             justify-content: center;
-            margin-top: 15px;
-            margin-bottom: 15px;
+            margin-top: 0;
+            margin-bottom: 0;
             padding: 12px;
             background-color: #f5f5f5;
             border-radius: 8px;
+            width: 680px;
+            margin-left: 25px;
         }
 
         .navigation-controls button {
@@ -765,7 +822,68 @@
         /* ============================================
            Responsive Design
            ============================================ */
+        @media (max-width: 1200px) {
+            /* Stack layout vertically on smaller screens */
+            .main-content {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .controls-section {
+                width: 100%;
+                max-width: 680px;
+                flex: 1 1 auto;
+            }
+
+            .navigation-controls {
+                margin-left: 25px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            /* Smaller board on tablets */
+            .chessboard {
+                grid-template-columns: repeat(8, 60px);
+                grid-template-rows: repeat(8, 60px);
+                margin-left: 22px;
+            }
+
+            .square {
+                width: 60px;
+                height: 60px;
+                font-size: 42px;
+            }
+
+            .rank-labels {
+                height: 480px;
+                width: 22px;
+            }
+
+            .rank-label {
+                height: 60px;
+            }
+
+            .file-labels {
+                left: 22px;
+                width: 480px;
+            }
+
+            .file-label {
+                width: 60px;
+            }
+
+            .navigation-controls {
+                width: 480px;
+                margin-left: 22px;
+            }
+
+            .controls-section {
+                max-width: 480px;
+            }
+        }
+
         @media (max-width: 600px) {
+            /* Mobile layout */
             .chessboard {
                 grid-template-columns: repeat(8, 50px);
                 grid-template-rows: repeat(8, 50px);
@@ -787,7 +905,7 @@
             }
 
             .rank-labels {
-                height: 400px; /* 8 * 50px */
+                height: 400px;
                 width: 18px;
             }
 
@@ -799,12 +917,22 @@
             .file-labels {
                 left: 18px;
                 bottom: -22px;
-                width: 400px; /* 8 * 50px */
+                width: 400px;
             }
 
             .file-label {
                 width: 50px;
                 font-size: 11px;
+            }
+
+            .navigation-controls {
+                width: 400px;
+                margin-left: 18px;
+            }
+
+            .controls-section {
+                max-width: 400px;
+                min-width: 0;
             }
         }
     </style>
@@ -829,97 +957,109 @@
         <!-- Status Messages -->
         <div id="statusMessage" class="status-message"></div>
 
-        <!-- Chessboard -->
-        <div class="board-wrapper">
-            <div class="board-container">
-                <!-- Rank labels (8-1) -->
-                <div class="rank-labels">
-                    <div class="rank-label">8</div>
-                    <div class="rank-label">7</div>
-                    <div class="rank-label">6</div>
-                    <div class="rank-label">5</div>
-                    <div class="rank-label">4</div>
-                    <div class="rank-label">3</div>
-                    <div class="rank-label">2</div>
-                    <div class="rank-label">1</div>
+        <!-- MAIN CONTENT: Board + Controls side-by-side -->
+        <div class="main-content">
+
+            <!-- LEFT SIDE: Board and Navigation -->
+            <div class="board-section">
+                <!-- Chessboard -->
+                <div class="board-wrapper">
+                    <div class="board-container">
+                        <!-- Rank labels (8-1) -->
+                        <div class="rank-labels">
+                            <div class="rank-label">8</div>
+                            <div class="rank-label">7</div>
+                            <div class="rank-label">6</div>
+                            <div class="rank-label">5</div>
+                            <div class="rank-label">4</div>
+                            <div class="rank-label">3</div>
+                            <div class="rank-label">2</div>
+                            <div class="rank-label">1</div>
+                        </div>
+
+                        <!-- Chess board -->
+                        <div id="chessboard" class="chessboard"></div>
+
+                        <!-- File labels (a-h) -->
+                        <div class="file-labels">
+                            <div class="file-label">a</div>
+                            <div class="file-label">b</div>
+                            <div class="file-label">c</div>
+                            <div class="file-label">d</div>
+                            <div class="file-label">e</div>
+                            <div class="file-label">f</div>
+                            <div class="file-label">g</div>
+                            <div class="file-label">h</div>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Chess board -->
-                <div id="chessboard" class="chessboard"></div>
-
-                <!-- File labels (a-h) -->
-                <div class="file-labels">
-                    <div class="file-label">a</div>
-                    <div class="file-label">b</div>
-                    <div class="file-label">c</div>
-                    <div class="file-label">d</div>
-                    <div class="file-label">e</div>
-                    <div class="file-label">f</div>
-                    <div class="file-label">g</div>
-                    <div class="file-label">h</div>
+                <!-- Move Navigation Controls -->
+                <div class="navigation-controls">
+                    <button id="backBtn" onclick="goBackOneMove()" title="Previous move" disabled>
+                        ⬅️ Back
+                    </button>
+                    <button id="forwardBtn" onclick="goForwardOneMove()" title="Next move" disabled>
+                        ➡️ Forward
+                    </button>
+                    <button id="fastForwardBtn" onclick="goToCurrentPosition()" title="Jump to current position" disabled>
+                        ⏩ Latest
+                    </button>
+                    <span id="moveCounter" class="move-counter">Start Position</span>
                 </div>
             </div>
-        </div>
 
-        <!-- Move Navigation Controls -->
-        <div class="navigation-controls">
-            <button id="backBtn" onclick="goBackOneMove()" title="Previous move" disabled>
-                ⬅️ Back
-            </button>
-            <button id="forwardBtn" onclick="goForwardOneMove()" title="Next move" disabled>
-                ➡️ Forward
-            </button>
-            <button id="fastForwardBtn" onclick="goToCurrentPosition()" title="Jump to current position" disabled>
-                ⏩ Latest
-            </button>
-            <span id="moveCounter" class="move-counter">Start Position</span>
-        </div>
+            <!-- RIGHT SIDE: All Controls -->
+            <div class="controls-section">
 
-        <!-- Controls -->
-        <div class="controls">
-            <!-- Learn Mode Section -->
-            <div id="learnModeSection" class="learn-mode-section">
-                <div class="learn-mode-header">
-                    <button id="learnModeBtn">Learn Mode: OFF</button>
+                <!-- Learn Mode Section -->
+                <div id="learnModeSection" class="learn-mode-section">
+                    <div class="learn-mode-header">
+                        <button id="learnModeBtn">Learn Mode: OFF</button>
+                    </div>
+                    <div class="learn-mode-controls">
+                        <div class="opening-selection">
+                            <label for="openingSelect">Teaching:</label>
+                            <select id="openingSelect" disabled>
+                                <option value="caro_kann_classical">Caro-Kann Classical</option>
+                            </select>
+                        </div>
+                        <button id="forgetMoveBtn"
+                                onclick="forgetLastMove()"
+                                class="danger-btn"
+                                style="display: none;">
+                            Forget Move
+                        </button>
+                    </div>
                 </div>
-                <div class="learn-mode-controls">
-                    <div class="opening-selection">
-                        <label for="openingSelect">Teaching:</label>
-                        <select id="openingSelect" disabled>
-                            <option value="caro_kann_classical">Caro-Kann Classical</option>
+
+                <!-- Engine Play Section -->
+                <div class="controls">
+                    <div class="control-row">
+                        <label for="engineColor">Engine plays:</label>
+                        <select id="engineColor">
+                            <option value="white">White</option>
+                            <option value="black">Black</option>
                         </select>
                     </div>
-                    <button id="forgetMoveBtn"
-                            onclick="forgetLastMove()"
-                            class="danger-btn"
-                            style="display: none;">
-                        Forget Move
-                    </button>
+                    <div class="control-row">
+                        <button id="getMoveBtn" onclick="getEngineMove()">Get Engine Move</button>
+                        <button onclick="resetBoard()">Reset Board</button>
+                    </div>
                 </div>
-            </div>
 
-            <div class="control-row">
-                <label for="engineColor">Engine plays:</label>
-                <select id="engineColor">
-                    <option value="white">White</option>
-                    <option value="black">Black</option>
-                </select>
-            </div>
-            <div class="control-row">
-                <button id="getMoveBtn" onclick="getEngineMove()">Get Engine Move</button>
-                <button onclick="resetBoard()">Reset Board</button>
-            </div>
-        </div>
+                <!-- Information Panel -->
+                <div class="info-panel">
+                    <div class="info-row">
+                        <div class="info-label">Last Move:</div>
+                        <div id="lastMove" class="info-value">None</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Current FEN:</div>
+                        <div id="fenString" class="info-value"></div>
+                    </div>
+                </div>
 
-        <!-- Information Panel -->
-        <div class="info-panel">
-            <div class="info-row">
-                <div class="info-label">Last Move:</div>
-                <div id="lastMove" class="info-value">None</div>
-            </div>
-            <div class="info-row">
-                <div class="info-label">Current FEN:</div>
-                <div id="fenString" class="info-value"></div>
             </div>
         </div>
 
@@ -2402,18 +2542,33 @@
                     console.log('Positions remaining:', data.positions_learned);
 
                     // Step 4: Brief pause (500ms) so user sees the undo
-                    showStatus('Move forgotten! Teaching mode...', 'success');
+                    showStatus('Move forgotten! Now teach the correct move...', 'success');
                     await new Promise(resolve => setTimeout(resolve, 500));
 
-                    // Step 5: Clear state and hide button
+                    // Step 5: Store the FEN we're teaching BEFORE clearing it
+                    const fenToTeach = lastEngineFEN;
+
+                    // Step 6: Clear state and hide button
                     document.getElementById('forgetMoveBtn').style.display = 'none';
                     lastEngineMove = null;
                     lastEngineFEN = null;
 
-                    // Step 6: Show teaching modal
-                    hideStatus();
-                    showMoveInputModal();
+                    // Step 7: Enable VISUAL teaching mode (NOT modal) ✅
+                    console.log('Enabling visual teaching mode');
 
+                    // Store the FEN we're teaching
+                    teachingFEN = fenToTeach;
+
+                    // Enable teaching mode flag
+                    isTeachingMove = true;
+
+                    // Show teaching status
+                    showStatus('Unknown position! Move the engine\'s piece yourself.', 'teaching');
+
+                    // Add visual indicator
+                    document.body.classList.add('teaching-mode');
+
+                    console.log('✅ Visual teaching mode enabled');
                     console.log('✓ Ready to re-teach position');
                 } else {
                     throw new Error(data.message || 'Failed to delete position');
