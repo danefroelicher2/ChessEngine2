@@ -44,7 +44,8 @@
       "Bash(exit 0)",
       "Bash(done)",
       "Bash(git push origin main)",
-      "Bash(start chrome chess.html)"
+      "Bash(start chrome chess.html)",
+      "Bash(tree:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,0 +1,130 @@
+name: Daily Database Backup
+
+on:
+  schedule:
+    # Runs every day at 2:00 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:  # Allows manual trigger from GitHub Actions tab
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Create backups directory
+        run: mkdir -p backups
+
+      - name: Create database backup
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          # Generate filename with current date
+          BACKUP_FILE="backups/backup_$(date +%Y%m%d_%H%M%S).sql"
+
+          echo "Creating backup: $BACKUP_FILE"
+
+          # Create backup using pg_dump
+          pg_dump "$DATABASE_URL" > "$BACKUP_FILE"
+
+          # Check if backup was created successfully
+          if [ -s "$BACKUP_FILE" ]; then
+            echo "✅ Backup created successfully: $(ls -lh $BACKUP_FILE | awk '{print $5}')"
+
+            # Add backup info
+            echo "-- Backup created: $(date)" >> "$BACKUP_FILE"
+            echo "-- Database: Chess Engine Opening Book" >> "$BACKUP_FILE"
+
+            # Count positions in backup
+            POSITION_COUNT=$(grep -c "INSERT INTO opening_book" "$BACKUP_FILE" || echo "0")
+            echo "-- Positions backed up: $POSITION_COUNT" >> "$BACKUP_FILE"
+            echo "📊 Backed up $POSITION_COUNT positions"
+          else
+            echo "❌ Backup failed - file is empty"
+            exit 1
+          fi
+
+      - name: Remove old backups (keep last 30 days)
+        run: |
+          cd backups
+          # List all backup files sorted by date, keep newest 30, delete rest
+          ls -t backup_*.sql 2>/dev/null | tail -n +31 | xargs -r rm -f
+
+          REMAINING=$(ls -1 backup_*.sql 2>/dev/null | wc -l)
+          echo "🗂️  Keeping $REMAINING backup(s)"
+
+      - name: Create backup summary
+        run: |
+          # Create a README in backups directory
+          cat > backups/README.md << 'EOF'
+          # Chess Engine Database Backups
+
+          This directory contains automatic daily backups of the PostgreSQL opening book database.
+
+          ## Backup Schedule
+          - **Frequency:** Daily at 2:00 AM UTC
+          - **Retention:** Last 30 days
+          - **Format:** PostgreSQL SQL dump
+
+          ## Backup Files
+          - Format: `backup_YYYYMMDD_HHMMSS.sql`
+          - Example: `backup_20250124_020000.sql`
+
+          ## How to Restore
+
+          1. Get your DATABASE_URL from Render dashboard
+          2. Run restoration command:
+          ```bash
+          psql $DATABASE_URL < backup_YYYYMMDD_HHMMSS.sql
+          ```
+
+          ## Last Backup Info
+          EOF
+
+          # Add info about latest backup
+          LATEST=$(ls -t backups/backup_*.sql 2>/dev/null | head -1)
+          if [ -n "$LATEST" ]; then
+            echo "- **Latest backup:** $(basename $LATEST)" >> backups/README.md
+            echo "- **Size:** $(ls -lh $LATEST | awk '{print $5}')" >> backups/README.md
+            echo "- **Date:** $(date)" >> backups/README.md
+
+            # Extract position count if available
+            POSITION_COUNT=$(grep "Positions backed up:" "$LATEST" | grep -o '[0-9]*' || echo "Unknown")
+            echo "- **Positions:** $POSITION_COUNT" >> backups/README.md
+          fi
+
+      - name: Commit and push backups
+        run: |
+          git config user.name "Database Backup Bot"
+          git config user.email "backup-bot@github-actions"
+
+          git add backups/
+
+          # Check if there are changes to commit
+          if git diff --staged --quiet; then
+            echo "ℹ️  No changes to commit"
+          else
+            git commit -m "🤖 Automated database backup - $(date +%Y-%m-%d)"
+            git push
+            echo "✅ Backup committed and pushed to repository"
+          fi
+
+      - name: Backup summary
+        run: |
+          echo "================================"
+          echo "📦 BACKUP SUMMARY"
+          echo "================================"
+          echo "Status: ✅ Success"
+          echo "Date: $(date)"
+          echo "Backups stored: $(ls -1 backups/backup_*.sql 2>/dev/null | wc -l)"
+          echo "Total size: $(du -sh backups 2>/dev/null | awk '{print $1}')"
+          echo "================================"
