@@ -4,6 +4,9 @@ project(ChessEngine)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Find PostgreSQL
+find_package(PostgreSQL REQUIRED)
+
 # Executable 1: Local testing version
 add_executable(chess_engine
     main.cpp
@@ -18,6 +21,7 @@ add_executable(chess_server
     board.cpp
     moves.cpp
     engine.cpp
+    database.cpp
 )
 
 # Executable 3: Tactical bug diagnostic tests
@@ -35,6 +39,9 @@ add_executable(critical_diagnostic
     moves.cpp
     engine.cpp
 )
+
+# Link PostgreSQL
+target_link_libraries(chess_server PostgreSQL::PostgreSQL)
 
 # Link socket libraries on Windows
 if(WIN32)

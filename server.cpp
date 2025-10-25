@@ -4,6 +4,7 @@
 #include "board.h"
 #include "moves.h"
 #include "engine.h"
+#include "database.h"
 #include <iostream>
 #include <string>
 #include <sstream>
@@ -44,6 +45,9 @@ int getPortFromEnv()
 
 const int PORT = getPortFromEnv();
 const int BUFFER_SIZE = 4096;
+
+// Global database connection
+Database* db = nullptr;
 
 // =============================================================================
 // URL Decoding Functions
@@ -367,167 +371,31 @@ std::string processSaveOpeningMoveRequest(const std::string &opening, const std:
         // Validate parameters
         if (opening.empty() || fen.empty() || move.empty())
         {
-            return "{\"status\":\"error\",\"message\":\"Missing required parameters: opening, fen, move\"}";
+            return "{\"status\":\"error\",\"message\":\"Missing required parameters\"}";
         }
 
-        std::cout << "Saving opening move: " << opening << " | FEN: " << fen << " | Move: " << move << std::endl;
+        std::cout << "Saving to database: " << opening << " | FEN: " << fen << " | Move: " << move << std::endl;
 
-        // Build file path
-        std::string filename = "openings/" + opening + ".json";
-
-        // Read existing file
-        std::ifstream inFile(filename);
-        if (!inFile.is_open())
+        if (!db)
         {
-            return "{\"status\":\"error\",\"message\":\"Opening file not found: " + filename + "\"}";
+            return "{\"status\":\"error\",\"message\":\"Database not connected\"}";
         }
 
-        // Read entire file into string
-        std::string jsonContent((std::istreambuf_iterator<char>(inFile)),
-                                std::istreambuf_iterator<char>());
-        inFile.close();
-
-        // Extract current positions count
-        int currentCount = extractJsonNumberValue(jsonContent, "positions_learned");
-
-        // Find the "positions" object and check if this FEN already exists
-        size_t positionsStart = jsonContent.find("\"positions\":");
-        if (positionsStart == std::string::npos)
+        // Save to database
+        if (db->saveOpeningMove(opening, fen, move))
         {
-            return "{\"status\":\"error\",\"message\":\"Invalid JSON structure: missing positions object\"}";
-        }
-
-        // Check if this FEN already exists
-        std::string escapedFen = escapeJsonString(fen);
-        std::string fenPattern = "\"" + escapedFen + "\"";
-        bool fenExists = (jsonContent.find(fenPattern) != std::string::npos);
-
-        // Get current timestamp
-        std::string timestamp = getCurrentTimestamp();
-
-        // Build the new position entry
-        std::ostringstream newEntry;
-        newEntry << "    \"" << escapedFen << "\": {\n";
-        newEntry << "      \"best_move\": \"" << escapeJsonString(move) << "\",\n";
-        newEntry << "      \"timestamp\": \"" << timestamp << "\"\n";
-        newEntry << "    }";
-
-        // Find where to insert/update
-        size_t positionsObjectStart = jsonContent.find("{", positionsStart + 12);
-        if (positionsObjectStart == std::string::npos)
-        {
-            return "{\"status\":\"error\",\"message\":\"Invalid JSON structure\"}";
-        }
-
-        size_t positionsObjectEnd = jsonContent.find("}", positionsObjectStart);
-        std::string positionsContent = jsonContent.substr(positionsObjectStart + 1, positionsObjectEnd - positionsObjectStart - 1);
-
-        // Build new positions content
-        std::string newPositionsContent;
-        if (positionsContent.find_first_not_of(" \t\n\r") == std::string::npos)
-        {
-            // Empty positions object
-            newPositionsContent = "\n" + newEntry.str() + "\n  ";
+            int count = db->getPositionsLearned(opening);
+            std::cout << "Saved successfully! Total positions: " << count << std::endl;
+            return "{\"status\":\"ok\",\"positions_learned\":" + std::to_string(count) + "}";
         }
         else
         {
-            // Has existing positions
-            // Remove the old entry if it exists
-            if (fenExists)
-            {
-                size_t oldEntryStart = jsonContent.find(fenPattern);
-                if (oldEntryStart != std::string::npos)
-                {
-                    // Find the start of this entry (backtrack to find the key start)
-                    size_t entryKeyStart = jsonContent.rfind("\"", oldEntryStart - 1);
-                    size_t entryStart = jsonContent.rfind("\n", entryKeyStart);
-
-                    // Find the end of this entry (forward to find the closing brace)
-                    size_t entryEnd = jsonContent.find("}", oldEntryStart);
-                    entryEnd = jsonContent.find_first_of(",\n", entryEnd);
-
-                    if (entryStart != std::string::npos && entryEnd != std::string::npos)
-                    {
-                        // Check if there's a comma after
-                        bool hasCommaAfter = (jsonContent[entryEnd] == ',');
-
-                        // Remove old entry
-                        std::string before = jsonContent.substr(0, entryStart + 1);
-                        std::string after = jsonContent.substr(entryEnd + (hasCommaAfter ? 1 : 0));
-
-                        jsonContent = before + after;
-                    }
-                }
-            }
-
-            // Re-find positions after potential modification
-            positionsStart = jsonContent.find("\"positions\":");
-            positionsObjectStart = jsonContent.find("{", positionsStart + 12);
-            positionsObjectEnd = jsonContent.find("}", positionsObjectStart);
-            positionsContent = jsonContent.substr(positionsObjectStart + 1, positionsObjectEnd - positionsObjectStart - 1);
-
-            // Add new entry
-            if (positionsContent.find_first_not_of(" \t\n\r") == std::string::npos)
-            {
-                newPositionsContent = "\n" + newEntry.str() + "\n  ";
-            }
-            else
-            {
-                newPositionsContent = positionsContent + ",\n" + newEntry.str() + "\n  ";
-            }
+            return "{\"status\":\"error\",\"message\":\"Failed to save to database\"}";
         }
-
-        // Rebuild JSON with new positions
-        std::string beforePositions = jsonContent.substr(0, positionsObjectStart + 1);
-        std::string afterPositions = jsonContent.substr(positionsObjectEnd);
-
-        // Update count if new position
-        int newCount = fenExists ? currentCount : currentCount + 1;
-
-        // Rebuild the entire JSON
-        std::ostringstream finalJson;
-        finalJson << "{\n";
-        finalJson << "  \"opening_name\": \"" << extractJsonStringValue(jsonContent, "opening_name") << "\",\n";
-        finalJson << "  \"side\": \"" << extractJsonStringValue(jsonContent, "side") << "\",\n";
-        finalJson << "  \"description\": \"" << extractJsonStringValue(jsonContent, "description") << "\",\n";
-        finalJson << "  \"positions\": {" << newPositionsContent << "},\n";
-        finalJson << "  \"stats\": {\n";
-        finalJson << "    \"positions_learned\": " << newCount << ",\n";
-        finalJson << "    \"last_updated\": \"" << timestamp << "\",\n";
-        finalJson << "    \"deepest_line\": " << extractJsonNumberValue(jsonContent, "deepest_line") << "\n";
-        finalJson << "  }\n";
-        finalJson << "}\n";
-
-        // Write back to file
-        std::ofstream outFile(filename);
-        if (!outFile.is_open())
-        {
-            return "{\"status\":\"error\",\"message\":\"Failed to write to file: " + filename + "\"}";
-        }
-
-        outFile << finalJson.str();
-        outFile.close();
-
-        std::cout << "Saved move for FEN: " << fen << " → move: " << move << std::endl;
-
-        // Return success response
-        return "{\"status\":\"ok\",\"positions_learned\":" + std::to_string(newCount) + "}";
     }
     catch (const std::exception &e)
     {
-        std::string errorMsg = e.what();
-        // Escape quotes in error message
-        size_t pos = 0;
-        while ((pos = errorMsg.find("\"", pos)) != std::string::npos)
-        {
-            errorMsg.replace(pos, 1, "\\\"");
-            pos += 2;
-        }
-        return "{\"status\":\"error\",\"message\":\"" + errorMsg + "\"}";
-    }
-    catch (...)
-    {
-        return "{\"status\":\"error\",\"message\":\"Unknown error occurred while saving opening move\"}";
+        return "{\"status\":\"error\",\"message\":\"" + std::string(e.what()) + "\"}";
     }
 }
 
@@ -539,97 +407,33 @@ std::string processGetOpeningMoveRequest(const std::string &opening, const std::
         // Validate parameters
         if (opening.empty() || fen.empty())
         {
-            return "{\"status\":\"error\",\"message\":\"Missing required parameters: opening, fen\"}";
+            return "{\"status\":\"error\",\"message\":\"Missing required parameters\"}";
         }
 
-        std::cout << "Looking up FEN: " << fen << " in opening: " << opening << std::endl;
+        std::cout << "Looking up in database: " << opening << " | FEN: " << fen << std::endl;
 
-        // Build file path
-        std::string filename = "openings/" + opening + ".json";
-
-        // Read existing file
-        std::ifstream inFile(filename);
-        if (!inFile.is_open())
+        if (!db)
         {
-            std::cout << "  → not found (file doesn't exist)" << std::endl;
+            return "{\"status\":\"error\",\"message\":\"Database not connected\"}";
+        }
+
+        // Get from database
+        std::string move = db->getOpeningMove(opening, fen);
+
+        if (!move.empty())
+        {
+            std::cout << "Found move: " << move << std::endl;
+            return "{\"status\":\"ok\",\"move\":\"" + move + "\",\"found\":true}";
+        }
+        else
+        {
+            std::cout << "Position not found in database" << std::endl;
             return "{\"status\":\"ok\",\"move\":\"\",\"found\":false}";
         }
-
-        // Read entire file into string
-        std::string jsonContent((std::istreambuf_iterator<char>(inFile)),
-                                std::istreambuf_iterator<char>());
-        inFile.close();
-
-        // Escape the FEN for searching in JSON
-        std::string escapedFen = escapeJsonString(fen);
-        std::string fenPattern = "\"" + escapedFen + "\"";
-
-        // Search for the FEN in the positions object
-        size_t fenPos = jsonContent.find(fenPattern);
-        if (fenPos == std::string::npos)
-        {
-            std::cout << "  → not found" << std::endl;
-            return "{\"status\":\"ok\",\"move\":\"\",\"found\":false}";
-        }
-
-        // Find the "best_move" value for this FEN
-        // Look for "best_move":"..." after the FEN position
-        size_t bestMoveStart = jsonContent.find("\"best_move\":", fenPos);
-        if (bestMoveStart == std::string::npos)
-        {
-            std::cout << "  → not found (no best_move field)" << std::endl;
-            return "{\"status\":\"ok\",\"move\":\"\",\"found\":false}";
-        }
-
-        // Find the opening quote of the move value
-        size_t moveValueStart = jsonContent.find("\"", bestMoveStart + 12);
-        if (moveValueStart == std::string::npos)
-        {
-            std::cout << "  → not found (invalid JSON)" << std::endl;
-            return "{\"status\":\"ok\",\"move\":\"\",\"found\":false}";
-        }
-
-        // Find the closing quote
-        size_t moveValueEnd = jsonContent.find("\"", moveValueStart + 1);
-        if (moveValueEnd == std::string::npos)
-        {
-            std::cout << "  → not found (invalid JSON)" << std::endl;
-            return "{\"status\":\"ok\",\"move\":\"\",\"found\":false}";
-        }
-
-        // Extract the move
-        std::string move = jsonContent.substr(moveValueStart + 1, moveValueEnd - moveValueStart - 1);
-
-        // Verify this best_move belongs to the FEN we're looking for
-        // (make sure we didn't find a best_move from a different position)
-        // Check that the best_move is within a reasonable distance from the FEN
-        if (bestMoveStart - fenPos > 200)
-        {
-            // Too far away, probably a different entry
-            std::cout << "  → not found (best_move too far from FEN)" << std::endl;
-            return "{\"status\":\"ok\",\"move\":\"\",\"found\":false}";
-        }
-
-        std::cout << "  → found: " << move << std::endl;
-
-        // Return success response with move
-        return "{\"status\":\"ok\",\"move\":\"" + escapeJsonString(move) + "\",\"found\":true}";
     }
     catch (const std::exception &e)
     {
-        std::string errorMsg = e.what();
-        // Escape quotes in error message
-        size_t pos = 0;
-        while ((pos = errorMsg.find("\"", pos)) != std::string::npos)
-        {
-            errorMsg.replace(pos, 1, "\\\"");
-            pos += 2;
-        }
-        return "{\"status\":\"error\",\"message\":\"" + errorMsg + "\"}";
-    }
-    catch (...)
-    {
-        return "{\"status\":\"error\",\"message\":\"Unknown error occurred while retrieving opening move\"}";
+        return "{\"status\":\"error\",\"message\":\"" + std::string(e.what()) + "\"}";
     }
 }
 
@@ -641,194 +445,31 @@ std::string processDeleteOpeningMoveRequest(const std::string &opening, const st
         // Validate parameters
         if (opening.empty() || fen.empty())
         {
-            return "{\"status\":\"error\",\"message\":\"Missing required parameters: opening, fen\"}";
+            return "{\"status\":\"error\",\"message\":\"Missing required parameters\"}";
         }
 
-        std::cout << "=== DELETE REQUEST ===" << std::endl;
-        std::cout << "DEBUG: Raw FEN from request: " << fen << std::endl;
-        std::cout << "DEBUG: Opening: " << opening << std::endl;
+        std::cout << "Deleting from database: " << opening << " | FEN: " << fen << std::endl;
 
-        // Build file path
-        std::string filename = "openings/" + opening + ".json";
-        std::cout << "DEBUG: File path: " << filename << std::endl;
-
-        // Read existing file
-        std::ifstream inFile(filename);
-        if (!inFile.is_open())
+        if (!db)
         {
-            std::cout << "ERROR: Could not open file: " << filename << std::endl;
-            return "{\"status\":\"error\",\"message\":\"Opening file not found: " + filename + "\"}";
+            return "{\"status\":\"error\",\"message\":\"Database not connected\"}";
         }
 
-        std::string jsonContent((std::istreambuf_iterator<char>(inFile)),
-                                std::istreambuf_iterator<char>());
-        inFile.close();
-        std::cout << "DEBUG: File read successfully, size: " << jsonContent.length() << " bytes" << std::endl;
-
-        // Escape the FEN for searching
-        std::string escapedFen = escapeJsonString(fen);
-        std::string fenPattern = "\"" + escapedFen + "\"";
-        std::cout << "DEBUG: Escaped FEN for search: " << escapedFen << std::endl;
-        std::cout << "DEBUG: FEN pattern to find: " << fenPattern << std::endl;
-
-        // Find the FEN in the JSON
-        size_t fenPos = jsonContent.find(fenPattern);
-        std::cout << "DEBUG: Search result position: " << fenPos << std::endl;
-
-        if (fenPos == std::string::npos)
+        // Delete from database
+        if (db->deleteOpeningMove(opening, fen))
         {
-            std::cout << "DEBUG: FEN NOT FOUND in JSON!" << std::endl;
-            std::cout << "DEBUG: JSON content (first 500 chars): " << jsonContent.substr(0, 500) << std::endl;
-            std::cout << "  → Position not in book (nothing to delete)" << std::endl;
-            return "{\"status\":\"ok\",\"message\":\"Position was not in book\"}";
-        }
-
-        std::cout << "DEBUG: FEN FOUND at position: " << fenPos << std::endl;
-
-        // Find the entry boundaries
-        // Backtrack to find the start of this line (find the opening quote before the FEN)
-        size_t lineStart = jsonContent.rfind("\n", fenPos);
-        if (lineStart == std::string::npos)
-            lineStart = 0;
-
-        // Skip any leading whitespace on this line
-        while (lineStart < fenPos && (jsonContent[lineStart] == '\n' || jsonContent[lineStart] == ' ' || jsonContent[lineStart] == '\t'))
-        {
-            lineStart++;
-        }
-
-        // Forward to find the end of this entry (closing brace)
-        size_t entryEnd = jsonContent.find("}", fenPos);
-        if (entryEnd == std::string::npos)
-        {
-            return "{\"status\":\"error\",\"message\":\"Malformed JSON: could not find entry end\"}";
-        }
-
-        // Check if there's a comma after the closing brace
-        size_t checkPos = entryEnd + 1;
-        bool hasCommaAfter = false;
-
-        while (checkPos < jsonContent.length() && (jsonContent[checkPos] == ' ' || jsonContent[checkPos] == '\t' || jsonContent[checkPos] == '\n'))
-        {
-            checkPos++;
-        }
-
-        if (checkPos < jsonContent.length() && jsonContent[checkPos] == ',')
-        {
-            hasCommaAfter = true;
-            entryEnd = checkPos; // Include the comma in deletion
-        }
-
-        // If no comma after, check if there's a comma before (last entry in object)
-        if (!hasCommaAfter)
-        {
-            size_t checkBefore = lineStart;
-            while (checkBefore > 0 && (jsonContent[checkBefore - 1] == ' ' || jsonContent[checkBefore - 1] == '\t' || jsonContent[checkBefore - 1] == '\n'))
-            {
-                checkBefore--;
-            }
-
-            if (checkBefore > 0 && jsonContent[checkBefore - 1] == ',')
-            {
-                lineStart = checkBefore - 1; // Include preceding comma
-            }
-        }
-
-        // Delete the entry (from lineStart to entryEnd inclusive)
-        std::cout << "DEBUG: Entry starts at: " << lineStart << std::endl;
-        std::cout << "DEBUG: Entry ends at: " << entryEnd << std::endl;
-        std::cout << "DEBUG: Has comma after: " << hasCommaAfter << std::endl;
-        std::cout << "DEBUG: Deleting range: [" << lineStart << " to " << entryEnd << "] (length: " << (entryEnd - lineStart + 1) << ")" << std::endl;
-        std::cout << "DEBUG: Content to delete: " << jsonContent.substr(lineStart, std::min((size_t)200, entryEnd - lineStart + 1)) << std::endl;
-
-        jsonContent.erase(lineStart, entryEnd - lineStart + 1);
-        std::cout << "DEBUG: Entry erased from JSON string" << std::endl;
-
-        // Update positions_learned count (decrement by 1)
-        int currentCount = extractJsonNumberValue(jsonContent, "positions_learned");
-        if (currentCount > 0)
-            currentCount--;
-
-        // Replace the count in the JSON
-        std::string countPattern = "\"positions_learned\":";
-        size_t countPos = jsonContent.find(countPattern);
-
-        if (countPos != std::string::npos)
-        {
-            size_t valueStart = countPos + countPattern.length();
-
-            // Skip whitespace
-            while (valueStart < jsonContent.length() && (jsonContent[valueStart] == ' ' || jsonContent[valueStart] == '\t'))
-                valueStart++;
-
-            size_t valueEnd = valueStart;
-
-            // Find end of number
-            while (valueEnd < jsonContent.length() && jsonContent[valueEnd] >= '0' && jsonContent[valueEnd] <= '9')
-                valueEnd++;
-
-            // Replace the old count with new count
-            jsonContent.replace(valueStart, valueEnd - valueStart, std::to_string(currentCount));
-        }
-
-        // Update last_updated timestamp
-        std::string timestamp = getCurrentTimestamp();
-        std::string lastUpdatedPattern = "\"last_updated\":\"";
-        size_t lastUpdatedPos = jsonContent.find(lastUpdatedPattern);
-
-        if (lastUpdatedPos != std::string::npos)
-        {
-            size_t timestampStart = lastUpdatedPos + lastUpdatedPattern.length();
-            size_t timestampEnd = jsonContent.find("\"", timestampStart);
-
-            if (timestampEnd != std::string::npos)
-            {
-                jsonContent.replace(timestampStart, timestampEnd - timestampStart, timestamp);
-            }
-        }
-
-        // Write back to file
-        std::cout << "DEBUG: Writing modified JSON back to file..." << std::endl;
-        std::ofstream outFile(filename);
-        if (!outFile.is_open())
-        {
-            std::cout << "ERROR: Could not open file for writing: " << filename << std::endl;
-            return "{\"status\":\"error\",\"message\":\"Could not write to file\"}";
-        }
-
-        outFile << jsonContent;
-        outFile.close();
-        std::cout << "DEBUG: File written successfully" << std::endl;
-
-        // Verify deletion
-        std::cout << "DEBUG: Verifying deletion..." << std::endl;
-        std::ifstream verifyFile(filename);
-        std::string verifyContent((std::istreambuf_iterator<char>(verifyFile)),
-                                   std::istreambuf_iterator<char>());
-        verifyFile.close();
-
-        if (verifyContent.find(escapedFen) != std::string::npos)
-        {
-            std::cout << "ERROR: FEN still exists after deletion!" << std::endl;
-            std::cout << "VERIFICATION FAILED!" << std::endl;
+            int count = db->getPositionsLearned(opening);
+            std::cout << "Deleted successfully! Remaining positions: " << count << std::endl;
+            return "{\"status\":\"ok\",\"message\":\"Position deleted\",\"positions_learned\":" + std::to_string(count) + "}";
         }
         else
         {
-            std::cout << "VERIFIED: FEN successfully deleted from file" << std::endl;
+            return "{\"status\":\"error\",\"message\":\"Failed to delete from database\"}";
         }
-
-        std::cout << "  → Position deleted! Positions remaining: " << currentCount << std::endl;
-        std::cout << "=== DELETE COMPLETE ===" << std::endl;
-
-        return "{\"status\":\"ok\",\"message\":\"Position deleted\",\"positions_learned\":" + std::to_string(currentCount) + "}";
     }
     catch (const std::exception &e)
     {
-        return "{\"status\":\"error\",\"message\":\"Exception: " + std::string(e.what()) + "\"}";
-    }
-    catch (...)
-    {
-        return "{\"status\":\"error\",\"message\":\"Unknown error occurred while deleting position\"}";
+        return "{\"status\":\"error\",\"message\":\"" + std::string(e.what()) + "\"}";
     }
 }
 
@@ -962,6 +603,29 @@ int main()
     std::cout << "Press Ctrl+C to stop\n"
               << std::endl;
     std::flush(std::cout); // Force output to appear immediately
+
+    // Initialize database connection
+    std::cout << "Connecting to database..." << std::endl;
+    const char* dbUrl = std::getenv("DATABASE_URL");
+    if (!dbUrl)
+    {
+        std::cerr << "ERROR: DATABASE_URL environment variable not set!" << std::endl;
+        std::cerr << "Please set DATABASE_URL in Render environment settings." << std::endl;
+        closesocket(serverSocket);
+        cleanupSockets();
+        return 1;
+    }
+
+    db = new Database(dbUrl);
+    if (!db->connect())
+    {
+        std::cerr << "Failed to connect to database. Exiting." << std::endl;
+        delete db;
+        closesocket(serverSocket);
+        cleanupSockets();
+        return 1;
+    }
+    std::cout << "Database connected successfully!" << std::endl;
 
     // Main server loop - handle requests one at a time
     while (true)
