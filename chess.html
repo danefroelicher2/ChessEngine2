@@ -69,6 +69,21 @@
             /* Settings */
             --settings-dropdown-bg: white;
             --settings-hover-bg: #f0f0f0;
+
+            /* Coordinates */
+            --coord-label-color: #769656;
+
+            /* Navigation */
+            --nav-bg: #f5f5f5;
+            --nav-button-bg: white;
+            --nav-button-border: #cccccc;
+            --nav-button-hover-bg: #e3f2fd;
+            --nav-button-hover-border: #2196F3;
+            --nav-counter-bg: white;
+            --nav-counter-border: #dddddd;
+            --nav-counter-text: #333333;
+            --nav-history-border: #2196F3;
+            --nav-history-counter-bg: #2196F3;
         }
 
         [data-theme="dark"] {
@@ -132,6 +147,21 @@
             /* Settings */
             --settings-dropdown-bg: #2d2d2d;
             --settings-hover-bg: #3a3a3a;
+
+            /* Coordinates */
+            --coord-label-color: #88aa77;
+
+            /* Navigation */
+            --nav-bg: #2d2d2d;
+            --nav-button-bg: #3a3a3a;
+            --nav-button-border: #555555;
+            --nav-button-hover-bg: #1565C0;
+            --nav-button-hover-border: #1976D2;
+            --nav-counter-bg: #3a3a3a;
+            --nav-counter-border: #555555;
+            --nav-counter-text: #e0e0e0;
+            --nav-history-border: #1976D2;
+            --nav-history-counter-bg: #1976D2;
         }
 
         /* ============================================
@@ -249,7 +279,7 @@
             display: grid;
             grid-template-columns: repeat(8, 115px);
             grid-template-rows: repeat(8, 115px);
-            border: 3px solid #333;
+            border: 3px solid var(--border-color);
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
             margin-left: 32px;
             margin-top: 0;
@@ -271,7 +301,7 @@
         .rank-label {
             font-size: 17px;
             font-weight: bold;
-            color: #769656;
+            color: var(--coord-label-color);
             height: 115px;
             display: flex;
             align-items: center;
@@ -290,7 +320,7 @@
         .file-label {
             font-size: 17px;
             font-weight: bold;
-            color: #769656;
+            color: var(--coord-label-color);
             width: 115px;
             text-align: center;
         }
@@ -387,7 +417,7 @@
 
         label {
             font-weight: bold;
-            color: #333;
+            color: var(--text-secondary);
             font-size: 16px;
         }
 
@@ -473,17 +503,17 @@
             font-size: 15px;
             word-break: break-all;
             padding: 10px;
-            background: white;
+            background: var(--bg-secondary);
             border-radius: 5px;
-            border: 1px solid #ddd;
+            border: 1px solid var(--border-color);
         }
 
         /* ============================================
            Engine Dialogue Styles
            ============================================ */
         .engine-dialogue-box {
-            background: #ffffff;
-            border: 2px solid #e0e0e0;
+            background: var(--dialogue-bg);
+            border: 2px solid var(--dialogue-border);
             border-radius: 8px;
             padding: 15px;
             min-height: 180px;
@@ -709,7 +739,7 @@
             flex-direction: column;
             align-items: center;
             padding: 15px;
-            border: 2px solid #ddd;
+            border: 2px solid var(--border-color);
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.2s;
@@ -980,7 +1010,7 @@
             margin-top: 0;
             margin-bottom: 0;
             padding: 15px;
-            background-color: #f5f5f5;
+            background-color: var(--nav-bg);
             border-radius: 8px;
             width: 920px;
             margin-left: 32px;
@@ -988,8 +1018,9 @@
 
         .navigation-controls button {
             padding: 10px 20px;
-            border: 2px solid #ccc;
-            background-color: white;
+            border: 2px solid var(--nav-button-border);
+            background-color: var(--nav-button-bg);
+            color: var(--text-primary);
             border-radius: 6px;
             cursor: pointer;
             font-size: 15px;
@@ -999,8 +1030,8 @@
         }
 
         .navigation-controls button:hover:not(:disabled) {
-            background-color: #e3f2fd;
-            border-color: #2196f3;
+            background-color: var(--nav-button-hover-bg);
+            border-color: var(--nav-button-hover-border);
             transform: translateY(-1px);
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
@@ -1012,16 +1043,16 @@
         .navigation-controls button:disabled {
             opacity: 0.4;
             cursor: not-allowed;
-            background-color: #f5f5f5;
+            background-color: var(--bg-tertiary);
         }
 
         .move-counter {
             padding: 10px 24px;
-            background-color: white;
-            border: 2px solid #ddd;
+            background-color: var(--nav-counter-bg);
+            border: 2px solid var(--nav-counter-border);
             border-radius: 6px;
             font-weight: 600;
-            color: #333;
+            color: var(--nav-counter-text);
             min-width: 160px;
             text-align: center;
             font-size: 15px;
@@ -1029,14 +1060,14 @@
 
         /* Indicator when viewing history */
         body.viewing-history .chessboard {
-            border: 4px solid #2196f3;
+            border: 4px solid var(--nav-history-border);
             box-shadow: 0 0 30px rgba(33, 150, 243, 0.5);
         }
 
         body.viewing-history .move-counter {
-            background-color: #2196f3;
-            color: white;
-            border-color: #2196f3;
+            background-color: var(--nav-history-counter-bg);
+            color: var(--button-text);
+            border-color: var(--nav-history-border);
             animation: counter-pulse 1.5s ease-in-out infinite;
         }
 
@@ -1180,6 +1211,12 @@
             <div id="settingsDropdown" class="settings-dropdown" style="display: none;">
                 <div class="settings-option" onclick="flipBoard()">
                     🔄 Flip Board
+                </div>
+                <div class="settings-option">
+                    <label style="display: flex; align-items: center; cursor: pointer; width: 100%;">
+                        <input type="checkbox" id="darkModeToggle" onchange="toggleDarkMode()" style="margin-right: 8px;">
+                        🌙 Dark Mode
+                    </label>
                 </div>
             </div>
         </div>
@@ -3363,10 +3400,68 @@
         }
 
         // ============================================
+        // Dark Mode Management
+        // ============================================
+        let isDarkMode = false;
+
+        function initializeDarkMode() {
+            const savedTheme = localStorage.getItem('chessEngineDarkMode');
+
+            if (savedTheme !== null) {
+                isDarkMode = savedTheme === 'true';
+            } else {
+                // Default to system preference
+                isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            }
+
+            applyDarkMode(isDarkMode);
+
+            const checkbox = document.getElementById('darkModeToggle');
+            if (checkbox) {
+                checkbox.checked = isDarkMode;
+            }
+
+            console.log('✅ Dark mode initialized:', isDarkMode ? 'DARK' : 'LIGHT');
+        }
+
+        function toggleDarkMode() {
+            const checkbox = document.getElementById('darkModeToggle');
+            isDarkMode = checkbox.checked;
+            localStorage.setItem('chessEngineDarkMode', isDarkMode);
+            applyDarkMode(isDarkMode);
+            console.log('🌙 Dark mode toggled:', isDarkMode ? 'DARK' : 'LIGHT');
+        }
+
+        function applyDarkMode(enabled) {
+            if (enabled) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+            }
+        }
+
+        // Listen for system theme changes
+        if (window.matchMedia) {
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+                // Only auto-switch if user hasn't set a preference
+                if (localStorage.getItem('chessEngineDarkMode') === null) {
+                    isDarkMode = e.matches;
+                    applyDarkMode(isDarkMode);
+                    const checkbox = document.getElementById('darkModeToggle');
+                    if (checkbox) {
+                        checkbox.checked = isDarkMode;
+                    }
+                    console.log('🌙 System theme changed, auto-switched to:', isDarkMode ? 'DARK' : 'LIGHT');
+                }
+            });
+        }
+
+        // ============================================
         // Initialize on Page Load
         // ============================================
         window.onload = function() {
             initializeBoard();
+            initializeDarkMode();
             renderBoard();
             console.log('Chess board initialized!');
             console.log('API Endpoint:', API_ENDPOINT);
