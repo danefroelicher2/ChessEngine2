@@ -31,7 +31,7 @@ typedef int socklen_t;
 #define closesocket close
 #endif
 
-// Server configuration
+// Server configurationn
 // Read PORT from environment variable (required for Render deployment)
 int getPortFromEnv()
 {
@@ -47,7 +47,7 @@ const int PORT = getPortFromEnv();
 const int BUFFER_SIZE = 4096;
 
 // Global database connection
-Database* db = nullptr;
+Database *db = nullptr;
 
 // =============================================================================
 // URL Decoding Functions
@@ -606,7 +606,7 @@ int main()
 
     // Initialize database connection
     std::cout << "Connecting to database..." << std::endl;
-    const char* dbUrl = std::getenv("DATABASE_URL");
+    const char *dbUrl = std::getenv("DATABASE_URL");
     if (!dbUrl)
     {
         std::cerr << "ERROR: DATABASE_URL environment variable not set!" << std::endl;
@@ -716,6 +716,13 @@ int main()
     // Cleanup (never reached in this implementation)
     closesocket(serverSocket);
     cleanupSockets();
+
+    // Cleanup database connection
+    if (db)
+    {
+        db->disconnect();
+        delete db;
+    }
 
     return 0;
 }
