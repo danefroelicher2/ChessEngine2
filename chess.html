@@ -415,6 +415,11 @@
             justify-content: center;
         }
 
+        .control-row button {
+            flex: 1;
+            min-width: 0;
+        }
+
         label {
             font-weight: bold;
             color: var(--text-secondary);
@@ -1318,10 +1323,6 @@
                         <div class="info-label">Last Move:</div>
                         <div id="lastMove" class="info-value">None</div>
                     </div>
-                    <div class="info-row">
-                        <div class="info-label">Current FEN:</div>
-                        <div id="fenString" class="info-value"></div>
-                    </div>
 
                     <!-- Engine Dialogue Area -->
                     <div class="info-row">
@@ -1508,9 +1509,6 @@
                     chessboard.appendChild(square);
                 }
             }
-
-            // Update FEN display
-            updateFENDisplay();
         }
 
         // ============================================
@@ -2311,14 +2309,6 @@
             lastMove = moveStr;
 
             return true;
-        }
-
-        // ============================================
-        // Update FEN Display
-        // ============================================
-        function updateFENDisplay() {
-            const fen = boardToFEN();
-            document.getElementById('fenString').textContent = fen;
         }
 
         // ============================================
