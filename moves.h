@@ -47,9 +47,6 @@ public:
     bool isCheckmate();
     bool isStalemate();
 
-    // Check if the specified side is in check
-    bool isInCheck(bool isWhite);
-
     // Square control (for evaluation)
     bool isSquareAttacked(int row, int col, bool byWhite);
 };

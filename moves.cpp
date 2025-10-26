@@ -725,27 +725,3 @@ bool Moves::isStalemate() {
 
     return false;
 }
-
-bool Moves::isInCheck(bool isWhite) {
-    // Find the king
-    int kingRow = -1;
-    int kingCol = -1;
-    char kingPiece = isWhite ? 'K' : 'k';
-
-    for (int row = 0; row < 8; row++) {
-        for (int col = 0; col < 8; col++) {
-            if (board->getPiece(row, col) == kingPiece) {
-                kingRow = row;
-                kingCol = col;
-                break;
-            }
-        }
-        if (kingRow != -1) break;
-    }
-
-    // King not found (shouldn't happen in valid position)
-    if (kingRow == -1) return false;
-
-    // Check if king square is attacked by opponent
-    return isSquareAttacked(kingRow, kingCol, !isWhite);
-}
