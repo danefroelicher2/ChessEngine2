@@ -731,14 +731,13 @@ int Engine::scoreMove(const std::string& move, int depth) {
     return historyScore;
 }
 
-std::vector<ScoredMove> Engine::scoreMoves(const std::vector<std::string>& moves, int depth) {
+std::vector<ScoredMove> Engine::scoreMoves(const std::vector<std::string>& moves, int depth, TTEntry* ttEntry) {
     std::vector<ScoredMove> scoredMoves;
     scoredMoves.reserve(moves.size());
 
     // Get best move from transposition table for move ordering
+    // Use passed-in ttEntry to avoid duplicate probe
     std::string ttBestMove = "";
-    uint64_t posHash = board->getHash();
-    TTEntry* ttEntry = transpositionTable.probe(posHash);
     if (ttEntry != nullptr && !ttEntry->bestMove.empty()) {
         ttBestMove = ttEntry->bestMove;
     }
@@ -1022,7 +1021,8 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
     }
 
     // Score and sort moves for better move ordering
-    std::vector<ScoredMove> scoredMoves = scoreMoves(legalMoves, depth);
+    // Pass ttEntry to avoid duplicate TT probe
+    std::vector<ScoredMove> scoredMoves = scoreMoves(legalMoves, depth, ttEntry);
 
     if (maximizing) {
         int maxEval = std::numeric_limits<int>::min();
@@ -1071,16 +1071,19 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
             moveIndex++;
         }
 
-        // Store result in transposition table
-        BoundType bound;
-        if (maxEval <= originalAlpha) {
-            bound = UPPER_BOUND;  // Failed low
-        } else if (maxEval >= beta) {
-            bound = LOWER_BOUND;  // Failed high (beta cutoff)
-        } else {
-            bound = EXACT;  // PV node
+        // Store result in transposition table (only at depth >= 2 to reduce overhead)
+        // Leaf nodes (depth 1) are unlikely to be reused and add overhead
+        if (depth >= 2) {
+            BoundType bound;
+            if (maxEval <= originalAlpha) {
+                bound = UPPER_BOUND;  // Failed low
+            } else if (maxEval >= beta) {
+                bound = LOWER_BOUND;  // Failed high (beta cutoff)
+            } else {
+                bound = EXACT;  // PV node
+            }
+            transpositionTable.store(posHash, depth, maxEval, bestMoveFound, bound);
         }
-        transpositionTable.store(posHash, depth, maxEval, bestMoveFound, bound);
 
         return maxEval;
     } else {
@@ -1130,16 +1133,19 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
             moveIndex++;
         }
 
-        // Store result in transposition table
-        BoundType bound;
-        if (minEval <= originalAlpha) {
-            bound = UPPER_BOUND;  // Failed low
-        } else if (minEval >= beta) {
-            bound = LOWER_BOUND;  // Failed high (beta cutoff)
-        } else {
-            bound = EXACT;  // PV node
+        // Store result in transposition table (only at depth >= 2 to reduce overhead)
+        // Leaf nodes (depth 1) are unlikely to be reused and add overhead
+        if (depth >= 2) {
+            BoundType bound;
+            if (minEval <= originalAlpha) {
+                bound = UPPER_BOUND;  // Failed low
+            } else if (minEval >= beta) {
+                bound = LOWER_BOUND;  // Failed high (beta cutoff)
+            } else {
+                bound = EXACT;  // PV node
+            }
+            transpositionTable.store(posHash, depth, minEval, bestMoveFound, bound);
         }
-        transpositionTable.store(posHash, depth, minEval, bestMoveFound, bound);
 
         return minEval;
     }
