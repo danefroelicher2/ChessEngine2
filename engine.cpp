@@ -1071,19 +1071,18 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
             moveIndex++;
         }
 
-        // Store result in transposition table (only at depth >= 2 to reduce overhead)
-        // Leaf nodes (depth 1) are unlikely to be reused and add overhead
-        if (depth >= 2) {
-            BoundType bound;
-            if (maxEval <= originalAlpha) {
-                bound = UPPER_BOUND;  // Failed low
-            } else if (maxEval >= beta) {
-                bound = LOWER_BOUND;  // Failed high (beta cutoff)
-            } else {
-                bound = EXACT;  // PV node
-            }
-            transpositionTable.store(posHash, depth, maxEval, bestMoveFound, bound);
+        // Store result in transposition table
+        // IMPORTANT: Store ALL depths - iterative deepening needs shallow searches stored!
+        // Depth 1 results are used by depth 2, depth 2 by depth 3, etc.
+        BoundType bound;
+        if (maxEval <= originalAlpha) {
+            bound = UPPER_BOUND;  // Failed low
+        } else if (maxEval >= beta) {
+            bound = LOWER_BOUND;  // Failed high (beta cutoff)
+        } else {
+            bound = EXACT;  // PV node
         }
+        transpositionTable.store(posHash, depth, maxEval, bestMoveFound, bound);
 
         return maxEval;
     } else {
@@ -1133,19 +1132,18 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
             moveIndex++;
         }
 
-        // Store result in transposition table (only at depth >= 2 to reduce overhead)
-        // Leaf nodes (depth 1) are unlikely to be reused and add overhead
-        if (depth >= 2) {
-            BoundType bound;
-            if (minEval <= originalAlpha) {
-                bound = UPPER_BOUND;  // Failed low
-            } else if (minEval >= beta) {
-                bound = LOWER_BOUND;  // Failed high (beta cutoff)
-            } else {
-                bound = EXACT;  // PV node
-            }
-            transpositionTable.store(posHash, depth, minEval, bestMoveFound, bound);
+        // Store result in transposition table
+        // IMPORTANT: Store ALL depths - iterative deepening needs shallow searches stored!
+        // Depth 1 results are used by depth 2, depth 2 by depth 3, etc.
+        BoundType bound;
+        if (minEval <= originalAlpha) {
+            bound = UPPER_BOUND;  // Failed low
+        } else if (minEval >= beta) {
+            bound = LOWER_BOUND;  // Failed high (beta cutoff)
+        } else {
+            bound = EXACT;  // PV node
         }
+        transpositionTable.store(posHash, depth, minEval, bestMoveFound, bound);
 
         return minEval;
     }
