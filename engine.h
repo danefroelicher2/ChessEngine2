@@ -56,6 +56,8 @@ private:
     int maxQDepthReached;           // Maximum quiescence depth reached
     long long totalQDepth;          // Sum of all quiescence depths (for average)
     long long qSearches;            // Number of quiescence searches
+    int nullMoveCutoffs;            // Null move pruning beta cutoffs
+    int nullMoveAttempts;           // Null move pruning attempts
 
     // Time management
     std::chrono::steady_clock::time_point searchStartTime;
@@ -69,7 +71,7 @@ private:
     int evaluateMobility();
     int evaluateDevelopment();
     bool isEndgame();
-    int minimax(int depth, int alpha, int beta, bool maximizing);
+    int minimax(int depth, int alpha, int beta, bool maximizing, bool nullMoveAllowed = true);
     int quiescence(int alpha, int beta, int qDepth);
     int getPSTValue(char piece, int row, int col, bool isWhite);
     int countPseudoLegalMoves(int row, int col, char piece);

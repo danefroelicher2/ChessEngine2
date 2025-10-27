@@ -85,6 +85,9 @@ public:
                           bool epCapture, int epCaptureRow, int epCaptureCol,
                           bool castling, int rookFromCol, int rookToCol,
                           char promotionPiece);
+
+    // Toggle which side is to move (for null move pruning)
+    void toggleTurn();
 };
 
 #endif
