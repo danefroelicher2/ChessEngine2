@@ -154,6 +154,12 @@ bool isDeleteOpeningMoveRequest(const std::string &request)
     return request.find("GET /delete-opening-move") == 0;
 }
 
+// Check if request is GET /tactical-test
+bool isTacticalTestRequest(const std::string &request)
+{
+    return request.find("GET /tactical-test") == 0;
+}
+
 // =============================================================================
 // Chess Engine Integration
 // =============================================================================
@@ -403,6 +409,121 @@ std::string processDeleteOpeningMoveRequest(const std::string &opening, const st
     }
 }
 
+// Process tactical vision test request
+std::string processTacticalTestRequest()
+{
+    try
+    {
+        std::ostringstream jsonResponse;
+        jsonResponse << "{\"status\":\"ok\",\"tests\":[";
+
+        // Define the 5 tactical tests
+        struct TacticalTest {
+            std::string name;
+            std::string fen;
+            std::string expectedPattern;
+            std::string description;
+        };
+
+        TacticalTest tests[] = {
+            {
+                "Hanging Piece Detection (1-ply)",
+                "rnbqkbnr/pppppppp/8/4Q3/8/8/PPPPPPPP/RNB1KBNR b KQkq - 0 1",
+                "xe5",
+                "White queen on e5 is undefended. Can engine capture free piece?"
+            },
+            {
+                "King Can Capture (1-ply)",
+                "rnbqkbnr/pppppppp/8/8/4k3/4N3/PPPPPPPP/RNBQKB1R b KQkq - 0 1",
+                "e4e3",
+                "White knight on e3 attacked by Black king. Does engine know kings can capture?"
+            },
+            {
+                "Capture Checking Piece (1-ply)",
+                "rnbqkbnr/pppp1ppp/8/8/8/8/PPPPnPPP/RNBQKBNR w KQkq - 0 1",
+                "xe2",
+                "Black knight on e2 checking White king. Should capture checking piece."
+            },
+            {
+                "King Capture vs King Flight (1-ply)",
+                "rnbqkb1r/pppppppp/8/8/8/4n3/PPPPKPPP/RNBQ1BNR w kq - 0 1",
+                "e2e3",
+                "Black knight on e3 checks King on e2. Should capture instead of fleeing."
+            },
+            {
+                "Free Material in Opening (1-ply)",
+                "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPPNPPP/RNBQKB1R b KQkq - 0 1",
+                "e5e4",
+                "White pawn on e4 undefended. Should capture free pawn."
+            }
+        };
+
+        int passCount = 0;
+        int failCount = 0;
+
+        for (int i = 0; i < 5; i++) {
+            const TacticalTest& test = tests[i];
+
+            // Set up board and engine
+            Board board;
+            board.loadFromFEN(test.fen);
+            Moves moves(&board);
+            Engine engine(&board, &moves);
+
+            // Get best move (2 seconds for faster testing)
+            std::string bestMove = engine.getBestMove(2000);
+
+            // Check if move matches expected pattern
+            bool passed = false;
+            if (test.expectedPattern.find('x') != std::string::npos) {
+                // Pattern like "xe5" - any capture on e5
+                std::string targetSquare = test.expectedPattern.substr(test.expectedPattern.find('x') + 1, 2);
+                if (bestMove.length() >= 4) {
+                    std::string moveTarget = bestMove.substr(2, 2);
+                    passed = (moveTarget == targetSquare);
+                }
+            } else {
+                // Exact move match
+                passed = (bestMove == test.expectedPattern);
+            }
+
+            if (passed) {
+                passCount++;
+            } else {
+                failCount++;
+            }
+
+            // Build JSON for this test
+            if (i > 0) jsonResponse << ",";
+            jsonResponse << "{"
+                        << "\"name\":\"" << test.name << "\","
+                        << "\"description\":\"" << test.description << "\","
+                        << "\"fen\":\"" << test.fen << "\","
+                        << "\"expected\":\"" << test.expectedPattern << "\","
+                        << "\"actual\":\"" << bestMove << "\","
+                        << "\"passed\":" << (passed ? "true" : "false") << ","
+                        << "\"first_move_cutoff_rate\":"
+                        << (engine.getBetaCutoffs() > 0 ?
+                            (100.0 * engine.getFirstMoveCutoffs() / engine.getBetaCutoffs()) : 0.0) << ","
+                        << "\"nodes_searched\":" << engine.getNodesSearched()
+                        << "}";
+        }
+
+        jsonResponse << "],\"summary\":{"
+                    << "\"total_tests\":5,"
+                    << "\"passed\":" << passCount << ","
+                    << "\"failed\":" << failCount << ","
+                    << "\"pass_rate\":" << (100.0 * passCount / 5.0)
+                    << "}}";
+
+        return jsonResponse.str();
+    }
+    catch (const std::exception &e)
+    {
+        return "{\"status\":\"error\",\"message\":\"" + std::string(e.what()) + "\"}";
+    }
+}
+
 // =============================================================================
 // HTTP Response Generation
 // =============================================================================
@@ -431,7 +552,7 @@ std::string buildHttpResponse(const std::string &jsonBody)
 // Build 404 Not Found response
 std::string build404Response()
 {
-    std::string body = "{\"status\":\"error\",\"message\":\"Endpoint not found. Available endpoints: GET /move?fen=..., GET /legal-moves?fen=..., GET /save-opening-move?opening=...&fen=...&move=..., GET /get-opening-move?opening=...&fen=..., GET /delete-opening-move?opening=...&fen=...\"}";
+    std::string body = "{\"status\":\"error\",\"message\":\"Endpoint not found. Available endpoints: GET /move?fen=..., GET /legal-moves?fen=..., GET /tactical-test, GET /save-opening-move?opening=...&fen=...&move=..., GET /get-opening-move?opening=...&fen=..., GET /delete-opening-move?opening=...&fen=...\"}";
     std::ostringstream response;
 
     response << "HTTP/1.1 404 Not Found\r\n";
@@ -530,6 +651,7 @@ int main()
     std::cout << "Endpoints:" << std::endl;
     std::cout << "  GET /move?fen=<FEN_STRING>" << std::endl;
     std::cout << "  GET /legal-moves?fen=<FEN_STRING>" << std::endl;
+    std::cout << "  GET /tactical-test (Run 5 tactical vision tests)" << std::endl;
     std::cout << "Press Ctrl+C to stop\n"
               << std::endl;
     std::flush(std::cout); // Force output to appear immediately
@@ -626,6 +748,13 @@ int main()
                 std::string opening = extractQueryParam(request, "opening");
                 std::string fenString = extractQueryParam(request, "fen");
                 std::string jsonResponse = processDeleteOpeningMoveRequest(opening, fenString);
+                response = buildHttpResponse(jsonResponse);
+            }
+            else if (isTacticalTestRequest(request))
+            {
+                // Process tactical vision test request
+                std::cout << "[TACTICAL TEST] Running 5 tactical vision tests..." << std::endl;
+                std::string jsonResponse = processTacticalTestRequest();
                 response = buildHttpResponse(jsonResponse);
             }
             else
