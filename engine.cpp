@@ -1236,12 +1236,28 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
         int moveIndex = 0;
         std::string bestMoveFound = "";
 
+        // DIAGNOSTIC: Log move ordering at root level
+        if (depth >= 3) {
+            std::cout << "[SEARCH-DEBUG] Depth " << depth << " (maximizing): Searching "
+                      << scoredMoves.size() << " moves" << std::endl;
+            for (int i = 0; i < std::min(5, (int)scoredMoves.size()); i++) {
+                std::cout << "  Move " << (i+1) << ": " << scoredMoves[i].move
+                          << " (ordering score: " << scoredMoves[i].score << ")" << std::endl;
+            }
+        }
+
         for (const ScoredMove& scoredMove : scoredMoves) {
             const std::string& move = scoredMove.move;
 
             // Check time periodically (every 2000 nodes)
             if (nodesSearched % 2000 == 0 && isTimeUp()) {
                 return maxEval > std::numeric_limits<int>::min() ? maxEval : 0;
+            }
+
+            // DIAGNOSTIC: Log move about to be tried
+            if (depth >= 3 && moveIndex < 5) {
+                std::cout << "[SEARCH-DEBUG] Depth " << depth << " trying move #" << (moveIndex+1)
+                          << ": " << move << " (ordering score: " << scoredMove.score << ")" << std::endl;
             }
 
             // Make move
@@ -1265,6 +1281,12 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
 
             // Undo move
             moves->unmakeMove(move, info);
+
+            // DIAGNOSTIC: Log evaluation result
+            if (depth >= 3 && moveIndex < 5) {
+                std::cout << "[SEARCH-DEBUG] Depth " << depth << " move " << move
+                          << " returned eval: " << eval << std::endl;
+            }
 
             if (eval > maxEval) {
                 maxEval = eval;
@@ -1311,12 +1333,28 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
         int moveIndex = 0;
         std::string bestMoveFound = "";
 
+        // DIAGNOSTIC: Log move ordering at root level
+        if (depth >= 3) {
+            std::cout << "[SEARCH-DEBUG] Depth " << depth << " (minimizing): Searching "
+                      << scoredMoves.size() << " moves" << std::endl;
+            for (int i = 0; i < std::min(5, (int)scoredMoves.size()); i++) {
+                std::cout << "  Move " << (i+1) << ": " << scoredMoves[i].move
+                          << " (ordering score: " << scoredMoves[i].score << ")" << std::endl;
+            }
+        }
+
         for (const ScoredMove& scoredMove : scoredMoves) {
             const std::string& move = scoredMove.move;
 
             // Check time periodically (every 2000 nodes)
             if (nodesSearched % 2000 == 0 && isTimeUp()) {
                 return minEval < std::numeric_limits<int>::max() ? minEval : 0;
+            }
+
+            // DIAGNOSTIC: Log move about to be tried
+            if (depth >= 3 && moveIndex < 5) {
+                std::cout << "[SEARCH-DEBUG] Depth " << depth << " trying move #" << (moveIndex+1)
+                          << ": " << move << " (ordering score: " << scoredMove.score << ")" << std::endl;
             }
 
             // Make move
@@ -1340,6 +1378,12 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
 
             // Undo move
             moves->unmakeMove(move, info);
+
+            // DIAGNOSTIC: Log evaluation result
+            if (depth >= 3 && moveIndex < 5) {
+                std::cout << "[SEARCH-DEBUG] Depth " << depth << " move " << move
+                          << " returned eval: " << eval << std::endl;
+            }
 
             if (eval < minEval) {
                 minEval = eval;
@@ -1409,15 +1453,30 @@ std::string Engine::searchAtDepth(int depth, int& outScore) {
 
     std::sort(scoredMoves.begin(), scoredMoves.end());
 
+    // DIAGNOSTIC: Log root level move ordering
+    std::cout << "\n[ROOT-SEARCH] Depth " << depth << ": Searching "
+              << scoredMoves.size() << " root moves" << std::endl;
+    for (int i = 0; i < std::min(5, (int)scoredMoves.size()); i++) {
+        std::cout << "  Root move " << (i+1) << ": " << scoredMoves[i].move
+                  << " (ordering score: " << scoredMoves[i].score << ")" << std::endl;
+    }
+
     std::string bestMove = scoredMoves[0].move;
     int bestScore = board->isWhiteToMove() ? std::numeric_limits<int>::min() : std::numeric_limits<int>::max();
 
+    int moveNum = 0;
     for (const ScoredMove& scoredMove : scoredMoves) {
         const std::string& move = scoredMove.move;
 
         // Check if time is up before searching this move
         if (isTimeUp()) {
             break;  // Return best move found so far
+        }
+
+        // DIAGNOSTIC: Log root move about to be searched
+        if (moveNum < 5) {
+            std::cout << "[ROOT-SEARCH] Trying root move #" << (moveNum+1) << ": "
+                      << move << " (ordering score: " << scoredMove.score << ")" << std::endl;
         }
 
         // Make move
@@ -1429,19 +1488,41 @@ std::string Engine::searchAtDepth(int depth, int& outScore) {
         // Undo move
         moves->unmakeMove(move, info);
 
+        // DIAGNOSTIC: Log root move result
+        if (moveNum < 5) {
+            std::cout << "[ROOT-SEARCH] Root move " << move << " returned score: "
+                      << score << std::endl;
+        }
+
         // Update best move if this is better
         if (board->isWhiteToMove()) {
             if (score > bestScore) {
                 bestScore = score;
                 bestMove = move;
+                // DIAGNOSTIC: Log new best move
+                if (moveNum < 5) {
+                    std::cout << "[ROOT-SEARCH] *** NEW BEST: " << move
+                              << " (score: " << score << ") ***" << std::endl;
+                }
             }
         } else {
             if (score < bestScore) {
                 bestScore = score;
                 bestMove = move;
+                // DIAGNOSTIC: Log new best move
+                if (moveNum < 5) {
+                    std::cout << "[ROOT-SEARCH] *** NEW BEST: " << move
+                              << " (score: " << score << ") ***" << std::endl;
+                }
             }
         }
+
+        moveNum++;
     }
+
+    // DIAGNOSTIC: Log final choice
+    std::cout << "[ROOT-SEARCH] Final choice at depth " << depth << ": "
+              << bestMove << " (score: " << bestScore << ")\n" << std::endl;
 
     outScore = bestScore;
     return bestMove;
