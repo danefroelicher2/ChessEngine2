@@ -90,8 +90,6 @@ Engine::Engine(Board* b, Moves* m) : board(b), moves(m) {
     maxQDepthReached = 0;
     totalQDepth = 0;
     qSearches = 0;
-    nullMoveCutoffs = 0;
-    nullMoveAttempts = 0;
     timeLimit = 5000;  // Default 5 seconds
     pvMove = "";
 }
@@ -986,7 +984,7 @@ int Engine::evaluate() {
     return score;
 }
 
-int Engine::minimax(int depth, int alpha, int beta, bool maximizing, bool nullMoveAllowed) {
+int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
     nodesSearched++;
 
     // Store original alpha for TT bound type determination
@@ -1013,37 +1011,6 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing, bool nullMo
         // Instead of immediately returning static evaluation,
         // call quiescence search to avoid horizon effect
         return quiescence(alpha, beta, 0);
-    }
-
-    // =============================================================================
-    // NULL MOVE PRUNING (NMP)
-    // =============================================================================
-    // Skip at low depths, when in check, or when null move not allowed
-    if (nullMoveAllowed && depth >= 3 && !moves->isInCheck(board->isWhiteToMove())) {
-        nullMoveAttempts++;
-
-        // Null move pruning - assume position is so good that even passing doesn't hurt
-        // Reduction: Search at depth - 3 (R = 2) with opponent to move
-        const int NULL_MOVE_REDUCTION = 3;
-
-        // Make a "null move" - just switch sides without moving
-        board->toggleTurn();
-
-        // Search with:
-        // - Reduced depth (depth - R - 1)
-        // - Negated alpha/beta (opponent's perspective)
-        // - Null move NOT allowed (prevent double null moves)
-        int nullScore = -minimax(depth - NULL_MOVE_REDUCTION - 1, -beta, -beta + 1, !maximizing, false);
-
-        // Unmake the null move
-        board->toggleTurn();
-
-        // If null move caused beta cutoff, our position is so good we can prune
-        if (nullScore >= beta) {
-            nullMoveCutoffs++;
-            // Beta cutoff - position is too good, opponent won't allow this line
-            return beta;
-        }
     }
 
     std::vector<std::string> legalMoves = moves->generateLegalMoves();
@@ -1073,7 +1040,7 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing, bool nullMo
             // Make move
             MoveInfo info = moves->makeMoveWithInfo(move);
 
-            int eval = minimax(depth - 1, alpha, beta, false, true);
+            int eval = minimax(depth - 1, alpha, beta, false);
 
             // Undo move
             moves->unmakeMove(move, info);
@@ -1134,7 +1101,7 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing, bool nullMo
             // Make move
             MoveInfo info = moves->makeMoveWithInfo(move);
 
-            int eval = minimax(depth - 1, alpha, beta, true, true);
+            int eval = minimax(depth - 1, alpha, beta, true);
 
             // Undo move
             moves->unmakeMove(move, info);
@@ -1222,7 +1189,7 @@ std::string Engine::searchAtDepth(int depth, int& outScore) {
         MoveInfo info = moves->makeMoveWithInfo(move);
 
         int score = minimax(depth - 1, std::numeric_limits<int>::min(),
-                           std::numeric_limits<int>::max(), !board->isWhiteToMove(), true);
+                           std::numeric_limits<int>::max(), !board->isWhiteToMove());
 
         // Undo move
         moves->unmakeMove(move, info);
@@ -1258,8 +1225,6 @@ std::string Engine::getBestMove(int timeLimitMs) {
     maxQDepthReached = 0;
     totalQDepth = 0;
     qSearches = 0;
-    nullMoveCutoffs = 0;
-    nullMoveAttempts = 0;
 
     std::vector<std::string> legalMoves = moves->generateLegalMoves();
 
@@ -1354,15 +1319,6 @@ std::string Engine::getBestMove(int timeLimitMs) {
     if (qSearches > 0) {
         double avgQDepth = (double)totalQDepth / qSearches;
         std::cout << "Avg Q-depth: " << avgQDepth << std::endl;
-    }
-
-    // Null move pruning statistics
-    std::cout << "\n=== Null Move Pruning Statistics ===" << std::endl;
-    std::cout << "Null move attempts: " << nullMoveAttempts << std::endl;
-    std::cout << "Null move cutoffs: " << nullMoveCutoffs << std::endl;
-    if (nullMoveAttempts > 0) {
-        double nmpCutoffRate = (100.0 * nullMoveCutoffs) / nullMoveAttempts;
-        std::cout << "Null move cutoff rate: " << nmpCutoffRate << "%" << std::endl;
     }
 
     // Transposition table statistics

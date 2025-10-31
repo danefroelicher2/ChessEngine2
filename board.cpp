@@ -271,9 +271,3 @@ void Board::updateHashForMove(int fromRow, int fromCol, int toRow, int toCol,
     // Toggle side to move
     currentHash ^= zobristBlackToMove;
 }
-
-void Board::toggleTurn() {
-    whiteToMove = !whiteToMove;
-    // Update hash for side to move change
-    currentHash ^= zobristBlackToMove;
-}
