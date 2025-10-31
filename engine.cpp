@@ -1267,6 +1267,18 @@ std::string Engine::getBestMove(int timeLimitMs) {
     lmrReductions = 0;
     lmrReSearches = 0;
 
+    // Clear history table to prevent stale data from previous positions
+    // Killer moves are NOT cleared - they're depth-specific and update quickly
+    for (int fr = 0; fr < 8; fr++) {
+        for (int fc = 0; fc < 8; fc++) {
+            for (int tr = 0; tr < 8; tr++) {
+                for (int tc = 0; tc < 8; tc++) {
+                    historyTable[fr][fc][tr][tc] = 0;
+                }
+            }
+        }
+    }
+
     std::vector<std::string> legalMoves = moves->generateLegalMoves();
 
     if (legalMoves.empty()) {
