@@ -104,12 +104,15 @@ private:
                              int& fromRow, int& fromCol,
                              const std::vector<bool>& usedPieces);
     bool pieceCanAttack(int fromRow, int fromCol, int targetRow, int targetCol, char piece);
-    int staticExchangeEvaluation(const std::string& move);
 
 public:
     Engine(Board* b, Moves* m);
 
     std::string getBestMove(int timeLimitMs = 5000);
+
+    // TEMPORARY: Expose for diagnostic testing
+    int staticExchangeEvaluation(const std::string& move);
+    int scoreMove(const std::string& move, int depth);
 
     // Get search statistics
     long long getNodesSearched() const { return nodesSearched; }

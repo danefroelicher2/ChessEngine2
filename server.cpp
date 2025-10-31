@@ -160,6 +160,12 @@ bool isTacticalTestRequest(const std::string &request)
     return request.find("GET /tactical-test") == 0;
 }
 
+// Check if request is GET /see-test
+bool isSEETestRequest(const std::string &request)
+{
+    return request.find("GET /see-test") == 0;
+}
+
 // =============================================================================
 // Chess Engine Integration
 // =============================================================================
@@ -524,6 +530,136 @@ std::string processTacticalTestRequest()
     }
 }
 
+// Process SEE (Static Exchange Evaluation) test request
+std::string processSEETestRequest()
+{
+    try
+    {
+        std::ostringstream jsonResponse;
+        jsonResponse << "{\"status\":\"ok\",\"tests\":[";
+
+        // Define SEE tests for the exact failing positions
+        struct SEETest {
+            std::string name;
+            std::string fen;
+            std::string move;
+            int expectedScore;
+            std::string description;
+        };
+
+        SEETest tests[] = {
+            {
+                "Free Queen Capture",
+                "rnbqkbnr/pppppppp/8/4Q3/8/8/PPPPPPPP/RNB1KBNR b KQkq - 0 1",
+                "d8e5",
+                900,
+                "Capturing undefended queen should score +900"
+            },
+            {
+                "King Captures Knight",
+                "4k3/8/8/8/4N3/8/8/4K3 b - - 0 1",
+                "e8e4",
+                320,
+                "King capturing undefended knight should score +320"
+            },
+            {
+                "Capture Free Pawn",
+                "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPPNPPP/RNBQKB1R b KQkq - 0 1",
+                "e5e4",
+                100,
+                "Capturing undefended pawn should score +100"
+            },
+            {
+                "Capture Checking Knight",
+                "4k3/8/4N3/8/8/8/8/4K3 b - - 0 1",
+                "e8e6",
+                320,
+                "Capturing checking knight should score +320"
+            },
+            {
+                "Queen Takes Defended Pawn",
+                "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
+                "d8e4",
+                100,
+                "Queen capturing defended pawn (should be positive or near zero)"
+            }
+        };
+
+        int passCount = 0;
+        int failCount = 0;
+
+        for (int i = 0; i < 5; i++) {
+            const SEETest& test = tests[i];
+
+            // Set up board and engine
+            Board board;
+            board.loadFromFEN(test.fen);
+            Moves moves(&board);
+            Engine engine(&board, &moves);
+
+            // Call SEE directly
+            int seeScore = engine.staticExchangeEvaluation(test.move);
+
+            // Call scoreMove to see how it's being scored for move ordering
+            int moveScore = engine.scoreMove(test.move, -1);
+
+            // Also test a quiet move for comparison
+            std::vector<std::string> legalMoves = moves.generateLegalMoves();
+            std::string quietMove = "";
+            int quietScore = 0;
+            for (const std::string& move : legalMoves) {
+                // Find a non-capture move
+                int toCol = move[2] - 'a';
+                int toRow = 8 - (move[3] - '0');
+                char target = board.getPiece(toRow, toCol);
+                if (target == '.') {
+                    quietMove = move;
+                    quietScore = engine.scoreMove(move, -1);
+                    break;
+                }
+            }
+
+            // Test passes if SEE is positive (within tolerance)
+            bool passed = (seeScore >= test.expectedScore - 50);
+
+            if (passed) {
+                passCount++;
+            } else {
+                failCount++;
+            }
+
+            // Build JSON for this test
+            if (i > 0) jsonResponse << ",";
+            jsonResponse << "{"
+                        << "\"name\":\"" << test.name << "\","
+                        << "\"description\":\"" << test.description << "\","
+                        << "\"fen\":\"" << test.fen << "\","
+                        << "\"capture_move\":\"" << test.move << "\","
+                        << "\"expected_see_score\":" << test.expectedScore << ","
+                        << "\"actual_see_score\":" << seeScore << ","
+                        << "\"capture_move_score\":" << moveScore << ","
+                        << "\"quiet_move\":\"" << quietMove << "\","
+                        << "\"quiet_move_score\":" << quietScore << ","
+                        << "\"capture_scored_higher\":" << (moveScore > quietScore ? "true" : "false") << ","
+                        << "\"passed\":" << (passed ? "true" : "false")
+                        << "}";
+        }
+
+        jsonResponse << "],\"summary\":{"
+                    << "\"total_tests\":5,"
+                    << "\"passed\":" << passCount << ","
+                    << "\"failed\":" << failCount << ","
+                    << "\"pass_rate\":" << (100.0 * passCount / 5.0)
+                    << "}}";
+
+        return jsonResponse.str();
+    }
+    catch (const std::exception &e)
+    {
+        return "{\"status\":\"error\",\"message\":\"" + std::string(e.what()) + "\"}";
+    }
+}
+
 // =============================================================================
 // HTTP Response Generation
 // =============================================================================
@@ -552,7 +688,7 @@ std::string buildHttpResponse(const std::string &jsonBody)
 // Build 404 Not Found response
 std::string build404Response()
 {
-    std::string body = "{\"status\":\"error\",\"message\":\"Endpoint not found. Available endpoints: GET /move?fen=..., GET /legal-moves?fen=..., GET /tactical-test, GET /save-opening-move?opening=...&fen=...&move=..., GET /get-opening-move?opening=...&fen=..., GET /delete-opening-move?opening=...&fen=...\"}";
+    std::string body = "{\"status\":\"error\",\"message\":\"Endpoint not found. Available endpoints: GET /move?fen=..., GET /legal-moves?fen=..., GET /tactical-test, GET /see-test, GET /save-opening-move?opening=...&fen=...&move=..., GET /get-opening-move?opening=...&fen=..., GET /delete-opening-move?opening=...&fen=...\"}";
     std::ostringstream response;
 
     response << "HTTP/1.1 404 Not Found\r\n";
@@ -652,6 +788,7 @@ int main()
     std::cout << "  GET /move?fen=<FEN_STRING>" << std::endl;
     std::cout << "  GET /legal-moves?fen=<FEN_STRING>" << std::endl;
     std::cout << "  GET /tactical-test (Run 5 tactical vision tests)" << std::endl;
+    std::cout << "  GET /see-test (Run 5 SEE diagnostic tests)" << std::endl;
     std::cout << "Press Ctrl+C to stop\n"
               << std::endl;
     std::flush(std::cout); // Force output to appear immediately
@@ -755,6 +892,13 @@ int main()
                 // Process tactical vision test request
                 std::cout << "[TACTICAL TEST] Running 5 tactical vision tests..." << std::endl;
                 std::string jsonResponse = processTacticalTestRequest();
+                response = buildHttpResponse(jsonResponse);
+            }
+            else if (isSEETestRequest(request))
+            {
+                // Process SEE diagnostic test request
+                std::cout << "[SEE TEST] Running 5 SEE diagnostic tests..." << std::endl;
+                std::string jsonResponse = processSEETestRequest();
                 response = buildHttpResponse(jsonResponse);
             }
             else
