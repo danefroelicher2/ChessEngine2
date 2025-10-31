@@ -717,16 +717,30 @@ int Engine::scoreMove(const std::string& move, int depth) {
     char movingPiece = board->getPiece(fromRow, fromCol);
     char capturedPiece = board->getPiece(toRow, toCol);
 
-    // 1. MVV-LVA for captures (highest priority)
+    // 1. Use SEE for captures to distinguish good from bad captures
     if (capturedPiece != '.') {
-        int victimValue = getPieceValue(capturedPiece);
-        int attackerValue = getPieceValue(movingPiece);
-        // Score: victimValue * 100 - attackerValue
-        // Add 1,000,000 to ensure all captures are considered before non-captures
-        return 1000000 + (victimValue * 100 - attackerValue);
+        int seeScore = staticExchangeEvaluation(move);
+
+        if (seeScore > 0) {
+            // Good capture (wins material)
+            // Score high using MVV-LVA, but boosted by SEE value
+            int victimValue = getPieceValue(capturedPiece);
+            int attackerValue = getPieceValue(movingPiece);
+            return 1000000 + (victimValue * 100 - attackerValue) + seeScore;
+        } else if (seeScore == 0) {
+            // Equal trade
+            // Score above killer moves but below winning captures
+            int victimValue = getPieceValue(capturedPiece);
+            return 850000 + victimValue;
+        } else {
+            // Bad capture (loses material)
+            // Score BELOW killer moves so it's searched late
+            // seeScore is negative, so this will be less than 700000
+            return 700000 + seeScore;
+        }
     }
 
-    // 2. Killer moves (second priority)
+    // 2. Killer moves (second priority after good/equal captures)
     if (depth >= 0 && depth < MAX_DEPTH) {
         if (move == killerMoves[depth][0]) {
             return 900000;  // First killer
@@ -795,6 +809,180 @@ void Engine::updateHistory(const std::string& move, int depth) {
     if (historyTable[fromRow][fromCol][toRow][toCol] > 100000) {
         historyTable[fromRow][fromCol][toRow][toCol] = 100000;
     }
+}
+
+// =============================================================================
+// Static Exchange Evaluation (SEE) Functions
+// =============================================================================
+
+bool Engine::pieceCanAttack(int fromRow, int fromCol, int targetRow, int targetCol, char piece) {
+    if (fromRow == targetRow && fromCol == targetCol) return false;
+
+    char type = tolower(piece);
+    bool isWhite = isupper(piece);
+
+    // Pawn attacks
+    if (type == 'p') {
+        int direction = isWhite ? -1 : 1;
+        if (targetRow == fromRow + direction && abs(targetCol - fromCol) == 1) {
+            return true;
+        }
+        return false;
+    }
+
+    // Knight attacks
+    if (type == 'n') {
+        int rowDiff = abs(targetRow - fromRow);
+        int colDiff = abs(targetCol - fromCol);
+        return (rowDiff == 2 && colDiff == 1) || (rowDiff == 1 && colDiff == 2);
+    }
+
+    // King attacks
+    if (type == 'k') {
+        int rowDiff = abs(targetRow - fromRow);
+        int colDiff = abs(targetCol - fromCol);
+        return rowDiff <= 1 && colDiff <= 1;
+    }
+
+    // Bishop attacks (diagonal)
+    if (type == 'b' || type == 'q') {
+        int rowDiff = abs(targetRow - fromRow);
+        int colDiff = abs(targetCol - fromCol);
+        if (rowDiff == colDiff && rowDiff > 0) {
+            // Check if path is clear
+            int rowDir = (targetRow - fromRow) / rowDiff;
+            int colDir = (targetCol - fromCol) / colDiff;
+            for (int i = 1; i < rowDiff; i++) {
+                if (board->getPiece(fromRow + i * rowDir, fromCol + i * colDir) != '.') {
+                    return false;  // Path blocked
+                }
+            }
+            return true;
+        }
+    }
+
+    // Rook attacks (straight)
+    if (type == 'r' || type == 'q') {
+        if (fromRow == targetRow || fromCol == targetCol) {
+            // Check if path is clear
+            int rowDir = (targetRow == fromRow) ? 0 : ((targetRow - fromRow) > 0 ? 1 : -1);
+            int colDir = (targetCol == fromCol) ? 0 : ((targetCol - fromCol) > 0 ? 1 : -1);
+            int steps = (rowDir != 0) ? abs(targetRow - fromRow) : abs(targetCol - fromCol);
+
+            for (int i = 1; i < steps; i++) {
+                if (board->getPiece(fromRow + i * rowDir, fromCol + i * colDir) != '.') {
+                    return false;  // Path blocked
+                }
+            }
+            return true;
+        }
+    }
+
+    return false;
+}
+
+char Engine::getSmallestAttacker(int targetRow, int targetCol, bool attackerColor,
+                                  int& fromRow, int& fromCol,
+                                  const std::vector<bool>& usedPieces) {
+    char cheapestPiece = '.';
+    int cheapestValue = 99999;
+    int bestFromRow = -1;
+    int bestFromCol = -1;
+
+    // Scan the entire board for attackers
+    for (int row = 0; row < 8; row++) {
+        for (int col = 0; col < 8; col++) {
+            // Check if this piece has already been used in the exchange
+            int pieceIndex = row * 8 + col;
+            if (usedPieces[pieceIndex]) continue;
+
+            char piece = board->getPiece(row, col);
+            if (piece == '.') continue;
+
+            // Check if piece is the correct color
+            bool isPieceWhite = isupper(piece);
+            if (isPieceWhite != attackerColor) continue;
+
+            // Check if this piece can attack the target square
+            if (pieceCanAttack(row, col, targetRow, targetCol, piece)) {
+                int value = getPieceValue(piece);
+                if (value < cheapestValue) {
+                    cheapestValue = value;
+                    cheapestPiece = piece;
+                    bestFromRow = row;
+                    bestFromCol = col;
+                }
+            }
+        }
+    }
+
+    fromRow = bestFromRow;
+    fromCol = bestFromCol;
+    return cheapestPiece;
+}
+
+int Engine::staticExchangeEvaluation(const std::string& move) {
+    // Parse move
+    int fromRow, fromCol, toRow, toCol;
+    parseMove(move, fromRow, fromCol, toRow, toCol);
+
+    // Get piece being moved and piece being captured
+    char attacker = board->getPiece(fromRow, fromCol);
+    char victim = board->getPiece(toRow, toCol);
+
+    if (victim == '.') return 0;  // Not a capture
+
+    // Track which pieces have been used in the exchange
+    std::vector<bool> usedPieces(64, false);
+
+    // Initial gain: value of captured piece
+    int gain[32];  // Maximum exchange depth
+    int depth = 0;
+    gain[depth] = getPieceValue(victim);
+
+    // Mark the initial attacker as used
+    usedPieces[fromRow * 8 + fromCol] = true;
+
+    // Determine attacking side
+    bool attackerIsWhite = isupper(attacker);
+    bool currentSide = !attackerIsWhite;  // Defender moves next
+
+    // Current piece on target square (after initial capture)
+    char currentPiece = attacker;
+
+    // Simulate exchange sequence
+    while (true) {
+        depth++;
+        if (depth >= 32) break;  // Safety limit
+
+        // Find cheapest piece that can recapture
+        int attackerRow, attackerCol;
+        char nextAttacker = getSmallestAttacker(toRow, toCol, currentSide,
+                                                 attackerRow, attackerCol,
+                                                 usedPieces);
+
+        if (nextAttacker == '.') break;  // No more attackers
+
+        // This attacker captures current piece
+        gain[depth] = getPieceValue(currentPiece) - gain[depth - 1];
+
+        // Mark this attacker as used
+        usedPieces[attackerRow * 8 + attackerCol] = true;
+
+        // Update for next iteration
+        currentPiece = nextAttacker;
+        currentSide = !currentSide;
+
+        // Prune if the moving side is winning enough already
+        if (std::max(-gain[depth-1], gain[depth]) < 0) break;
+    }
+
+    // Minimax the gain array (work backwards)
+    while (--depth) {
+        gain[depth-1] = -std::max(-gain[depth-1], gain[depth]);
+    }
+
+    return gain[0];
 }
 
 // =============================================================================

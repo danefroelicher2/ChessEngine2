@@ -99,6 +99,13 @@ private:
     // Late Move Reduction helpers
     bool isCapture(const std::string& move);
 
+    // Static Exchange Evaluation (SEE) helpers
+    char getSmallestAttacker(int targetRow, int targetCol, bool attackerColor,
+                             int& fromRow, int& fromCol,
+                             const std::vector<bool>& usedPieces);
+    bool pieceCanAttack(int fromRow, int fromCol, int targetRow, int targetCol, char piece);
+    int staticExchangeEvaluation(const std::string& move);
+
 public:
     Engine(Board* b, Moves* m);
 
