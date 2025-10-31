@@ -1189,9 +1189,17 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
     // Store original alpha for TT bound type determination
     int originalAlpha = alpha;
 
+    // ============================================
+    // TEMPORARY DIAGNOSTIC: TT PROBE DISABLED
+    // Testing if TT is causing tactical failures
+    // Date: 2025-10-31
+    // Hypothesis: TT returning wrong cached evaluations
+    // ============================================
+
     // Probe transposition table
     uint64_t posHash = board->getHash();
-    TTEntry* ttEntry = transpositionTable.probe(posHash);
+    TTEntry* ttEntry = nullptr;  // DIAGNOSTIC: Force TT miss to test hypothesis
+    // TTEntry* ttEntry = transpositionTable.probe(posHash);  // TEMPORARILY DISABLED
 
     if (ttEntry != nullptr && ttEntry->depth >= depth) {
         // We've searched this position to sufficient depth before
