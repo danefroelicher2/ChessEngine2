@@ -56,6 +56,8 @@ private:
     int maxQDepthReached;           // Maximum quiescence depth reached
     long long totalQDepth;          // Sum of all quiescence depths (for average)
     long long qSearches;            // Number of quiescence searches
+    long long lmrReductions;        // Number of moves searched with reduced depth
+    long long lmrReSearches;        // Number of re-searches after LMR failed high
 
     // Time management
     std::chrono::steady_clock::time_point searchStartTime;
@@ -93,6 +95,9 @@ private:
 
     // Helper to parse move coordinates
     void parseMove(const std::string& move, int& fromRow, int& fromCol, int& toRow, int& toCol);
+
+    // Late Move Reduction helpers
+    bool isCapture(const std::string& move);
 
 public:
     Engine(Board* b, Moves* m);

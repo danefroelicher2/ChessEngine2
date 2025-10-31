@@ -90,6 +90,8 @@ Engine::Engine(Board* b, Moves* m) : board(b), moves(m) {
     maxQDepthReached = 0;
     totalQDepth = 0;
     qSearches = 0;
+    lmrReductions = 0;
+    lmrReSearches = 0;
     timeLimit = 5000;  // Default 5 seconds
     pvMove = "";
 }
@@ -698,6 +700,16 @@ void Engine::parseMove(const std::string& move, int& fromRow, int& fromCol, int&
     toRow = 8 - (move[3] - '0');
 }
 
+bool Engine::isCapture(const std::string& move) {
+    // Extract destination square from move string
+    int toCol = move[2] - 'a';
+    int toRow = 8 - (move[3] - '0');
+
+    // Check if destination square has a piece (any piece means it's a capture)
+    char piece = board->getPiece(toRow, toCol);
+    return piece != '.';
+}
+
 int Engine::scoreMove(const std::string& move, int depth) {
     int fromRow, fromCol, toRow, toCol;
     parseMove(move, fromRow, fromCol, toRow, toCol);
@@ -1040,7 +1052,21 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
             // Make move
             MoveInfo info = moves->makeMoveWithInfo(move);
 
-            int eval = minimax(depth - 1, alpha, beta, false);
+            // Late Move Reduction (LMR)
+            int reduction = 0;
+            if (moveIndex >= 4 && depth >= 3 && !isCapture(move)) {
+                reduction = 2;  // Search 2 ply shallower for late non-captures
+                lmrReductions++;
+            }
+
+            // Search with reduced depth
+            int eval = minimax(depth - 1 - reduction, alpha, beta, false);
+
+            // If reduced move beats alpha, re-search at full depth
+            if (reduction > 0 && eval > alpha) {
+                lmrReSearches++;
+                eval = minimax(depth - 1, alpha, beta, false);
+            }
 
             // Undo move
             moves->unmakeMove(move, info);
@@ -1101,7 +1127,21 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
             // Make move
             MoveInfo info = moves->makeMoveWithInfo(move);
 
-            int eval = minimax(depth - 1, alpha, beta, true);
+            // Late Move Reduction (LMR)
+            int reduction = 0;
+            if (moveIndex >= 4 && depth >= 3 && !isCapture(move)) {
+                reduction = 2;  // Search 2 ply shallower for late non-captures
+                lmrReductions++;
+            }
+
+            // Search with reduced depth
+            int eval = minimax(depth - 1 - reduction, alpha, beta, true);
+
+            // If reduced move beats alpha (from minimizer's perspective: eval < beta)
+            if (reduction > 0 && eval < beta) {
+                lmrReSearches++;
+                eval = minimax(depth - 1, alpha, beta, true);
+            }
 
             // Undo move
             moves->unmakeMove(move, info);
@@ -1225,6 +1265,8 @@ std::string Engine::getBestMove(int timeLimitMs) {
     maxQDepthReached = 0;
     totalQDepth = 0;
     qSearches = 0;
+    lmrReductions = 0;
+    lmrReSearches = 0;
 
     std::vector<std::string> legalMoves = moves->generateLegalMoves();
 
@@ -1319,6 +1361,15 @@ std::string Engine::getBestMove(int timeLimitMs) {
     if (qSearches > 0) {
         double avgQDepth = (double)totalQDepth / qSearches;
         std::cout << "Avg Q-depth: " << avgQDepth << std::endl;
+    }
+
+    // Late Move Reduction statistics
+    std::cout << "\n=== Late Move Reduction Statistics ===" << std::endl;
+    std::cout << "LMR reductions: " << lmrReductions << std::endl;
+    std::cout << "LMR re-searches: " << lmrReSearches << std::endl;
+    if (lmrReductions > 0) {
+        double reSearchRate = (100.0 * lmrReSearches) / lmrReductions;
+        std::cout << "LMR re-search rate: " << reSearchRate << "%" << std::endl;
     }
 
     // Transposition table statistics
