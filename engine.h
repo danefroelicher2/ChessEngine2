@@ -78,7 +78,6 @@ private:
 
     // Move ordering functions
     int getPieceValue(char piece);
-    int scoreMove(const std::string& move, int depth);
     std::vector<ScoredMove> scoreMoves(const std::vector<std::string>& moves, int depth, TTEntry* ttEntry = nullptr);
     void updateKillerMove(const std::string& move, int depth);
     void updateHistory(const std::string& move, int depth);
