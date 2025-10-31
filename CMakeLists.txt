@@ -40,13 +40,6 @@ add_executable(critical_diagnostic
     engine.cpp
 )
 
-# Executable 5: Board state diagnostic tool
-add_executable(diagnostic_tool
-    diagnostic_tool.cpp
-    board.cpp
-    moves.cpp
-)
-
 # Link PostgreSQL
 target_link_libraries(chess_server PostgreSQL::PostgreSQL)
 
