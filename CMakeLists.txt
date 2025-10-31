@@ -38,6 +38,28 @@ add_executable(critical_diagnostic
     board.cpp
     moves.cpp
     engine.cpp
+    transposition_table.cpp
+    zobrist.cpp
+)
+
+# Executable 5: Simple evaluation diagnostic
+add_executable(simple_eval_test
+    simple_eval_test.cpp
+    board.cpp
+    moves.cpp
+    engine.cpp
+    transposition_table.cpp
+    zobrist.cpp
+)
+
+# Executable 6: SEE diagnostic
+add_executable(see_diagnostic
+    see_diagnostic.cpp
+    board.cpp
+    moves.cpp
+    engine.cpp
+    transposition_table.cpp
+    zobrist.cpp
 )
 
 # Link PostgreSQL

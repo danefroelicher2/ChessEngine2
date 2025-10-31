@@ -45,7 +45,18 @@
       "Bash(done)",
       "Bash(git push origin main)",
       "Bash(start chrome chess.html)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(timeout 30 /c/msys64/mingw64/bin/g++.exe:*)",
+      "Bash(timeout 60 /c/msys64/mingw64/bin/g++.exe:*)",
+      "Bash(./test_nmp.exe)",
+      "Bash(timeout 120 /c/msys64/mingw64/bin/g++.exe:*)",
+      "Bash(if [ -f \"simple_test_new.exe\" ])",
+      "Bash(then echo \"SUCCESS: Executable created\")",
+      "Bash(else echo \"FAILED: No executable\")",
+      "Bash(echo:*)",
+      "Bash(board_compile_errors.txt)",
+      "Bash(./hello.exe:*)",
+      "Bash(./simple_eval.exe)"
     ],
     "deny": [],
     "ask": []

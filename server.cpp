@@ -424,7 +424,8 @@ std::string processTacticalTestRequest()
         jsonResponse << "{\"status\":\"ok\",\"tests\":[";
 
         // Define the 5 tactical tests
-        struct TacticalTest {
+        struct TacticalTest
+        {
             std::string name;
             std::string fen;
             std::string expectedPattern;
@@ -432,43 +433,33 @@ std::string processTacticalTestRequest()
         };
 
         TacticalTest tests[] = {
-            {
-                "Hanging Piece Detection (1-ply)",
-                "rnbqkbnr/pppppppp/8/4Q3/8/8/PPPPPPPP/RNB1KBNR b KQkq - 0 1",
-                "xe5",
-                "White queen on e5 is undefended. Can engine capture free piece?"
-            },
-            {
-                "King Can Capture (1-ply)",
-                "rnbqkbnr/pppppppp/8/8/4k3/4N3/PPPPPPPP/RNBQKB1R b KQkq - 0 1",
-                "e4e3",
-                "White knight on e3 attacked by Black king. Does engine know kings can capture?"
-            },
-            {
-                "Capture Checking Piece (1-ply)",
-                "rnbqkbnr/pppp1ppp/8/8/8/8/PPPPnPPP/RNBQKBNR w KQkq - 0 1",
-                "xe2",
-                "Black knight on e2 checking White king. Should capture checking piece."
-            },
-            {
-                "King Capture vs King Flight (1-ply)",
-                "rnbqkb1r/pppppppp/8/8/8/4n3/PPPPKPPP/RNBQ1BNR w kq - 0 1",
-                "e2e3",
-                "Black knight on e3 checks King on e2. Should capture instead of fleeing."
-            },
-            {
-                "Free Material in Opening (1-ply)",
-                "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPPNPPP/RNBQKB1R b KQkq - 0 1",
-                "e5e4",
-                "White pawn on e4 undefended. Should capture free pawn."
-            }
-        };
+            {"Hanging Piece Detection (1-ply)",
+             "rnbqkbnr/pppppppp/8/4Q3/8/8/PPPPPPPP/RNB1KBNR b KQkq - 0 1",
+             "xe5",
+             "White queen on e5 is undefended. Can engine capture free piece?"},
+            {"King Can Capture (1-ply)",
+             "rnbqkbnr/pppppppp/8/8/4k3/4N3/PPPPPPPP/RNBQKB1R b KQkq - 0 1",
+             "e4e3",
+             "White knight on e3 attacked by Black king. Does engine know kings can capture?"},
+            {"Capture Checking Piece (1-ply)",
+             "rnbqkbnr/pppp1ppp/8/8/8/8/PPPPnPPP/RNBQKBNR w KQkq - 0 1",
+             "xe2",
+             "Black knight on e2 checking White king. Should capture checking piece."},
+            {"King Capture vs King Flight (1-ply)",
+             "rnbqkb1r/pppppppp/8/8/8/4n3/PPPPKPPP/RNBQ1BNR w kq - 0 1",
+             "e2e3",
+             "Black knight on e3 checks King on e2. Should capture instead of fleeing."},
+            {"Free Material in Opening (1-ply)",
+             "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPPNPPP/RNBQKB1R b KQkq - 0 1",
+             "e5e4",
+             "White pawn on e4 undefended. Should capture free pawn."}};
 
         int passCount = 0;
         int failCount = 0;
 
-        for (int i = 0; i < 5; i++) {
-            const TacticalTest& test = tests[i];
+        for (int i = 0; i < 5; i++)
+        {
+            const TacticalTest &test = tests[i];
 
             // Set up board and engine
             Board board;
@@ -481,46 +472,53 @@ std::string processTacticalTestRequest()
 
             // Check if move matches expected pattern
             bool passed = false;
-            if (test.expectedPattern.find('x') != std::string::npos) {
+            if (test.expectedPattern.find('x') != std::string::npos)
+            {
                 // Pattern like "xe5" - any capture on e5
                 std::string targetSquare = test.expectedPattern.substr(test.expectedPattern.find('x') + 1, 2);
-                if (bestMove.length() >= 4) {
+                if (bestMove.length() >= 4)
+                {
                     std::string moveTarget = bestMove.substr(2, 2);
                     passed = (moveTarget == targetSquare);
                 }
-            } else {
+            }
+            else
+            {
                 // Exact move match
                 passed = (bestMove == test.expectedPattern);
             }
 
-            if (passed) {
+            if (passed)
+            {
                 passCount++;
-            } else {
+            }
+            else
+            {
                 failCount++;
             }
 
             // Build JSON for this test
-            if (i > 0) jsonResponse << ",";
+            if (i > 0)
+                jsonResponse << ",";
             jsonResponse << "{"
-                        << "\"name\":\"" << test.name << "\","
-                        << "\"description\":\"" << test.description << "\","
-                        << "\"fen\":\"" << test.fen << "\","
-                        << "\"expected\":\"" << test.expectedPattern << "\","
-                        << "\"actual\":\"" << bestMove << "\","
-                        << "\"passed\":" << (passed ? "true" : "false") << ","
-                        << "\"first_move_cutoff_rate\":"
-                        << (engine.getBetaCutoffs() > 0 ?
-                            (100.0 * engine.getFirstMoveCutoffs() / engine.getBetaCutoffs()) : 0.0) << ","
-                        << "\"nodes_searched\":" << engine.getNodesSearched()
-                        << "}";
+                         << "\"name\":\"" << test.name << "\","
+                         << "\"description\":\"" << test.description << "\","
+                         << "\"fen\":\"" << test.fen << "\","
+                         << "\"expected\":\"" << test.expectedPattern << "\","
+                         << "\"actual\":\"" << bestMove << "\","
+                         << "\"passed\":" << (passed ? "true" : "false") << ","
+                         << "\"first_move_cutoff_rate\":"
+                         << (engine.getBetaCutoffs() > 0 ? (100.0 * engine.getFirstMoveCutoffs() / engine.getBetaCutoffs()) : 0.0) << ","
+                         << "\"nodes_searched\":" << engine.getNodesSearched()
+                         << "}";
         }
 
         jsonResponse << "],\"summary\":{"
-                    << "\"total_tests\":5,"
-                    << "\"passed\":" << passCount << ","
-                    << "\"failed\":" << failCount << ","
-                    << "\"pass_rate\":" << (100.0 * passCount / 5.0)
-                    << "}}";
+                     << "\"total_tests\":5,"
+                     << "\"passed\":" << passCount << ","
+                     << "\"failed\":" << failCount << ","
+                     << "\"pass_rate\":" << (100.0 * passCount / 5.0)
+                     << "}}";
 
         return jsonResponse.str();
     }
@@ -539,7 +537,8 @@ std::string processSEETestRequest()
         jsonResponse << "{\"status\":\"ok\",\"tests\":[";
 
         // Define SEE tests for the exact failing positions
-        struct SEETest {
+        struct SEETest
+        {
             std::string name;
             std::string fen;
             std::string move;
@@ -548,48 +547,38 @@ std::string processSEETestRequest()
         };
 
         SEETest tests[] = {
-            {
-                "Free Queen Capture",
-                "rnbqkbnr/pppppppp/8/4Q3/8/8/PPPPPPPP/RNB1KBNR b KQkq - 0 1",
-                "d8e5",
-                900,
-                "Capturing undefended queen should score +900"
-            },
-            {
-                "King Captures Knight",
-                "4k3/8/8/8/4N3/8/8/4K3 b - - 0 1",
-                "e8e4",
-                320,
-                "King capturing undefended knight should score +320"
-            },
-            {
-                "Capture Free Pawn",
-                "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPPNPPP/RNBQKB1R b KQkq - 0 1",
-                "e5e4",
-                100,
-                "Capturing undefended pawn should score +100"
-            },
-            {
-                "Capture Checking Knight",
-                "4k3/8/4N3/8/8/8/8/4K3 b - - 0 1",
-                "e8e6",
-                320,
-                "Capturing checking knight should score +320"
-            },
-            {
-                "Queen Takes Defended Pawn",
-                "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
-                "d8e4",
-                100,
-                "Queen capturing defended pawn (should be positive or near zero)"
-            }
-        };
+            {"Free Queen Capture",
+             "rnbqkbnr/pppppppp/8/4Q3/8/8/PPPPPPPP/RNB1KBNR b KQkq - 0 1",
+             "d8e5",
+             900,
+             "Capturing undefended queen should score +900"},
+            {"King Captures Knight",
+             "4k3/8/8/8/4N3/8/8/4K3 b - - 0 1",
+             "e8e4",
+             320,
+             "King capturing undefended knight should score +320"},
+            {"Capture Free Pawn",
+             "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPPNPPP/RNBQKB1R b KQkq - 0 1",
+             "e5e4",
+             100,
+             "Capturing undefended pawn should score +100"},
+            {"Capture Checking Knight",
+             "4k3/8/4N3/8/8/8/8/4K3 b - - 0 1",
+             "e8e6",
+             320,
+             "Capturing checking knight should score +320"},
+            {"Queen Takes Defended Pawn",
+             "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
+             "d8e4",
+             100,
+             "Queen capturing defended pawn (should be positive or near zero)"}};
 
         int passCount = 0;
         int failCount = 0;
 
-        for (int i = 0; i < 5; i++) {
-            const SEETest& test = tests[i];
+        for (int i = 0; i < 5; i++)
+        {
+            const SEETest &test = tests[i];
 
             // Set up board and engine
             Board board;
@@ -607,12 +596,14 @@ std::string processSEETestRequest()
             std::vector<std::string> legalMoves = moves.generateLegalMoves();
             std::string quietMove = "";
             int quietScore = 0;
-            for (const std::string& move : legalMoves) {
+            for (const std::string &move : legalMoves)
+            {
                 // Find a non-capture move
                 int toCol = move[2] - 'a';
                 int toRow = 8 - (move[3] - '0');
                 char target = board.getPiece(toRow, toCol);
-                if (target == '.') {
+                if (target == '.')
+                {
                     quietMove = move;
                     quietScore = engine.scoreMove(move, -1);
                     break;
@@ -622,35 +613,39 @@ std::string processSEETestRequest()
             // Test passes if SEE is positive (within tolerance)
             bool passed = (seeScore >= test.expectedScore - 50);
 
-            if (passed) {
+            if (passed)
+            {
                 passCount++;
-            } else {
+            }
+            else
+            {
                 failCount++;
             }
 
             // Build JSON for this test
-            if (i > 0) jsonResponse << ",";
+            if (i > 0)
+                jsonResponse << ",";
             jsonResponse << "{"
-                        << "\"name\":\"" << test.name << "\","
-                        << "\"description\":\"" << test.description << "\","
-                        << "\"fen\":\"" << test.fen << "\","
-                        << "\"capture_move\":\"" << test.move << "\","
-                        << "\"expected_see_score\":" << test.expectedScore << ","
-                        << "\"actual_see_score\":" << seeScore << ","
-                        << "\"capture_move_score\":" << moveScore << ","
-                        << "\"quiet_move\":\"" << quietMove << "\","
-                        << "\"quiet_move_score\":" << quietScore << ","
-                        << "\"capture_scored_higher\":" << (moveScore > quietScore ? "true" : "false") << ","
-                        << "\"passed\":" << (passed ? "true" : "false")
-                        << "}";
+                         << "\"name\":\"" << test.name << "\","
+                         << "\"description\":\"" << test.description << "\","
+                         << "\"fen\":\"" << test.fen << "\","
+                         << "\"capture_move\":\"" << test.move << "\","
+                         << "\"expected_see_score\":" << test.expectedScore << ","
+                         << "\"actual_see_score\":" << seeScore << ","
+                         << "\"capture_move_score\":" << moveScore << ","
+                         << "\"quiet_move\":\"" << quietMove << "\","
+                         << "\"quiet_move_score\":" << quietScore << ","
+                         << "\"capture_scored_higher\":" << (moveScore > quietScore ? "true" : "false") << ","
+                         << "\"passed\":" << (passed ? "true" : "false")
+                         << "}";
         }
 
         jsonResponse << "],\"summary\":{"
-                    << "\"total_tests\":5,"
-                    << "\"passed\":" << passCount << ","
-                    << "\"failed\":" << failCount << ","
-                    << "\"pass_rate\":" << (100.0 * passCount / 5.0)
-                    << "}}";
+                     << "\"total_tests\":5,"
+                     << "\"passed\":" << passCount << ","
+                     << "\"failed\":" << failCount << ","
+                     << "\"pass_rate\":" << (100.0 * passCount / 5.0)
+                     << "}}";
 
         return jsonResponse.str();
     }
