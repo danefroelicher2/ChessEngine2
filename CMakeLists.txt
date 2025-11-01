@@ -24,43 +24,46 @@ add_executable(chess_server
     database.cpp
 )
 
-# Executable 3: Tactical bug diagnostic tests
-add_executable(test_tactical_bug
-    test_tactical_bug.cpp
-    board.cpp
-    moves.cpp
-    engine.cpp
-)
+# Diagnostic executables commented out - not needed for production
+# These can be uncommented for local testing if needed
 
-# Executable 4: Critical diagnostic tests
-add_executable(critical_diagnostic
-    critical_diagnostic.cpp
-    board.cpp
-    moves.cpp
-    engine.cpp
-    transposition_table.cpp
-    zobrist.cpp
-)
+# # Executable 3: Tactical bug diagnostic tests
+# add_executable(test_tactical_bug
+#     test_tactical_bug.cpp
+#     board.cpp
+#     moves.cpp
+#     engine.cpp
+# )
 
-# Executable 5: Simple evaluation diagnostic
-add_executable(simple_eval_test
-    simple_eval_test.cpp
-    board.cpp
-    moves.cpp
-    engine.cpp
-    transposition_table.cpp
-    zobrist.cpp
-)
+# # Executable 4: Critical diagnostic tests
+# add_executable(critical_diagnostic
+#     critical_diagnostic.cpp
+#     board.cpp
+#     moves.cpp
+#     engine.cpp
+#     transposition_table.cpp
+#     zobrist.cpp
+# )
 
-# Executable 6: SEE diagnostic
-add_executable(see_diagnostic
-    see_diagnostic.cpp
-    board.cpp
-    moves.cpp
-    engine.cpp
-    transposition_table.cpp
-    zobrist.cpp
-)
+# # Executable 5: Simple evaluation diagnostic
+# add_executable(simple_eval_test
+#     simple_eval_test.cpp
+#     board.cpp
+#     moves.cpp
+#     engine.cpp
+#     transposition_table.cpp
+#     zobrist.cpp
+# )
+
+# # Executable 6: SEE diagnostic
+# add_executable(see_diagnostic
+#     see_diagnostic.cpp
+#     board.cpp
+#     moves.cpp
+#     engine.cpp
+#     transposition_table.cpp
+#     zobrist.cpp
+# )
 
 # Link PostgreSQL
 target_link_libraries(chess_server PostgreSQL::PostgreSQL)
