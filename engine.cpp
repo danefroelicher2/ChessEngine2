@@ -1267,8 +1267,8 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
     std::vector<std::string> legalMoves = moves->generateLegalMoves();
 
     if (legalMoves.empty()) {
-        // No moves available (game over)
-        return maximizing ? -999999 : 999999;
+        const int CHECKMATE_SCORE = 999999;
+        return maximizing ? -CHECKMATE_SCORE : CHECKMATE_SCORE;
     }
 
     // Score and sort moves for better move ordering
@@ -1315,12 +1315,14 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
             }
 
             // Search with reduced depth
-            int eval = minimax(depth - 1 - reduction, alpha, beta, false);
+            int childEval = minimax(depth - 1 - reduction, alpha, beta, false);
+            int eval = -childEval;  // Convert child perspective to current player
 
             // If reduced move beats alpha, re-search at full depth
             if (reduction > 0 && eval > alpha) {
                 lmrReSearches++;
-                eval = minimax(depth - 1, alpha, beta, false);
+                childEval = minimax(depth - 1, alpha, beta, false);
+                eval = -childEval;
             }
 
             // Undo move
@@ -1412,12 +1414,14 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
             }
 
             // Search with reduced depth
-            int eval = minimax(depth - 1 - reduction, alpha, beta, true);
+            int childEval = minimax(depth - 1 - reduction, alpha, beta, true);
+            int eval = -childEval;  // Convert child perspective to current player
 
             // If reduced move beats alpha (from minimizer's perspective: eval < beta)
             if (reduction > 0 && eval < beta) {
                 lmrReSearches++;
-                eval = minimax(depth - 1, alpha, beta, true);
+                childEval = minimax(depth - 1, alpha, beta, true);
+                eval = -childEval;
             }
 
             // Undo move

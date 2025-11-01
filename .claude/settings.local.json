@@ -56,7 +56,18 @@
       "Bash(echo:*)",
       "Bash(board_compile_errors.txt)",
       "Bash(./hello.exe:*)",
-      "Bash(./simple_eval.exe)"
+      "Bash(./simple_eval.exe)",
+      "Bash(if [ -f server.exe ])",
+      "Bash(if [ -f server_new.exe ])",
+      "Bash(for i in {1..24})",
+      "Bash(curl -s http://chessengine2.onrender.com/health)",
+      "Bash(for i in {1..30})",
+      "Bash(do sleep 10)",
+      "Bash(do sleep 15)",
+      "Bash(curl:*)",
+      "Bash(/dev/null)",
+      "WebFetch(domain:lichess.org)",
+      "Bash(break)"
     ],
     "deny": [],
     "ask": []
