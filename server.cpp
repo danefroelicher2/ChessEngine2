@@ -564,8 +564,9 @@ std::string processEvalTestRequest()
             // Make the move
             MoveInfo info = moves.makeMoveWithInfo(move);
 
-            // Evaluate position after move (negate for opponent's perspective)
-            int evalAfter = -engine.evaluate();
+            // Evaluate position after move (always from White's perspective)
+            // For Black's move, more negative is better for Black
+            int evalAfter = engine.evaluate();
 
             // Unmake the move
             moves.unmakeMove(move, info);
