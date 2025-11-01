@@ -160,6 +160,12 @@ bool isTacticalTestRequest(const std::string &request)
     return request.find("GET /tactical-test") == 0;
 }
 
+// Check if request is GET /eval-test
+bool isEvalTestRequest(const std::string &request)
+{
+    return request.find("GET /eval-test") == 0;
+}
+
 // Check if request is GET /see-test
 bool isSEETestRequest(const std::string &request)
 {
@@ -528,6 +534,64 @@ std::string processTacticalTestRequest()
     }
 }
 
+// Process eval test - shows evaluation breakdown for Test 2 position
+std::string processEvalTestRequest()
+{
+    try
+    {
+        std::ostringstream jsonResponse;
+        jsonResponse << "{\"status\":\"ok\",\"position\":\"Test 2: King Can Capture\",\"moves\":[";
+
+        // Test 2 position
+        std::string fen = "rnbqkbnr/pppppppp/8/8/4k3/4N3/PPPPPPPP/RNBQKB1R b KQkq - 0 1";
+
+        Board board;
+        board.loadFromFEN(fen);
+        Moves moves(&board);
+        Engine engine(&board, &moves);
+
+        // Get evaluation of current position
+        int currentEval = engine.evaluate();
+
+        // Test specific moves
+        std::string testMoves[] = {"e4e3", "e4f5", "e4d5"};
+
+        for (int i = 0; i < 3; i++)
+        {
+            std::string move = testMoves[i];
+            if (i > 0) jsonResponse << ",";
+
+            // Make the move
+            MoveInfo info = moves.makeMoveWithInfo(move);
+
+            // Evaluate position after move (negate for opponent's perspective)
+            int evalAfter = -engine.evaluate();
+
+            // Unmake the move
+            moves.unmakeMove(move, info);
+
+            // Calculate move score
+            int moveScore = engine.scoreMove(move, -1);
+
+            jsonResponse << "{"
+                         << "\"move\":\"" << move << "\","
+                         << "\"ordering_score\":" << moveScore << ","
+                         << "\"eval_before\":" << currentEval << ","
+                         << "\"eval_after\":" << evalAfter << ","
+                         << "\"eval_change\":" << (evalAfter - currentEval)
+                         << "}";
+        }
+
+        jsonResponse << "],\"current_position_eval\":" << currentEval << "}";
+
+        return jsonResponse.str();
+    }
+    catch (const std::exception &e)
+    {
+        return "{\"status\":\"error\",\"message\":\"" + std::string(e.what()) + "\"}";
+    }
+}
+
 // Process SEE (Static Exchange Evaluation) test request
 std::string processSEETestRequest()
 {
@@ -887,6 +951,13 @@ int main()
                 // Process tactical vision test request
                 std::cout << "[TACTICAL TEST] Running 5 tactical vision tests..." << std::endl;
                 std::string jsonResponse = processTacticalTestRequest();
+                response = buildHttpResponse(jsonResponse);
+            }
+            else if (isEvalTestRequest(request))
+            {
+                // Process eval test request
+                std::cout << "[EVAL TEST] Testing evaluation for Test 2 position..." << std::endl;
+                std::string jsonResponse = processEvalTestRequest();
                 response = buildHttpResponse(jsonResponse);
             }
             else if (isSEETestRequest(request))
