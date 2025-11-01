@@ -387,41 +387,41 @@ bool Moves::isSquareAttacked(int row, int col, bool byWhite) {
         }
     }
 
-    int knightOffsets[8][2] = {
+    static const int knightOffsets[8][2] = {
         {-2, -1}, {-2, 1}, {-1, -2}, {-1, 2},
         { 1, -2}, { 1, 2}, { 2, -1}, { 2, 1}
     };
-    char attackerKnight = byWhite ? 'N' : 'n';
-    for (auto& off : knightOffsets) {
-        int r = row + off[0];
-        int c = col + off[1];
-        if (r >= 0 && r < 8 && c >= 0 && c < 8 &&
-            board->getPiece(r, c) == attackerKnight) {
-            return true;
+    for (const auto& offset : knightOffsets) {
+        int r = row + offset[0];
+        int c = col + offset[1];
+        if (r >= 0 && r < 8 && c >= 0 && c < 8) {
+            char piece = board->getPiece(r, c);
+            if (piece == (byWhite ? 'N' : 'n')) {
+                return true;
+            }
         }
     }
 
-    int kingOffsets[8][2] = {
+    static const int kingOffsets[8][2] = {
         {-1, -1}, {-1, 0}, {-1, 1},
         { 0, -1},          { 0, 1},
         { 1, -1}, { 1, 0}, { 1, 1}
     };
-    char attackerKing = byWhite ? 'K' : 'k';
-    for (auto& off : kingOffsets) {
-        int r = row + off[0];
-        int c = col + off[1];
-        if (r >= 0 && r < 8 && c >= 0 && c < 8 &&
-            board->getPiece(r, c) == attackerKing) {
-            return true;
+    for (const auto& offset : kingOffsets) {
+        int r = row + offset[0];
+        int c = col + offset[1];
+        if (r >= 0 && r < 8 && c >= 0 && c < 8) {
+            char piece = board->getPiece(r, c);
+            if (piece == (byWhite ? 'K' : 'k')) {
+                return true;
+            }
         }
     }
 
-    int diagonalDirs[4][2] = {
+    static const int diagonalDirs[4][2] = {
         {-1, -1}, {-1, 1}, {1, -1}, {1, 1}
     };
-    char attackerBishop = byWhite ? 'B' : 'b';
-    char attackerQueen = byWhite ? 'Q' : 'q';
-    for (auto& dir : diagonalDirs) {
+    for (const auto& dir : diagonalDirs) {
         for (int dist = 1; dist < 8; dist++) {
             int r = row + dir[0] * dist;
             int c = col + dir[1] * dist;
@@ -429,19 +429,18 @@ bool Moves::isSquareAttacked(int row, int col, bool byWhite) {
 
             char piece = board->getPiece(r, c);
             if (piece != '.') {
-                if (piece == attackerBishop || piece == attackerQueen) {
+                if (piece == (byWhite ? 'B' : 'b') || piece == (byWhite ? 'Q' : 'q')) {
                     return true;
                 }
-                break;
+                break;  // Blocked by another piece
             }
         }
     }
 
-    int straightDirs[4][2] = {
+    static const int straightDirs[4][2] = {
         {-1, 0}, {1, 0}, {0, -1}, {0, 1}
     };
-    char attackerRook = byWhite ? 'R' : 'r';
-    for (auto& dir : straightDirs) {
+    for (const auto& dir : straightDirs) {
         for (int dist = 1; dist < 8; dist++) {
             int r = row + dir[0] * dist;
             int c = col + dir[1] * dist;
@@ -449,17 +448,13 @@ bool Moves::isSquareAttacked(int row, int col, bool byWhite) {
 
             char piece = board->getPiece(r, c);
             if (piece != '.') {
-                if (piece == attackerRook || piece == attackerQueen) {
+                if (piece == (byWhite ? 'R' : 'r') || piece == (byWhite ? 'Q' : 'q')) {
                     return true;
                 }
-                break;
+                break;  // Blocked by another piece
             }
         }
     }
-
-    // Debug: enable to trace missed attacks.
-    // std::cout << "[isSquareAttacked DEBUG] (" << row << "," << col
-    //           << ") not attacked by " << (byWhite ? "White" : "Black") << std::endl;
 
     return false;
 }
