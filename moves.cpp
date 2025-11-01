@@ -368,22 +368,32 @@ void Moves::makeMove(const std::string& move) {
 }
 
 bool Moves::isSquareAttacked(int row, int col, bool byWhite) {
-    int pawnDir = byWhite ? -1 : 1;
-    for (int colOffset : {-1, 1}) {
-        int attackRow = row + pawnDir;
-        int attackCol = col + colOffset;
-        if (attackRow >= 0 && attackRow < 8 && attackCol >= 0 && attackCol < 8) {
-            char piece = board->getPiece(attackRow, attackCol);
-            if (piece == (byWhite ? 'P' : 'p')) {
-                return true;
-            }
+    // Board coordinate system:
+    // row 0 = rank 8 (Black back rank)
+    // row 7 = rank 1 (White back rank)
+    // col 0 = file a
+
+    if (byWhite) {
+        // White pawns attack one row up (toward lower indices)
+        if (row > 0) {
+            if (col > 0 && board->getPiece(row - 1, col - 1) == 'P') return true;
+            if (col < 7 && board->getPiece(row - 1, col + 1) == 'P') return true;
+        }
+    } else {
+        // Black pawns attack one row down (toward higher indices)
+        if (row < 7) {
+            if (col > 0 && board->getPiece(row + 1, col - 1) == 'p') return true;
+            if (col < 7 && board->getPiece(row + 1, col + 1) == 'p') return true;
         }
     }
 
-    int knightMoves[8][2] = {{-2,-1},{-2,1},{-1,-2},{-1,2},{1,-2},{1,2},{2,-1},{2,1}};
-    for (auto& move : knightMoves) {
-        int r = row + move[0];
-        int c = col + move[1];
+    static const int knightOffsets[8][2] = {
+        {-2, -1}, {-2, 1}, {-1, -2}, {-1, 2},
+        { 1, -2}, { 1, 2}, { 2, -1}, { 2, 1}
+    };
+    for (const auto& offset : knightOffsets) {
+        int r = row + offset[0];
+        int c = col + offset[1];
         if (r >= 0 && r < 8 && c >= 0 && c < 8) {
             char piece = board->getPiece(r, c);
             if (piece == (byWhite ? 'N' : 'n')) {
@@ -392,10 +402,14 @@ bool Moves::isSquareAttacked(int row, int col, bool byWhite) {
         }
     }
 
-    int kingMoves[8][2] = {{-1,-1},{-1,0},{-1,1},{0,-1},{0,1},{1,-1},{1,0},{1,1}};
-    for (auto& move : kingMoves) {
-        int r = row + move[0];
-        int c = col + move[1];
+    static const int kingOffsets[8][2] = {
+        {-1, -1}, {-1, 0}, {-1, 1},
+        { 0, -1},          { 0, 1},
+        { 1, -1}, { 1, 0}, { 1, 1}
+    };
+    for (const auto& offset : kingOffsets) {
+        int r = row + offset[0];
+        int c = col + offset[1];
         if (r >= 0 && r < 8 && c >= 0 && c < 8) {
             char piece = board->getPiece(r, c);
             if (piece == (byWhite ? 'K' : 'k')) {
@@ -404,8 +418,10 @@ bool Moves::isSquareAttacked(int row, int col, bool byWhite) {
         }
     }
 
-    int diagDirs[4][2] = {{-1,-1},{-1,1},{1,-1},{1,1}};
-    for (auto& dir : diagDirs) {
+    static const int diagonalDirs[4][2] = {
+        {-1, -1}, {-1, 1}, {1, -1}, {1, 1}
+    };
+    for (const auto& dir : diagonalDirs) {
         for (int dist = 1; dist < 8; dist++) {
             int r = row + dir[0] * dist;
             int c = col + dir[1] * dist;
@@ -413,16 +429,18 @@ bool Moves::isSquareAttacked(int row, int col, bool byWhite) {
 
             char piece = board->getPiece(r, c);
             if (piece != '.') {
-                if ((piece == (byWhite ? 'B' : 'b')) || (piece == (byWhite ? 'Q' : 'q'))) {
+                if (piece == (byWhite ? 'B' : 'b') || piece == (byWhite ? 'Q' : 'q')) {
                     return true;
                 }
-                break;
+                break;  // Blocked by another piece
             }
         }
     }
 
-    int straightDirs[4][2] = {{-1,0},{1,0},{0,-1},{0,1}};
-    for (auto& dir : straightDirs) {
+    static const int straightDirs[4][2] = {
+        {-1, 0}, {1, 0}, {0, -1}, {0, 1}
+    };
+    for (const auto& dir : straightDirs) {
         for (int dist = 1; dist < 8; dist++) {
             int r = row + dir[0] * dist;
             int c = col + dir[1] * dist;
@@ -430,10 +448,10 @@ bool Moves::isSquareAttacked(int row, int col, bool byWhite) {
 
             char piece = board->getPiece(r, c);
             if (piece != '.') {
-                if ((piece == (byWhite ? 'R' : 'r')) || (piece == (byWhite ? 'Q' : 'q'))) {
+                if (piece == (byWhite ? 'R' : 'r') || piece == (byWhite ? 'Q' : 'q')) {
                     return true;
                 }
-                break;
+                break;  // Blocked by another piece
             }
         }
     }
