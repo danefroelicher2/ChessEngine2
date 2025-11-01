@@ -1475,11 +1475,9 @@ std::string Engine::searchAtDepth(int depth, int& outScore) {
             break;  // Return best move found so far
         }
 
-        // DIAGNOSTIC: Log root move about to be searched
-        if (moveNum < 5) {
-            std::cout << "[ROOT-SEARCH] Trying root move #" << (moveNum+1) << ": "
-                      << move << " (ordering score: " << scoredMove.score << ")" << std::endl;
-        }
+        // DIAGNOSTIC: Log ALL root moves to find why captures aren't chosen
+        std::cout << "[ROOT-SEARCH] Trying root move #" << (moveNum+1) << ": "
+                  << move << " (ordering score: " << scoredMove.score << ")" << std::endl;
 
         // Make move
         MoveInfo info = moves->makeMoveWithInfo(move);
@@ -1490,32 +1488,26 @@ std::string Engine::searchAtDepth(int depth, int& outScore) {
         // Undo move
         moves->unmakeMove(move, info);
 
-        // DIAGNOSTIC: Log root move result
-        if (moveNum < 5) {
-            std::cout << "[ROOT-SEARCH] Root move " << move << " returned score: "
-                      << score << std::endl;
-        }
+        // DIAGNOSTIC: Log ALL root move results
+        std::cout << "[ROOT-SEARCH] Root move " << move << " returned EVAL SCORE: "
+                  << score << std::endl;
 
         // Update best move if this is better
         if (board->isWhiteToMove()) {
             if (score > bestScore) {
                 bestScore = score;
                 bestMove = move;
-                // DIAGNOSTIC: Log new best move
-                if (moveNum < 5) {
-                    std::cout << "[ROOT-SEARCH] *** NEW BEST: " << move
-                              << " (score: " << score << ") ***" << std::endl;
-                }
+                // DIAGNOSTIC: Log ALL new best moves
+                std::cout << "[ROOT-SEARCH] *** NEW BEST (WHITE): " << move
+                          << " (eval: " << score << ", was: " << bestScore << ") ***" << std::endl;
             }
         } else {
             if (score < bestScore) {
                 bestScore = score;
                 bestMove = move;
-                // DIAGNOSTIC: Log new best move
-                if (moveNum < 5) {
-                    std::cout << "[ROOT-SEARCH] *** NEW BEST: " << move
-                              << " (score: " << score << ") ***" << std::endl;
-                }
+                // DIAGNOSTIC: Log ALL new best moves
+                std::cout << "[ROOT-SEARCH] *** NEW BEST (BLACK): " << move
+                          << " (eval: " << score << ", was: " << bestScore << ") ***" << std::endl;
             }
         }
 
