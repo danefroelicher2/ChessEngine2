@@ -771,9 +771,10 @@ std::vector<ScoredMove> Engine::scoreMoves(const std::vector<std::string>& moves
     for (const std::string& move : moves) {
         int score = scoreMove(move, depth);
 
-        // Boost TT best move to highest priority
+        // Boost TT best move to higher priority (but not so high it prevents trying captures)
+        // Changed from 10,000,000 to 1,500,000 to allow captures (~1,090,000) to be considered
         if (!ttBestMove.empty() && move == ttBestMove) {
-            score = 10000000;  // Highest priority
+            score = 1500000;  // Higher than best captures but not overwhelming
         }
 
         scoredMoves.push_back(ScoredMove(move, score));
@@ -1443,9 +1444,10 @@ std::string Engine::searchAtDepth(int depth, int& outScore) {
     for (const std::string& move : legalMoves) {
         int score = scoreMove(move, depth);
 
-        // Boost PV move score to ensure it's searched first
+        // Boost PV move score to search it early (but not so high it prevents trying captures)
+        // Changed from 10,000,000 to 1,500,000 to allow captures (~1,090,000) to be considered
         if (!pvMove.empty() && move == pvMove) {
-            score = 10000000;  // Higher than any other score
+            score = 1500000;  // Higher than best captures but not overwhelming
         }
 
         scoredMoves.push_back(ScoredMove(move, score));
