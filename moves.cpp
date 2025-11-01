@@ -295,70 +295,57 @@ std::vector<std::string> Moves::generateLegalMoves() {
     }
 
     std::vector<std::string> legalMoves;
+    legalMoves.reserve(moves.size());
+
     for (const std::string& move : moves) {
-        // Parse the destination square
+        // Skip moves that capture own pieces (defensive guard)
         int toCol = move[2] - 'a';
         int toRow = 7 - (move[3] - '1');
         char targetPiece = board->getPiece(toRow, toCol);
-
-        // DIAGNOSTIC: Log if this is a queen move to e5
-        bool isQueenToE5 = (move.length() >= 4 && move.substr(2, 2) == "e5" &&
-                           tolower(board->getPiece(7 - (move[1] - '1'), move[0] - 'a')) == 'q');
-
-        // CRITICAL: Skip moves that capture own pieces
-        // If target square has a piece AND it's the same color as side to move
         if (targetPiece != '.') {
             bool targetIsWhite = isupper(targetPiece);
-            bool movingIsWhite = board->isWhiteToMove();
-            if (targetIsWhite == movingIsWhite) {
-                // This move would capture our own piece - ILLEGAL
-                if (isQueenToE5) std::cout << "[DEBUG] " << move << " filtered: captures own piece" << std::endl;
-                continue;  // Skip this move
+            if (targetIsWhite == board->isWhiteToMove()) {
+                continue;
             }
         }
 
-        // Now test if this move leaves us in check
-        // Save whose turn it is BEFORE making the move
-        bool wasWhiteToMove = board->isWhiteToMove();
-
+        // === Test 3 Fix: filter out moves that leave own king in check ===
         MoveInfo info = makeMoveWithInfo(move);
 
-        // After making the move, the turn has toggled
-        // We need to check if the ORIGINAL side's king is in check
-        // So we need to check if the king of the color that JUST moved is being attacked
+        bool movedWasWhite = info.wasWhiteToMove;
 
-        // Find our king (the side that just moved)
-        char ourKing = wasWhiteToMove ? 'K' : 'k';
-        int kingRow = -1, kingCol = -1;
-        for (int row = 0; row < 8; row++) {
-            for (int col = 0; col < 8; col++) {
-                if (board->getPiece(row, col) == ourKing) {
-                    kingRow = row;
-                    kingCol = col;
+        int kingRow = -1;
+        int kingCol = -1;
+        for (int r = 0; r < 8 && kingRow == -1; r++) {
+            for (int c = 0; c < 8; c++) {
+                char piece = board->getPiece(r, c);
+                if (movedWasWhite && piece == 'K') {
+                    kingRow = r;
+                    kingCol = c;
+                    break;
+                }
+                if (!movedWasWhite && piece == 'k') {
+                    kingRow = r;
+                    kingCol = c;
                     break;
                 }
             }
-            if (kingRow != -1) break;
         }
 
-        // Check if our king is being attacked by the opponent (whose turn it now is)
-        bool ourKingInCheck = false;
-        if (kingRow != -1) {
-            // isSquareAttacked checks if square is attacked by the specified color
-            // After the move, it's the opponent's turn, so check if they're attacking our king
-            ourKingInCheck = isSquareAttacked(kingRow, kingCol, board->isWhiteToMove());
-            if (isQueenToE5 && ourKingInCheck) {
-                std::cout << "[DEBUG] " << move << " filtered: leaves king in check at "
-                         << char('a' + kingCol) << char('1' + (7 - kingRow)) << std::endl;
+        bool legal = (kingRow >= 0 && kingCol >= 0);
+        if (legal) {
+            bool opponentIsWhite = !movedWasWhite;
+            if (isSquareAttacked(kingRow, kingCol, opponentIsWhite)) {
+                legal = false;
             }
         }
 
-        unmakeMove(move, info);
-
-        // Only allow moves that DON'T leave our own king in check
-        if (!ourKingInCheck) {
+        if (legal) {
             legalMoves.push_back(move);
         }
+
+        // Always undo the move
+        unmakeMove(move, info);
     }
 
     return legalMoves;
