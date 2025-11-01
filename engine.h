@@ -64,7 +64,6 @@ private:
     int timeLimit;                  // Time limit in milliseconds
     std::string pvMove;             // Principal variation move from previous iteration
 
-    int evaluate();
     int evaluatePawnStructure();
     int evaluateKingSafety();
     int evaluateCenterControl();
@@ -108,6 +107,9 @@ public:
     Engine(Board* b, Moves* m);
 
     std::string getBestMove(int timeLimitMs = 5000);
+
+    // Evaluation functions (public for diagnostic testing)
+    int evaluate();
 
     // TEMPORARY: Expose for diagnostic testing
     int staticExchangeEvaluation(const std::string& move);
