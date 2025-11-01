@@ -1558,6 +1558,13 @@ std::string Engine::getBestMove(int timeLimitMs) {
 
     std::vector<std::string> legalMoves = moves->generateLegalMoves();
 
+    // DIAGNOSTIC: Log ALL moves generated to check if captures are missing
+    std::cout << "\n[MOVE-GEN-DEBUG] Total legal moves generated: " << legalMoves.size() << std::endl;
+    std::cout << "[MOVE-GEN-DEBUG] All moves:" << std::endl;
+    for (size_t i = 0; i < legalMoves.size() && i < 20; i++) {
+        std::cout << "[MOVE-GEN-DEBUG] " << legalMoves[i] << std::endl;
+    }
+
     if (legalMoves.empty()) {
         return "";
     }
