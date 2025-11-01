@@ -1019,14 +1019,26 @@ int Engine::quiescence(int alpha, int beta, int qDepth) {
 
     // Check if time is up - return stand-pat if so
     if (isTimeUp()) {
-        return evaluate();
+        int eval = evaluate();
+        // Quiescence uses negamax style - score must be from current player's perspective
+        // evaluate() returns from White's perspective, so negate if Black to move
+        if (!board->isWhiteToMove()) {
+            eval = -eval;
+        }
+        return eval;
     }
 
     // Hard depth limit: Prevent quiescence from thrashing in complex positions
     // Reduced from 10 to 6 to fix performance bottleneck (223 → 5000+ nodes/sec)
     const int MAX_Q_DEPTH = 6;
     if (qDepth >= MAX_Q_DEPTH) {
-        return evaluate();
+        int eval = evaluate();
+        // Quiescence uses negamax style - score must be from current player's perspective
+        // evaluate() returns from White's perspective, so negate if Black to move
+        if (!board->isWhiteToMove()) {
+            eval = -eval;
+        }
+        return eval;
     }
 
     // Track statistics
@@ -1039,6 +1051,12 @@ int Engine::quiescence(int alpha, int beta, int qDepth) {
     // Stand pat: Evaluate the current position without making any move
     // This allows us to "stop" if the position is already good enough
     int standPat = evaluate();
+
+    // CRITICAL FIX: Quiescence uses negamax style - score must be from current player's perspective
+    // evaluate() returns from White's perspective, so negate if Black to move
+    if (!board->isWhiteToMove()) {
+        standPat = -standPat;
+    }
 
     // Beta cutoff: If standing pat is already better than beta,
     // the opponent won't let us reach this position
