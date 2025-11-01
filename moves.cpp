@@ -368,7 +368,7 @@ void Moves::makeMove(const std::string& move) {
 }
 
 bool Moves::isSquareAttacked(int row, int col, bool byWhite) {
-    int pawnDir = byWhite ? 1 : -1;
+    int pawnDir = byWhite ? -1 : 1;
     for (int colOffset : {-1, 1}) {
         int attackRow = row + pawnDir;
         int attackCol = col + colOffset;
