@@ -1,5 +1,6 @@
 #include "moves.h"
 #include <cctype>
+#include <iostream>
 
 Moves::Moves(Board* b) : board(b) {}
 
