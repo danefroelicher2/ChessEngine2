@@ -298,41 +298,22 @@ std::vector<std::string> Moves::generateLegalMoves() {
     legalMoves.reserve(moves.size());
 
     for (const std::string& move : moves) {
-        // Skip moves that capture own pieces (defensive guard)
-        int toCol = move[2] - 'a';
-        int toRow = 7 - (move[3] - '1');
-        char targetPiece = board->getPiece(toRow, toCol);
-        if (targetPiece != '.') {
-            bool targetIsWhite = isupper(targetPiece);
-            if (targetIsWhite == board->isWhiteToMove()) {
-                continue;
-            }
-        }
-
         // === Test 3 Fix: filter out moves that leave own king in check ===
         MoveInfo info = makeMoveWithInfo(move);
 
         bool movedWasWhite = info.wasWhiteToMove;
 
-        int kingRow = -1;
-        int kingCol = -1;
-        for (int r = 0; r < 8 && kingRow == -1; r++) {
+        int kingRow = -1, kingCol = -1;
+        for (int r = 0; r < 8; r++) {
             for (int c = 0; c < 8; c++) {
-                char piece = board->getPiece(r, c);
-                if (movedWasWhite && piece == 'K') {
-                    kingRow = r;
-                    kingCol = c;
-                    break;
-                }
-                if (!movedWasWhite && piece == 'k') {
-                    kingRow = r;
-                    kingCol = c;
-                    break;
-                }
+                char p = board->getPiece(r, c);
+                if (movedWasWhite && p == 'K') { kingRow = r; kingCol = c; }
+                if (!movedWasWhite && p == 'k') { kingRow = r; kingCol = c; }
             }
         }
 
         bool legal = (kingRow >= 0 && kingCol >= 0);
+
         if (legal) {
             bool opponentIsWhite = !movedWasWhite;
             if (isSquareAttacked(kingRow, kingCol, opponentIsWhite)) {
