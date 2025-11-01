@@ -300,6 +300,10 @@ std::vector<std::string> Moves::generateLegalMoves() {
         int toRow = 7 - (move[3] - '1');
         char targetPiece = board->getPiece(toRow, toCol);
 
+        // DIAGNOSTIC: Log if this is a queen move to e5
+        bool isQueenToE5 = (move.length() >= 4 && move.substr(2, 2) == "e5" &&
+                           tolower(board->getPiece(7 - (move[1] - '1'), move[0] - 'a')) == 'q');
+
         // CRITICAL: Skip moves that capture own pieces
         // If target square has a piece AND it's the same color as side to move
         if (targetPiece != '.') {
@@ -307,6 +311,7 @@ std::vector<std::string> Moves::generateLegalMoves() {
             bool movingIsWhite = board->isWhiteToMove();
             if (targetIsWhite == movingIsWhite) {
                 // This move would capture our own piece - ILLEGAL
+                if (isQueenToE5) std::cout << "[DEBUG] " << move << " filtered: captures own piece" << std::endl;
                 continue;  // Skip this move
             }
         }
@@ -341,6 +346,10 @@ std::vector<std::string> Moves::generateLegalMoves() {
             // isSquareAttacked checks if square is attacked by the specified color
             // After the move, it's the opponent's turn, so check if they're attacking our king
             ourKingInCheck = isSquareAttacked(kingRow, kingCol, board->isWhiteToMove());
+            if (isQueenToE5 && ourKingInCheck) {
+                std::cout << "[DEBUG] " << move << " filtered: leaves king in check at "
+                         << char('a' + kingCol) << char('1' + (7 - kingRow)) << std::endl;
+            }
         }
 
         unmakeMove(move, info);
