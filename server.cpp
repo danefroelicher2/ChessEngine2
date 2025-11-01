@@ -434,9 +434,9 @@ std::string processTacticalTestRequest()
 
         TacticalTest tests[] = {
             {"Hanging Piece Detection (1-ply)",
-             "rnbqkbnr/pppppppp/8/4Q3/8/8/PPPPPPPP/RNB1KBNR b KQkq - 0 1",
+             "rnb1kbnr/pppppppp/8/3qQ3/8/8/PPPPPPPP/RNB1KBNR b KQkq - 0 1",
              "xe5",
-             "White queen on e5 is undefended. Can engine capture free piece?"},
+             "White queen on e5 is undefended. Black queen on d5 should capture."},
             {"King Can Capture (1-ply)",
              "rnbqkbnr/pppppppp/8/8/4k3/4N3/PPPPPPPP/RNBQKB1R b KQkq - 0 1",
              "e4e3",
