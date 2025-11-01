@@ -1228,6 +1228,7 @@ int Engine::evaluate() {
 }
 
 int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
+    (void)maximizing;  // Negamax implementation doesn't rely on this flag directly
     nodesSearched++;
 
     // Store original alpha for TT bound type determination
@@ -1268,212 +1269,110 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
 
     if (legalMoves.empty()) {
         const int CHECKMATE_SCORE = 999999;
-        return maximizing ? -CHECKMATE_SCORE : CHECKMATE_SCORE;
+        return board->isWhiteToMove() ? -CHECKMATE_SCORE : CHECKMATE_SCORE;
     }
 
     // Score and sort moves for better move ordering
     // Pass ttEntry to avoid duplicate TT probe
     std::vector<ScoredMove> scoredMoves = scoreMoves(legalMoves, depth, ttEntry);
 
-    if (maximizing) {
-        int maxEval = std::numeric_limits<int>::min();
-        int moveIndex = 0;
-        std::string bestMoveFound = "";
+    int bestScore = std::numeric_limits<int>::min();
+    int moveIndex = 0;
+    std::string bestMoveFound = "";
 
-        // DIAGNOSTIC: Log move ordering at root level
-        if (depth >= 3) {
-            std::cout << "[SEARCH-DEBUG] Depth " << depth << " (maximizing): Searching "
-                      << scoredMoves.size() << " moves" << std::endl;
-            for (int i = 0; i < std::min(5, (int)scoredMoves.size()); i++) {
-                std::cout << "  Move " << (i+1) << ": " << scoredMoves[i].move
-                          << " (ordering score: " << scoredMoves[i].score << ")" << std::endl;
-            }
+    // DIAGNOSTIC: Log move ordering at deeper levels
+    if (depth >= 3) {
+        const char* sideLabel = board->isWhiteToMove() ? "white to move" : "black to move";
+        std::cout << "[SEARCH-DEBUG] Depth " << depth << " (" << sideLabel << "): Searching "
+                  << scoredMoves.size() << " moves" << std::endl;
+        for (int i = 0; i < std::min(5, (int)scoredMoves.size()); i++) {
+            std::cout << "  Move " << (i+1) << ": " << scoredMoves[i].move
+                      << " (ordering score: " << scoredMoves[i].score << ")" << std::endl;
         }
-
-        for (const ScoredMove& scoredMove : scoredMoves) {
-            const std::string& move = scoredMove.move;
-
-            // Check time periodically (every 2000 nodes)
-            if (nodesSearched % 2000 == 0 && isTimeUp()) {
-                return maxEval > std::numeric_limits<int>::min() ? maxEval : 0;
-            }
-
-            // DIAGNOSTIC: Log move about to be tried
-            if (depth >= 3 && moveIndex < 5) {
-                std::cout << "[SEARCH-DEBUG] Depth " << depth << " trying move #" << (moveIndex+1)
-                          << ": " << move << " (ordering score: " << scoredMove.score << ")" << std::endl;
-            }
-
-            // Make move
-            MoveInfo info = moves->makeMoveWithInfo(move);
-
-            // Late Move Reduction (LMR)
-            int reduction = 0;
-            if (moveIndex >= 4 && depth >= 3 && !isCapture(move)) {
-                reduction = 2;  // Search 2 ply shallower for late non-captures
-                lmrReductions++;
-            }
-
-            // Search with reduced depth
-            int childEval = minimax(depth - 1 - reduction, alpha, beta, false);
-            int eval = -childEval;  // Convert child perspective to current player
-
-            // If reduced move beats alpha, re-search at full depth
-            if (reduction > 0 && eval > alpha) {
-                lmrReSearches++;
-                childEval = minimax(depth - 1, alpha, beta, false);
-                eval = -childEval;
-            }
-
-            // Undo move
-            moves->unmakeMove(move, info);
-
-            // DIAGNOSTIC: Log evaluation result
-            if (depth >= 3 && moveIndex < 5) {
-                std::cout << "[SEARCH-DEBUG] Depth " << depth << " move " << move
-                          << " returned eval: " << eval << std::endl;
-            }
-
-            if (eval > maxEval) {
-                maxEval = eval;
-                bestMoveFound = move;
-            }
-
-            alpha = std::max(alpha, eval);
-            if (beta <= alpha) {
-                // Beta cutoff
-                betaCutoffs++;
-                if (moveIndex == 0) {
-                    firstMoveCutoffs++;
-                }
-
-                // Update move ordering heuristics for non-capture moves
-                // Check if this was a capture by looking at the MoveInfo
-                if (info.capturedPiece == '.') {
-                    updateKillerMove(move, depth);
-                    updateHistory(move, depth);
-                }
-
-                break;
-            }
-
-            moveIndex++;
-        }
-
-        // Store result in transposition table
-        // IMPORTANT: Store ALL depths - iterative deepening needs shallow searches stored!
-        // Depth 1 results are used by depth 2, depth 2 by depth 3, etc.
-        BoundType bound;
-        if (maxEval <= originalAlpha) {
-            bound = UPPER_BOUND;  // Failed low
-        } else if (maxEval >= beta) {
-            bound = LOWER_BOUND;  // Failed high (beta cutoff)
-        } else {
-            bound = EXACT;  // PV node
-        }
-        transpositionTable.store(posHash, depth, maxEval, bestMoveFound, bound);
-
-        return maxEval;
-    } else {
-        int minEval = std::numeric_limits<int>::max();
-        int moveIndex = 0;
-        std::string bestMoveFound = "";
-
-        // DIAGNOSTIC: Log move ordering at root level
-        if (depth >= 3) {
-            std::cout << "[SEARCH-DEBUG] Depth " << depth << " (minimizing): Searching "
-                      << scoredMoves.size() << " moves" << std::endl;
-            for (int i = 0; i < std::min(5, (int)scoredMoves.size()); i++) {
-                std::cout << "  Move " << (i+1) << ": " << scoredMoves[i].move
-                          << " (ordering score: " << scoredMoves[i].score << ")" << std::endl;
-            }
-        }
-
-        for (const ScoredMove& scoredMove : scoredMoves) {
-            const std::string& move = scoredMove.move;
-
-            // Check time periodically (every 2000 nodes)
-            if (nodesSearched % 2000 == 0 && isTimeUp()) {
-                return minEval < std::numeric_limits<int>::max() ? minEval : 0;
-            }
-
-            // DIAGNOSTIC: Log move about to be tried
-            if (depth >= 3 && moveIndex < 5) {
-                std::cout << "[SEARCH-DEBUG] Depth " << depth << " trying move #" << (moveIndex+1)
-                          << ": " << move << " (ordering score: " << scoredMove.score << ")" << std::endl;
-            }
-
-            // Make move
-            MoveInfo info = moves->makeMoveWithInfo(move);
-
-            // Late Move Reduction (LMR)
-            int reduction = 0;
-            if (moveIndex >= 4 && depth >= 3 && !isCapture(move)) {
-                reduction = 2;  // Search 2 ply shallower for late non-captures
-                lmrReductions++;
-            }
-
-            // Search with reduced depth
-            int childEval = minimax(depth - 1 - reduction, alpha, beta, true);
-            int eval = -childEval;  // Convert child perspective to current player
-
-            // If reduced move beats alpha (from minimizer's perspective: eval < beta)
-            if (reduction > 0 && eval < beta) {
-                lmrReSearches++;
-                childEval = minimax(depth - 1, alpha, beta, true);
-                eval = -childEval;
-            }
-
-            // Undo move
-            moves->unmakeMove(move, info);
-
-            // DIAGNOSTIC: Log evaluation result
-            if (depth >= 3 && moveIndex < 5) {
-                std::cout << "[SEARCH-DEBUG] Depth " << depth << " move " << move
-                          << " returned eval: " << eval << std::endl;
-            }
-
-            if (eval < minEval) {
-                minEval = eval;
-                bestMoveFound = move;
-            }
-
-            beta = std::min(beta, eval);
-            if (beta <= alpha) {
-                // Beta cutoff
-                betaCutoffs++;
-                if (moveIndex == 0) {
-                    firstMoveCutoffs++;
-                }
-
-                // Update move ordering heuristics for non-capture moves
-                // Check if this was a capture by looking at the MoveInfo
-                if (info.capturedPiece == '.') {
-                    updateKillerMove(move, depth);
-                    updateHistory(move, depth);
-                }
-
-                break;
-            }
-
-            moveIndex++;
-        }
-
-        // Store result in transposition table
-        // IMPORTANT: Store ALL depths - iterative deepening needs shallow searches stored!
-        // Depth 1 results are used by depth 2, depth 2 by depth 3, etc.
-        BoundType bound;
-        if (minEval <= originalAlpha) {
-            bound = UPPER_BOUND;  // Failed low
-        } else if (minEval >= beta) {
-            bound = LOWER_BOUND;  // Failed high (beta cutoff)
-        } else {
-            bound = EXACT;  // PV node
-        }
-        transpositionTable.store(posHash, depth, minEval, bestMoveFound, bound);
-
-        return minEval;
     }
+
+    for (const ScoredMove& scoredMove : scoredMoves) {
+        const std::string& move = scoredMove.move;
+
+        // Check time periodically (every 2000 nodes)
+        if (nodesSearched % 2000 == 0 && isTimeUp()) {
+            return bestScore > std::numeric_limits<int>::min() ? bestScore : 0;
+        }
+
+        // DIAGNOSTIC: Log move about to be tried
+        if (depth >= 3 && moveIndex < 5) {
+            std::cout << "[SEARCH-DEBUG] Depth " << depth << " trying move #" << (moveIndex+1)
+                      << ": " << move << " (ordering score: " << scoredMove.score << ")" << std::endl;
+        }
+
+        // Make move
+        MoveInfo info = moves->makeMoveWithInfo(move);
+
+        // Late Move Reduction (LMR)
+        int reduction = 0;
+        if (moveIndex >= 4 && depth >= 3 && !isCapture(move)) {
+            reduction = 2;  // Search 2 ply shallower for late non-captures
+            lmrReductions++;
+        }
+
+        // Negamax recursion: negate child score and flip search window
+        int score = -minimax(depth - 1 - reduction, -beta, -alpha, !maximizing);
+
+        // If reduced move raises alpha, re-search at full depth
+        if (reduction > 0 && score > alpha) {
+            lmrReSearches++;
+            score = -minimax(depth - 1, -beta, -alpha, !maximizing);
+        }
+
+        // Undo move
+        moves->unmakeMove(move, info);
+
+        // DIAGNOSTIC: Log evaluation result
+        if (depth >= 3 && moveIndex < 5) {
+            std::cout << "[SEARCH-DEBUG] Depth " << depth << " move " << move
+                      << " returned eval: " << score << std::endl;
+        }
+
+        if (score > bestScore) {
+            bestScore = score;
+            bestMoveFound = move;
+        }
+
+        alpha = std::max(alpha, score);
+        if (alpha >= beta) {
+            // Beta cutoff
+            betaCutoffs++;
+            if (moveIndex == 0) {
+                firstMoveCutoffs++;
+            }
+
+            // Update move ordering heuristics for non-capture moves
+            // Check if this was a capture by looking at the MoveInfo
+            if (info.capturedPiece == '.') {
+                updateKillerMove(move, depth);
+                updateHistory(move, depth);
+            }
+
+            break;
+        }
+
+        moveIndex++;
+    }
+
+    // Store result in transposition table
+    // IMPORTANT: Store ALL depths - iterative deepening needs shallow searches stored!
+    // Depth 1 results are used by depth 2, depth 2 by depth 3, etc.
+    BoundType bound;
+    if (bestScore <= originalAlpha) {
+        bound = UPPER_BOUND;  // Failed low
+    } else if (bestScore >= beta) {
+        bound = LOWER_BOUND;  // Failed high (beta cutoff)
+    } else {
+        bound = EXACT;  // PV node
+    }
+    transpositionTable.store(posHash, depth, bestScore, bestMoveFound, bound);
+
+    return bestScore;
 }
 
 std::string Engine::searchAtDepth(int depth, int& outScore) {
@@ -1512,7 +1411,9 @@ std::string Engine::searchAtDepth(int depth, int& outScore) {
     }
 
     std::string bestMove = scoredMoves[0].move;
-    int bestScore = board->isWhiteToMove() ? std::numeric_limits<int>::min() : std::numeric_limits<int>::max();
+    int bestScore = std::numeric_limits<int>::min();
+    int alpha = std::numeric_limits<int>::min() + 1;
+    const int beta = std::numeric_limits<int>::max();
 
     int moveNum = 0;
     for (const ScoredMove& scoredMove : scoredMoves) {
@@ -1532,8 +1433,7 @@ std::string Engine::searchAtDepth(int depth, int& outScore) {
         // Make move
         MoveInfo info = moves->makeMoveWithInfo(move);
 
-        int minimaxScore = minimax(depth - 1, std::numeric_limits<int>::min(),
-                           std::numeric_limits<int>::max(), !board->isWhiteToMove());
+        int minimaxScore = -minimax(depth - 1, -beta, -alpha, !board->isWhiteToMove());
 
         // Undo move
         moves->unmakeMove(move, info);
@@ -1546,18 +1446,10 @@ std::string Engine::searchAtDepth(int depth, int& outScore) {
         int oldBestScore = bestScore;
         bool isNewBest = false;
 
-        if (board->isWhiteToMove()) {
-            if (minimaxScore > bestScore) {
-                bestScore = minimaxScore;
-                bestMove = move;
-                isNewBest = true;
-            }
-        } else {
-            if (minimaxScore < bestScore) {
-                bestScore = minimaxScore;
-                bestMove = move;
-                isNewBest = true;
-            }
+        if (minimaxScore > bestScore) {
+            bestScore = minimaxScore;
+            bestMove = move;
+            isNewBest = true;
         }
 
         // DIAGNOSTIC: Log whether this became the new best
@@ -1570,13 +1462,11 @@ std::string Engine::searchAtDepth(int depth, int& outScore) {
             std::cout << "[ROOT-SEARCH-DEBUG] Move NOT chosen" << std::endl;
             std::cout << "[ROOT-SEARCH-DEBUG] Minimax score " << minimaxScore
                       << " vs current best " << bestScore << std::endl;
-            if (board->isWhiteToMove()) {
-                std::cout << "[ROOT-SEARCH-DEBUG] (White wants higher score)" << std::endl;
-            } else {
-                std::cout << "[ROOT-SEARCH-DEBUG] (Black wants lower score)" << std::endl;
-            }
+            std::cout << "[ROOT-SEARCH-DEBUG] (Side to move wants higher score)" << std::endl;
         }
         std::cout << "[ROOT-SEARCH-DEBUG] ========================================\n" << std::endl;
+
+        alpha = std::max(alpha, minimaxScore);
 
         moveNum++;
     }
