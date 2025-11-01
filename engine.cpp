@@ -1195,6 +1195,18 @@ int Engine::evaluate() {
         // score += evaluateDevelopment();    // Skip - opening only
     #endif
 
+    // CRITICAL FIX: Convert to current player's perspective for negamax
+    // Score calculated above is from White's perspective (+ = good for White)
+    // In negamax, we need score from current player's perspective
+    // If Black to move, flip the sign so positive = good for Black
+    if (!board->isWhiteToMove()) {
+        score = -score;
+        materialScore = -materialScore;
+        pstScore = -pstScore;
+        pawnStructureScore = -pawnStructureScore;
+        kingSafetyScore = -kingSafetyScore;
+    }
+
     // DIAGNOSTIC LOGGING: Show breakdown of evaluation
     static int evalCount = 0;
     evalCount++;
