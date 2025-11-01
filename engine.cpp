@@ -1134,6 +1134,8 @@ bool Engine::isTimeUp() {
 
 int Engine::evaluate() {
     int score = 0;
+    int materialScore = 0;
+    int pstScore = 0;
 
     for (int row = 0; row < 8; row++) {
         for (int col = 0; col < 8; col++) {
@@ -1157,29 +1159,52 @@ int Engine::evaluate() {
 
             if (isWhite) {
                 score += value + pstValue;
+                materialScore += value;
+                pstScore += pstValue;
             } else {
                 score -= value + pstValue;
+                materialScore -= value;
+                pstScore -= pstValue;
             }
         }
     }
 
+    // DIAGNOSTIC: Track score components
+    int kingSafetyScore = 0;
+    int pawnStructureScore = 0;
+
     // CONDITIONAL: Positional evaluation functions
     #if FAST_EVAL_MODE == 0
         // Full evaluation (better positional play, slower search)
-        score += evaluatePawnStructure();
-        score += evaluateKingSafety();
+        pawnStructureScore = evaluatePawnStructure();
+        kingSafetyScore = evaluateKingSafety();
+        score += pawnStructureScore;
+        score += kingSafetyScore;
         score += evaluateCenterControl();
         score += evaluateMobility();        // VERY EXPENSIVE
         score += evaluateDevelopment();
     #else
         // Fast evaluation (tactical focus, deeper search)
-        score += evaluatePawnStructure();   // Keep - relatively fast
-        score += evaluateKingSafety();      // Keep - important for king safety
+        pawnStructureScore = evaluatePawnStructure();
+        kingSafetyScore = evaluateKingSafety();
+        score += pawnStructureScore;   // Keep - relatively fast
+        score += kingSafetyScore;      // Keep - important for king safety
         // DISABLED for speed testing:
         // score += evaluateCenterControl();  // Skip - moderate cost
         // score += evaluateMobility();       // Skip - VERY expensive
         // score += evaluateDevelopment();    // Skip - opening only
     #endif
+
+    // DIAGNOSTIC LOGGING: Show breakdown of evaluation
+    static int evalCount = 0;
+    evalCount++;
+    if (evalCount <= 20) {  // Only log first 20 evaluations to avoid spam
+        std::cout << "[EVAL-DEBUG #" << evalCount << "] Total: " << score
+                  << " = Material: " << materialScore
+                  << " + PST: " << pstScore
+                  << " + PawnStruct: " << pawnStructureScore
+                  << " + KingSafety: " << kingSafetyScore << std::endl;
+    }
 
     return score;
 }
