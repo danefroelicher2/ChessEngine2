@@ -1500,41 +1500,57 @@ std::string Engine::searchAtDepth(int depth, int& outScore) {
             break;  // Return best move found so far
         }
 
-        // DIAGNOSTIC: Log ALL root moves to find why captures aren't chosen
-        std::cout << "[ROOT-SEARCH] Trying root move #" << (moveNum+1) << ": "
-                  << move << " (ordering score: " << scoredMove.score << ")" << std::endl;
+        // DIAGNOSTIC: Log BEFORE trying the move
+        std::cout << "\n[ROOT-SEARCH-DEBUG] ========================================" << std::endl;
+        std::cout << "[ROOT-SEARCH-DEBUG] Trying move #" << (moveNum+1) << ": " << move << std::endl;
+        std::cout << "[ROOT-SEARCH-DEBUG] Ordering score: " << scoredMove.score << std::endl;
 
         // Make move
         MoveInfo info = moves->makeMoveWithInfo(move);
 
-        int score = minimax(depth - 1, std::numeric_limits<int>::min(),
+        int minimaxScore = minimax(depth - 1, std::numeric_limits<int>::min(),
                            std::numeric_limits<int>::max(), !board->isWhiteToMove());
 
         // Undo move
         moves->unmakeMove(move, info);
 
-        // DIAGNOSTIC: Log ALL root move results
-        std::cout << "[ROOT-SEARCH] Root move " << move << " returned EVAL SCORE: "
-                  << score << std::endl;
+        // DIAGNOSTIC: Log AFTER getting minimax result
+        std::cout << "[ROOT-SEARCH-DEBUG] Move " << move << " returned MINIMAX score: " << minimaxScore << std::endl;
 
         // Update best move if this is better
+        int oldBestScore = bestScore;
+        bool isNewBest = false;
+
         if (board->isWhiteToMove()) {
-            if (score > bestScore) {
-                bestScore = score;
+            if (minimaxScore > bestScore) {
+                bestScore = minimaxScore;
                 bestMove = move;
-                // DIAGNOSTIC: Log ALL new best moves
-                std::cout << "[ROOT-SEARCH] *** NEW BEST (WHITE): " << move
-                          << " (eval: " << score << ", was: " << bestScore << ") ***" << std::endl;
+                isNewBest = true;
             }
         } else {
-            if (score < bestScore) {
-                bestScore = score;
+            if (minimaxScore < bestScore) {
+                bestScore = minimaxScore;
                 bestMove = move;
-                // DIAGNOSTIC: Log ALL new best moves
-                std::cout << "[ROOT-SEARCH] *** NEW BEST (BLACK): " << move
-                          << " (eval: " << score << ", was: " << bestScore << ") ***" << std::endl;
+                isNewBest = true;
             }
         }
+
+        // DIAGNOSTIC: Log whether this became the new best
+        if (isNewBest) {
+            std::cout << "[ROOT-SEARCH-DEBUG] *** NEW BEST MOVE: " << move << " ***" << std::endl;
+            std::cout << "[ROOT-SEARCH-DEBUG] Minimax score: " << minimaxScore
+                      << " (previous best: " << oldBestScore << ")" << std::endl;
+        } else {
+            std::cout << "[ROOT-SEARCH-DEBUG] Move NOT chosen" << std::endl;
+            std::cout << "[ROOT-SEARCH-DEBUG] Minimax score " << minimaxScore
+                      << " vs current best " << bestScore << std::endl;
+            if (board->isWhiteToMove()) {
+                std::cout << "[ROOT-SEARCH-DEBUG] (White wants higher score)" << std::endl;
+            } else {
+                std::cout << "[ROOT-SEARCH-DEBUG] (Black wants lower score)" << std::endl;
+            }
+        }
+        std::cout << "[ROOT-SEARCH-DEBUG] ========================================\n" << std::endl;
 
         moveNum++;
     }
