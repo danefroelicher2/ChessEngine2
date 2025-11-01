@@ -747,7 +747,7 @@ std::string buildHttpResponse(const std::string &jsonBody)
 // Build 404 Not Found response
 std::string build404Response()
 {
-    std::string body = "{\"status\":\"error\",\"message\":\"Endpoint not found. Available endpoints: GET /move?fen=..., GET /legal-moves?fen=..., GET /tactical-test, GET /see-test, GET /save-opening-move?opening=...&fen=...&move=..., GET /get-opening-move?opening=...&fen=..., GET /delete-opening-move?opening=...&fen=...\"}";
+    std::string body = "{\"status\":\"error\",\"message\":\"Endpoint not found. Available endpoints: GET /move?fen=..., GET /legal-moves?fen=..., GET /tactical-test, GET /eval-test, GET /see-test, GET /save-opening-move?opening=...&fen=...&move=..., GET /get-opening-move?opening=...&fen=..., GET /delete-opening-move?opening=...&fen=...\"}";
     std::ostringstream response;
 
     response << "HTTP/1.1 404 Not Found\r\n";
