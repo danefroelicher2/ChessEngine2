@@ -1483,6 +1483,7 @@ std::string Engine::searchAtDepth(int depth, int& outScore) {
     // DIAGNOSTIC: Log root level move ordering
     std::cout << "\n[ROOT-SEARCH] Depth " << depth << ": Searching "
               << scoredMoves.size() << " root moves" << std::endl;
+    std::cout << "[MINIMAX-DEBUG] Depth " << depth << " root search starting" << std::endl;
     for (int i = 0; i < std::min(5, (int)scoredMoves.size()); i++) {
         std::cout << "  Root move " << (i+1) << ": " << scoredMoves[i].move
                   << " (ordering score: " << scoredMoves[i].score << ")" << std::endl;
@@ -1504,6 +1505,7 @@ std::string Engine::searchAtDepth(int depth, int& outScore) {
         std::cout << "\n[ROOT-SEARCH-DEBUG] ========================================" << std::endl;
         std::cout << "[ROOT-SEARCH-DEBUG] Trying move #" << (moveNum+1) << ": " << move << std::endl;
         std::cout << "[ROOT-SEARCH-DEBUG] Ordering score: " << scoredMove.score << std::endl;
+        std::cout << "[MINIMAX-DEBUG] Trying " << move << " (order score: " << scoredMove.score << ")" << std::endl;
 
         // Make move
         MoveInfo info = moves->makeMoveWithInfo(move);
@@ -1516,6 +1518,7 @@ std::string Engine::searchAtDepth(int depth, int& outScore) {
 
         // DIAGNOSTIC: Log AFTER getting minimax result
         std::cout << "[ROOT-SEARCH-DEBUG] Move " << move << " returned MINIMAX score: " << minimaxScore << std::endl;
+        std::cout << "[MINIMAX-DEBUG] " << move << " returned minimax score: " << minimaxScore << std::endl;
 
         // Update best move if this is better
         int oldBestScore = bestScore;
@@ -1540,6 +1543,7 @@ std::string Engine::searchAtDepth(int depth, int& outScore) {
             std::cout << "[ROOT-SEARCH-DEBUG] *** NEW BEST MOVE: " << move << " ***" << std::endl;
             std::cout << "[ROOT-SEARCH-DEBUG] Minimax score: " << minimaxScore
                       << " (previous best: " << oldBestScore << ")" << std::endl;
+            std::cout << "[MINIMAX-DEBUG] *** NEW BEST: " << move << " (score: " << minimaxScore << ") ***" << std::endl;
         } else {
             std::cout << "[ROOT-SEARCH-DEBUG] Move NOT chosen" << std::endl;
             std::cout << "[ROOT-SEARCH-DEBUG] Minimax score " << minimaxScore
