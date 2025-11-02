@@ -60,25 +60,25 @@ const int Engine::queenPST[8][8] = {
 };
 
 const int Engine::kingMiddlegamePST[8][8] = {
-    {-30, -40, -40, -50, -50, -40, -40, -30},
-    {-30, -40, -40, -50, -50, -40, -40, -30},
-    {-30, -40, -40, -50, -50, -40, -40, -30},
-    {-30, -40, -40, -50, -50, -40, -40, -30},
-    {-20, -30, -30, -40, -40, -30, -30, -20},
-    {-10, -20, -20, -20, -20, -20, -20, -10},
-    { 20,  20,   0,   0,   0,   0,  20,  20},
-    { 20,  30,  10,   0,   0,  10,  30,  20}
+    {-15, -20, -20, -20, -20, -20, -20, -15},
+    {-15, -20, -20, -20, -20, -20, -20, -15},
+    {-15, -20, -20, -20, -20, -20, -20, -15},
+    {-15, -20, -20, -20, -20, -20, -20, -15},
+    {-10, -15, -15, -20, -20, -15, -15, -10},
+    { -5, -10, -10, -10, -10, -10, -10,  -5},
+    {  5,  10,   0,   0,   0,   0,  10,   5},  // REDUCED: 20→10, 0 stays
+    { 10,  15,   5,   0,   0,   5,  15,  10}   // REDUCED: 20→10, 30→15, 10→5
 };
 
 const int Engine::kingEndgamePST[8][8] = {
-    {-50, -40, -30, -20, -20, -30, -40, -50},
-    {-30, -20, -10,   0,   0, -10, -20, -30},
-    {-30, -10,  20,  30,  30,  20, -10, -30},
-    {-30, -10,  30,  40,  40,  30, -10, -30},
-    {-30, -10,  30,  40,  40,  30, -10, -30},
-    {-30, -10,  20,  30,  30,  20, -10, -30},
-    {-30, -30,   0,   0,   0,   0, -30, -30},
-    {-50, -30, -30, -30, -30, -30, -30, -50}
+    {-20, -15, -10,  -5,  -5, -10, -15, -20},  // REDUCED: -50→-20, -40→-15, etc.
+    {-15, -10,  -5,   0,   0,  -5, -10, -15},  // REDUCED: -30→-15, -20→-10
+    {-10,  -5,  10,  15,  15,  10,  -5, -10},  // REDUCED: 20→10, 30→15
+    {-10,  -5,  15,  20,  20,  15,  -5, -10},  // REDUCED: 30→15, 40→20
+    {-10,  -5,  15,  20,  20,  15,  -5, -10},  // REDUCED: 30→15, 40→20
+    {-10,  -5,  10,  15,  15,  10,  -5, -10},  // REDUCED: 20→10, 30→15
+    {-15, -15,   0,   0,   0,   0, -15, -15},  // REDUCED: -30→-15
+    {-20, -15, -15, -15, -15, -15, -15, -20}   // REDUCED: -50→-20, -30→-15
 };
 
 Engine::Engine(Board* b, Moves* m) : board(b), moves(m) {
@@ -249,18 +249,18 @@ int Engine::evaluateKingSafety() {
         if (whiteKingRow == 7 && (whiteKingCol == 6 || whiteKingCol == 2)) {
             // Verify rook is in castled position
             if (whiteKingCol == 6 && board->getPiece(7, 5) == 'R') {
-                score += 30; // Kingside castle
+                score += 15; // Kingside castle (REDUCED: 30→15)
             } else if (whiteKingCol == 2 && board->getPiece(7, 3) == 'R') {
-                score += 30; // Queenside castle
+                score += 15; // Queenside castle (REDUCED: 30→15)
             }
         }
 
         // Check if king is in center (d or e file)
         if (whiteKingCol == 3 || whiteKingCol == 4) {
             if (endgame) {
-                score += 20; // Central king is good in endgame
+                score += 10; // Central king is good in endgame (REDUCED: 20→10)
             } else {
-                score -= 40; // Central king is bad in middlegame
+                score -= 20; // Central king is bad in middlegame (REDUCED: 40→20)
             }
         }
 
@@ -268,15 +268,15 @@ int Engine::evaluateKingSafety() {
         if (!endgame && whiteKingRow == 7) {
             // Check for kingside castle pawn shield
             if (whiteKingCol >= 5) {
-                if (board->getPiece(6, 5) != 'P') score -= 15;
-                if (board->getPiece(6, 6) != 'P') score -= 15;
-                if (board->getPiece(6, 7) != 'P') score -= 15;
+                if (board->getPiece(6, 5) != 'P') score -= 8;  // REDUCED: 15→8
+                if (board->getPiece(6, 6) != 'P') score -= 8;  // REDUCED: 15→8
+                if (board->getPiece(6, 7) != 'P') score -= 8;  // REDUCED: 15→8
             }
             // Check for queenside castle pawn shield
             else if (whiteKingCol <= 3) {
-                if (board->getPiece(6, 0) != 'P') score -= 15;
-                if (board->getPiece(6, 1) != 'P') score -= 15;
-                if (board->getPiece(6, 2) != 'P') score -= 15;
+                if (board->getPiece(6, 0) != 'P') score -= 8;  // REDUCED: 15→8
+                if (board->getPiece(6, 1) != 'P') score -= 8;  // REDUCED: 15→8
+                if (board->getPiece(6, 2) != 'P') score -= 8;  // REDUCED: 15→8
             }
         }
     }
@@ -287,18 +287,18 @@ int Engine::evaluateKingSafety() {
         if (blackKingRow == 0 && (blackKingCol == 6 || blackKingCol == 2)) {
             // Verify rook is in castled position
             if (blackKingCol == 6 && board->getPiece(0, 5) == 'r') {
-                score -= 30; // Kingside castle
+                score -= 15; // Kingside castle (REDUCED: 30→15)
             } else if (blackKingCol == 2 && board->getPiece(0, 3) == 'r') {
-                score -= 30; // Queenside castle
+                score -= 15; // Queenside castle (REDUCED: 30→15)
             }
         }
 
         // Check if king is in center (d or e file)
         if (blackKingCol == 3 || blackKingCol == 4) {
             if (endgame) {
-                score -= 20; // Central king is good in endgame
+                score -= 10; // Central king is good in endgame (REDUCED: 20→10)
             } else {
-                score += 40; // Central king is bad in middlegame (penalty for black)
+                score += 20; // Central king is bad in middlegame (REDUCED: 40→20)
             }
         }
 
@@ -306,15 +306,15 @@ int Engine::evaluateKingSafety() {
         if (!endgame && blackKingRow == 0) {
             // Check for kingside castle pawn shield
             if (blackKingCol >= 5) {
-                if (board->getPiece(1, 5) != 'p') score += 15;
-                if (board->getPiece(1, 6) != 'p') score += 15;
-                if (board->getPiece(1, 7) != 'p') score += 15;
+                if (board->getPiece(1, 5) != 'p') score += 8;  // REDUCED: 15→8
+                if (board->getPiece(1, 6) != 'p') score += 8;  // REDUCED: 15→8
+                if (board->getPiece(1, 7) != 'p') score += 8;  // REDUCED: 15→8
             }
             // Check for queenside castle pawn shield
             else if (blackKingCol <= 3) {
-                if (board->getPiece(1, 0) != 'p') score += 15;
-                if (board->getPiece(1, 1) != 'p') score += 15;
-                if (board->getPiece(1, 2) != 'p') score += 15;
+                if (board->getPiece(1, 0) != 'p') score += 8;  // REDUCED: 15→8
+                if (board->getPiece(1, 1) != 'p') score += 8;  // REDUCED: 15→8
+                if (board->getPiece(1, 2) != 'p') score += 8;  // REDUCED: 15→8
             }
         }
     }
@@ -594,12 +594,12 @@ int Engine::evaluateDevelopment() {
 
     // Check WHITE development
     // Knights should be developed (not on b1 or g1)
-    if (board->getPiece(7, 1) == 'N') score -= 10;  // Knight still on b1
-    if (board->getPiece(7, 6) == 'N') score -= 10;  // Knight still on g1
+    if (board->getPiece(7, 1) == 'N') score -= 5;  // Knight still on b1 (REDUCED: 10→5)
+    if (board->getPiece(7, 6) == 'N') score -= 5;  // Knight still on g1 (REDUCED: 10→5)
 
     // Bishops should be developed (not on c1 or f1)
-    if (board->getPiece(7, 2) == 'B') score -= 10;  // Bishop still on c1
-    if (board->getPiece(7, 5) == 'B') score -= 10;  // Bishop still on f1
+    if (board->getPiece(7, 2) == 'B') score -= 5;  // Bishop still on c1 (REDUCED: 10→5)
+    if (board->getPiece(7, 5) == 'B') score -= 5;  // Bishop still on f1 (REDUCED: 10→5)
 
     // Queen should not be developed too early (penalize if moved from d1 before knights/bishops)
     bool whiteQueenMoved = (board->getPiece(7, 3) != 'Q');
@@ -607,7 +607,7 @@ int Engine::evaluateDevelopment() {
                                   board->getPiece(7, 2) == 'B' || board->getPiece(7, 5) == 'B');
 
     if (whiteQueenMoved && whiteMinorsStillHome) {
-        score -= 20;  // Penalty for early queen development
+        score -= 10;  // Penalty for early queen development (REDUCED: 20→10)
     }
 
     // Rooks should be connected or on open files (bonus if not on starting squares)
@@ -615,22 +615,22 @@ int Engine::evaluateDevelopment() {
     bool whiteRookH1Moved = (board->getPiece(7, 7) != 'R');
 
     // Small bonus for activating rooks
-    if (whiteRookA1Moved) score += 5;
-    if (whiteRookH1Moved) score += 5;
+    if (whiteRookA1Moved) score += 3;  // REDUCED: 5→3
+    if (whiteRookH1Moved) score += 3;  // REDUCED: 5→3
 
     // Bonus for castling (king not on e1)
     if (board->getPiece(7, 4) != 'K') {
-        score += 15;  // King has moved (likely castled)
+        score += 8;  // King has moved (likely castled) (REDUCED: 15→8)
     }
 
     // Check BLACK development
     // Knights should be developed (not on b8 or g8)
-    if (board->getPiece(0, 1) == 'n') score += 10;  // Knight still on b8
-    if (board->getPiece(0, 6) == 'n') score += 10;  // Knight still on g8
+    if (board->getPiece(0, 1) == 'n') score += 5;  // Knight still on b8 (REDUCED: 10→5)
+    if (board->getPiece(0, 6) == 'n') score += 5;  // Knight still on g8 (REDUCED: 10→5)
 
     // Bishops should be developed (not on c8 or f8)
-    if (board->getPiece(0, 2) == 'b') score += 10;  // Bishop still on c8
-    if (board->getPiece(0, 5) == 'b') score += 10;  // Bishop still on f8
+    if (board->getPiece(0, 2) == 'b') score += 5;  // Bishop still on c8 (REDUCED: 10→5)
+    if (board->getPiece(0, 5) == 'b') score += 5;  // Bishop still on f8 (REDUCED: 10→5)
 
     // Queen should not be developed too early
     bool blackQueenMoved = (board->getPiece(0, 3) != 'q');
@@ -638,19 +638,19 @@ int Engine::evaluateDevelopment() {
                                   board->getPiece(0, 2) == 'b' || board->getPiece(0, 5) == 'b');
 
     if (blackQueenMoved && blackMinorsStillHome) {
-        score += 20;  // Penalty for early queen development
+        score += 10;  // Penalty for early queen development (REDUCED: 20→10)
     }
 
     // Rooks activation
     bool blackRookA8Moved = (board->getPiece(0, 0) != 'r');
     bool blackRookH8Moved = (board->getPiece(0, 7) != 'r');
 
-    if (blackRookA8Moved) score -= 5;
-    if (blackRookH8Moved) score -= 5;
+    if (blackRookA8Moved) score -= 3;  // REDUCED: 5→3
+    if (blackRookH8Moved) score -= 3;  // REDUCED: 5→3
 
     // Bonus for castling
     if (board->getPiece(0, 4) != 'k') {
-        score -= 15;  // King has moved (likely castled)
+        score -= 8;  // King has moved (likely castled) (REDUCED: 15→8)
     }
 
     return score;
