@@ -721,6 +721,17 @@ int Engine::scoreMove(const std::string& move, int depth) {
     if (capturedPiece != '.') {
         int seeScore = staticExchangeEvaluation(move);
 
+        // CRITICAL FIX: Special handling for King captures
+        // King captures that are safe (SEE >= 0) get massive bonus
+        // This fixes Tests 2, 4, and 5 where King should capture free pieces
+        if ((movingPiece == 'K' || movingPiece == 'k') && seeScore >= 0) {
+            int victimValue = getPieceValue(capturedPiece);
+            int attackerValue = getPieceValue(movingPiece);
+            // Base capture score + 50k bonus for safe King captures
+            // This ensures they're tried before quiet moves and killer moves
+            return 1000000 + (victimValue * 100 - attackerValue) + seeScore + 50000;
+        }
+
         if (seeScore > 0) {
             // Good capture (wins material)
             // Score high using MVV-LVA, but boosted by SEE value
@@ -1305,6 +1316,26 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
                       << ": " << move << " (ordering score: " << scoredMove.score << ")" << std::endl;
         }
 
+        // DIAGNOSTIC: Detailed logging for King moves (especially captures)
+        if (depth >= 2) {
+            int fromRow, fromCol, toRow, toCol;
+            parseMove(move, fromRow, fromCol, toRow, toCol);
+            char movingPiece = board->getPiece(fromRow, fromCol);
+            char targetPiece = board->getPiece(toRow, toCol);
+
+            if ((movingPiece == 'K' || movingPiece == 'k')) {
+                std::cout << "[KING-MOVE-DEBUG] Depth=" << depth
+                          << " Move=" << move
+                          << " Piece=" << movingPiece;
+                if (targetPiece != '.') {
+                    std::cout << "x" << targetPiece << " (CAPTURE)";
+                } else {
+                    std::cout << " (quiet)";
+                }
+                std::cout << " OrderScore=" << scoredMove.score << std::endl;
+            }
+        }
+
         // Make move
         MoveInfo info = moves->makeMoveWithInfo(move);
 
@@ -1331,6 +1362,20 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
         if (depth >= 3 && moveIndex < 5) {
             std::cout << "[SEARCH-DEBUG] Depth " << depth << " move " << move
                       << " returned eval: " << score << std::endl;
+        }
+
+        // DIAGNOSTIC: Log King move results
+        if (depth >= 2) {
+            int fromRow, fromCol, toRow, toCol;
+            parseMove(move, fromRow, fromCol, toRow, toCol);
+            char movingPiece = board->getPiece(fromRow, fromCol);
+
+            if ((movingPiece == 'K' || movingPiece == 'k')) {
+                std::cout << "[KING-RESULT-DEBUG] Depth=" << depth
+                          << " Move=" << move
+                          << " ReturnedScore=" << score
+                          << " (Current best=" << bestScore << ")" << std::endl;
+            }
         }
 
         if (score > bestScore) {
