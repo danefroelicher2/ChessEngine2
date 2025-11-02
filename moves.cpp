@@ -19,6 +19,11 @@ std::vector<std::string> Moves::generateLegalMoves() {
 
             // Generate moves based on piece type
             if (pieceType == 'p') {
+                // DIAGNOSTIC: Log pawn position
+                std::cout << "[PAWN-GEN] Found " << (isWhite ? "White" : "Black")
+                          << " pawn at " << char('a' + fromCol) << (8 - fromRow)
+                          << " (row=" << fromRow << " col=" << fromCol << ")" << std::endl;
+
                 // Pawn moves
                 int direction = isWhite ? -1 : 1;
                 int startRow = isWhite ? 6 : 1;
@@ -59,15 +64,28 @@ std::vector<std::string> Moves::generateLegalMoves() {
 
                 // Captures
                 toRow = fromRow + direction;
+                std::cout << "[PAWN-GEN] Checking captures for "
+                          << char('a' + fromCol) << (8 - fromRow)
+                          << " at row=" << toRow << std::endl;
+
                 for (int toCol : {fromCol - 1, fromCol + 1}) {
                     if (toCol >= 0 && toCol < 8 && toRow >= 0 && toRow < 8) {
                         char target = board->getPiece(toRow, toCol);
+                        std::cout << "[PAWN-GEN]   Checking diagonal "
+                                  << char('a' + toCol) << (8 - toRow)
+                                  << " (row=" << toRow << " col=" << toCol << ")"
+                                  << " target='" << target << "'"
+                                  << " isOpponent=" << (target != '.' && isupper(target) != isWhite)
+                                  << std::endl;
+
                         if (target != '.' && isupper(target) != isWhite) {
                             std::string move;
                             move += char('a' + fromCol);
                             move += char('1' + (7 - fromRow));
                             move += char('a' + toCol);
                             move += char('1' + (7 - toRow));
+
+                            std::cout << "[PAWN-GEN]   ✓ CAPTURE GENERATED: " << move << std::endl;
 
                             // Check for promotion (white pawn to row 0, black pawn to row 7)
                             if ((isWhite && toRow == 0) || (!isWhite && toRow == 7)) {
