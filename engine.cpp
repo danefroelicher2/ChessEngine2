@@ -1577,12 +1577,13 @@ std::string Engine::searchAtDepth(int depth, int& outScore) {
 }
 
 std::string Engine::getBestMove(int timeLimitMs) {
-    // Set time limit and start timer
-    timeLimit = timeLimitMs;
-    searchStartTime = std::chrono::steady_clock::now();
+    try {
+        // Set time limit and start timer
+        timeLimit = timeLimitMs;
+        searchStartTime = std::chrono::steady_clock::now();
 
-    // Reset statistics for this search
-    nodesSearched = 0;
+        // Reset statistics for this search
+        nodesSearched = 0;
     qNodesSearched = 0;
     betaCutoffs = 0;
     firstMoveCutoffs = 0;
@@ -1614,6 +1615,8 @@ std::string Engine::getBestMove(int timeLimitMs) {
     }
 
     if (legalMoves.empty()) {
+        std::cout << "[DEBUG] No legal moves - returning empty string (checkmate/stalemate)" << std::endl;
+        std::cout.flush();
         return "";
     }
 
@@ -1679,6 +1682,11 @@ std::string Engine::getBestMove(int timeLimitMs) {
         }
     }
 
+    // DEBUG: Confirm loop completion
+    std::cout << "\n[DEBUG] Iterative deepening loop completed" << std::endl;
+    std::cout << "[DEBUG] About to print statistics..." << std::endl;
+    std::cout.flush();
+
     // Calculate total search time
     auto searchEndTime = std::chrono::steady_clock::now();
     auto totalTime = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -1725,5 +1733,27 @@ std::string Engine::getBestMove(int timeLimitMs) {
 
     std::cout << "==========================\n" << std::endl;
 
-    return bestMove;
+        // FAILSAFE: Print critical statistics before returning
+        std::cout << "\n=== FAILSAFE STATISTICS ===" << std::endl;
+        std::cout << "About to return best move: " << bestMove << std::endl;
+        std::cout << "LMR reductions: " << lmrReductions << std::endl;
+        std::cout << "LMR re-searches: " << lmrReSearches << std::endl;
+        std::cout << "Total nodes searched: " << (nodesSearched + qNodesSearched) << std::endl;
+        std::cout << "This message confirms getBestMove() is completing normally." << std::endl;
+        std::cout.flush();  // Force output immediately
+
+        return bestMove;
+
+    } catch (const std::exception& e) {
+        std::cout << "\n[ERROR] Exception in getBestMove(): " << e.what() << std::endl;
+        std::cout << "[ERROR] LMR reductions before crash: " << lmrReductions << std::endl;
+        std::cout << "[ERROR] Nodes searched before crash: " << (nodesSearched + qNodesSearched) << std::endl;
+        std::cout.flush();
+        return "e2e4";  // Return a safe default move
+    } catch (...) {
+        std::cout << "\n[ERROR] Unknown exception in getBestMove()" << std::endl;
+        std::cout << "[ERROR] LMR reductions before crash: " << lmrReductions << std::endl;
+        std::cout.flush();
+        return "e2e4";
+    }
 }
