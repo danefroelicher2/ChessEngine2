@@ -1390,8 +1390,10 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
         MoveInfo info = moves->makeMoveWithInfo(move);
 
         // Late Move Reduction (LMR)
+        // Trigger on 4th move (moveIndex >= 3) at depth 2+
+        // This allows LMR to work at iterative depth 3 instead of requiring depth 4
         int reduction = 0;
-        if (moveIndex >= 4 && depth >= 3 && !isCapture(move)) {
+        if (moveIndex >= 3 && depth >= 2 && !isCapture(move)) {
             reduction = 2;  // Search 2 ply shallower for late non-captures
             lmrReductions++;
         }
