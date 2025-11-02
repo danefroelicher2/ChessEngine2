@@ -1171,19 +1171,33 @@ int Engine::evaluate() {
             char piece = board->getPiece(row, col);
             if (piece == '.') continue;
 
-            int value = 0;
             char type = tolower(piece);
+            bool isWhite = isupper(piece);
 
+            // CRITICAL FIX: Skip king material value (always 2 kings, values cancel)
+            // But still evaluate king PST for positional considerations
+            if (type == 'k') {
+                int pstValue = getPSTValue(piece, row, col, isWhite);
+                if (isWhite) {
+                    score += pstValue;
+                    pstScore += pstValue;
+                } else {
+                    score -= pstValue;
+                    pstScore -= pstValue;
+                }
+                continue;  // Skip to next piece
+            }
+
+            // Evaluate material for all other pieces
+            int value = 0;
             switch (type) {
                 case 'p': value = 100; break;
                 case 'n': value = 320; break;
                 case 'b': value = 330; break;
                 case 'r': value = 500; break;
                 case 'q': value = 900; break;
-                case 'k': value = 20000; break;
             }
 
-            bool isWhite = isupper(piece);
             int pstValue = getPSTValue(piece, row, col, isWhite);
 
             if (isWhite) {
