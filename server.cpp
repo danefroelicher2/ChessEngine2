@@ -559,7 +559,8 @@ std::string processEvalTestRequest()
         for (int i = 0; i < 3; i++)
         {
             std::string move = testMoves[i];
-            if (i > 0) jsonResponse << ",";
+            if (i > 0)
+                jsonResponse << ",";
 
             // Make the move
             MoveInfo info = moves.makeMoveWithInfo(move);
@@ -794,6 +795,16 @@ void cleanupSockets()
 
 int main()
 {
+    // STARTUP BANNER - Verify new build is deployed
+    std::cout << "\n";
+    std::cout << "═══════════════════════════════════════════════════\n";
+    std::cout << "   CHESS ENGINE SERVER v2.1 - DEBUG BUILD\n";
+    std::cout << "   Deployed: " << __DATE__ << " " << __TIME__ << "\n";
+    std::cout << "   Commit: 7cab357 (LMR Debug)\n";
+    std::cout << "═══════════════════════════════════════════════════\n";
+    std::cout << std::endl;
+    std::cout.flush();
+
     std::cout << "Chess Engine HTTP Server" << std::endl;
     std::cout << "=========================" << std::endl;
 
