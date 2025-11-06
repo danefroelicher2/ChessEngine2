@@ -32,7 +32,7 @@ typedef int socklen_t;
 #endif
 
 // Server configurationn
-// Read PORT from environment variable (required for Render deployment)
+// Read PORT from environmenTt variable (required for Render deployment)
 int getPortFromEnv()
 {
     const char *portEnv = std::getenv("PORT");

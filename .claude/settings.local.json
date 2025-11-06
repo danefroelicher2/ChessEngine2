@@ -67,7 +67,17 @@
       "Bash(curl:*)",
       "Bash(/dev/null)",
       "WebFetch(domain:lichess.org)",
-      "Bash(break)"
+      "Bash(break)",
+      "Bash(taskkill:*)",
+      "Bash(git log:*)",
+      "Bash(do echo \"Attempt $i/30:\")",
+      "Bash(if curl -s http://chessengine2.onrender.com/health)",
+      "Bash(then echo \"Server is UP!\")",
+      "Bash(do echo \"Waiting for server to wake up... Attempt $i/24\")",
+      "Bash(if curl -s https://chessengine2.onrender.com/tactical-test)",
+      "Bash(then echo \"✓ Server responded!\")",
+      "Bash(awk:*)",
+      "Bash(build_info.txt)"
     ],
     "deny": [],
     "ask": []
