@@ -11,7 +11,7 @@ def main():
     print(f"Output file: {output_file}")
     print("=" * 60)
     
-    # Initialize Stockfishh
+    # Initialize Stockfishhh
     engine = chess.engine.SimpleEngine.popen_uci("/usr/games/stockfish")
     
     positions_processed = 0
