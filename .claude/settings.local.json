@@ -77,7 +77,9 @@
       "Bash(if curl -s https://chessengine2.onrender.com/tactical-test)",
       "Bash(then echo \"✓ Server responded!\")",
       "Bash(awk:*)",
-      "Bash(build_info.txt)"
+      "Bash(build_info.txt)",
+      "Bash(python chess_model.py:*)",
+      "Bash(python -m py_compile:*)"
     ],
     "deny": [],
     "ask": []
