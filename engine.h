@@ -7,6 +7,7 @@
 #include "board.h"
 #include "moves.h"
 #include "transposition_table.h"
+#include "neural_evaluator.h"
 
 // Performance diagnostic flag
 // Set to 1 for fast tactical search, 0 for full positional evaluation
@@ -35,6 +36,10 @@ private:
     Board* board;
     Moves* moves;
     TranspositionTable transpositionTable;
+
+    // Neural network evaluator
+    NeuralEvaluator neuralEvaluator;
+    bool useNeuralEval;
 
     static const int pawnPST[8][8];
     static const int knightPST[8][8];

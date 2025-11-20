@@ -7,12 +7,18 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Find PostgreSQL
 find_package(PostgreSQL REQUIRED)
 
+# ONNX Runtime configuration
+set(ONNXRUNTIME_ROOT "${CMAKE_SOURCE_DIR}/external/onnxruntime-linux-x64-1.20.1")
+include_directories(${ONNXRUNTIME_ROOT}/include)
+link_directories(${ONNXRUNTIME_ROOT}/lib)
+
 # Executable 1: Local testing version
 add_executable(chess_engine
     main.cpp
     board.cpp
     moves.cpp
     engine.cpp
+    neural_evaluator.cpp
 )
 
 # Executable 2: HTTP server version
@@ -22,6 +28,7 @@ add_executable(chess_server
     moves.cpp
     engine.cpp
     database.cpp
+    neural_evaluator.cpp
 )
 
 # Diagnostic executables commented out - not needed for production
@@ -64,6 +71,10 @@ add_executable(chess_server
 #     transposition_table.cpp
 #     zobrist.cpp
 # )
+
+# Link ONNX Runtime for both executables
+target_link_libraries(chess_engine onnxruntime)
+target_link_libraries(chess_server onnxruntime)
 
 # Link PostgreSQL
 target_link_libraries(chess_server PostgreSQL::PostgreSQL)

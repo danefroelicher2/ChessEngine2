@@ -9,11 +9,11 @@ data/
 *.pgn
 *.pgn.zst
 
-# Model files (too large for GitHub)
-models/
+# Training artifacts (keep trained models for deployment)
 *.pt
 *.pth
-*.onnx
+# EXCEPT the final ONNX model needed for production
+!models/chess_eval.onnx
 
 # Python cache
 __pycache__/
@@ -34,3 +34,17 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Build artifacts (don't commit build directory)
+build/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+# EXCEPT: Keep external libraries needed for deployment
+!external/onnxruntime-linux-x64-1.20.1/
+
+# Export scripts (development only)
+export_model_v2.py
+export_model_legacy.py

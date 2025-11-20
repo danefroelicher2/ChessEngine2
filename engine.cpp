@@ -94,6 +94,15 @@ Engine::Engine(Board* b, Moves* m) : board(b), moves(m) {
     lmrReSearches = 0;
     timeLimit = 5000;  // Default 5 seconds
     pvMove = "";
+
+    // Initialize neural network evaluator
+    std::cout << "Initializing neural network evaluator..." << std::endl;
+    useNeuralEval = neuralEvaluator.initialize("models/chess_eval.onnx");
+    if (useNeuralEval) {
+        std::cout << "✓ Neural network evaluation ENABLED" << std::endl;
+    } else {
+        std::cout << "✗ Neural network evaluation DISABLED - using classical evaluation" << std::endl;
+    }
 }
 
 int Engine::getPSTValue(char piece, int row, int col, bool isWhite) {
@@ -1198,6 +1207,12 @@ bool Engine::isTimeUp() {
 // =============================================================================
 
 int Engine::evaluate() {
+    // Use neural network evaluation if available
+    if (useNeuralEval) {
+        return neuralEvaluator.evaluate(board);
+    }
+
+    // Fall back to classical evaluation
     int score = 0;
     int materialScore = 0;
     int pstScore = 0;
