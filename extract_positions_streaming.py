@@ -104,7 +104,7 @@ def main():
     games_filtered = 0
     positions_extracted = 0
     errors_encountered = 0
-    target_positions = 1_000_000
+    target_positions = 500_000
 
     print(f"Starting extraction from: {input_file}")
     print(f"Target: {target_positions:,} positions")
