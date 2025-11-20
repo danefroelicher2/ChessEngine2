@@ -32,6 +32,14 @@ struct ScoredMove {
 };
 
 class Engine {
+public:
+    // Engine evaluation mode selection
+    enum class EvaluationMode {
+        CLASSICAL,      // Use hand-coded evaluation only
+        NEURAL,         // Use neural network only
+        AUTO            // Use neural if available, else classical
+    };
+
 private:
     Board* board;
     Moves* moves;
@@ -40,6 +48,7 @@ private:
     // Neural network evaluator
     NeuralEvaluator neuralEvaluator;
     bool useNeuralEval;
+    EvaluationMode evaluationMode;
 
     static const int pawnPST[8][8];
     static const int knightPST[8][8];
@@ -109,7 +118,7 @@ private:
     bool pieceCanAttack(int fromRow, int fromCol, int targetRow, int targetCol, char piece);
 
 public:
-    Engine(Board* b, Moves* m);
+    Engine(Board* b, Moves* m, EvaluationMode mode = EvaluationMode::AUTO);
 
     std::string getBestMove(int timeLimitMs = 5000);
 

@@ -177,7 +177,7 @@ bool isSEETestRequest(const std::string &request)
 // =============================================================================
 
 // Process chess move request: parse FEN, calculate best move
-std::string processMoveRequest(const std::string &fenString)
+std::string processMoveRequest(const std::string &fenString, const std::string &request = "")
 {
     try
     {
@@ -219,8 +219,22 @@ std::string processMoveRequest(const std::string &fenString)
             }
         }
 
-        // Create Engine object and find best move
-        Engine engine(&board, &moves);
+        // Parse engine mode from request (default to AUTO)
+        std::string engineModeStr = extractQueryParam(request, "engineMode");
+        if (engineModeStr.empty()) {
+            engineModeStr = "auto";  // Default to AUTO mode
+        }
+
+        // Convert string to EvaluationMode
+        Engine::EvaluationMode mode = Engine::EvaluationMode::AUTO;
+        if (engineModeStr == "classical") {
+            mode = Engine::EvaluationMode::CLASSICAL;
+        } else if (engineModeStr == "neural") {
+            mode = Engine::EvaluationMode::NEURAL;
+        }
+
+        // Create Engine object with specified mode and find best move
+        Engine engine(&board, &moves, mode);
         std::string bestMove = engine.getBestMove();
 
         std::cout << "Best move: " << bestMove << std::endl;
@@ -923,7 +937,7 @@ int main()
             {
                 // Extract FEN parameter and process move request
                 std::string fenString = extractQueryParam(request, "fen");
-                std::string jsonResponse = processMoveRequest(fenString);
+                std::string jsonResponse = processMoveRequest(fenString, request);
                 response = buildHttpResponse(jsonResponse);
             }
             else if (isGetLegalMovesRequest(request))

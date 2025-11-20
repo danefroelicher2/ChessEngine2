@@ -81,7 +81,8 @@ const int Engine::kingEndgamePST[8][8] = {
     {-20, -15, -15, -15, -15, -15, -15, -20}   // REDUCED: -50→-20, -30→-15
 };
 
-Engine::Engine(Board* b, Moves* m) : board(b), moves(m) {
+Engine::Engine(Board* b, Moves* m, EvaluationMode mode)
+    : board(b), moves(m), evaluationMode(mode) {
     clearMoveOrdering();
     nodesSearched = 0;
     qNodesSearched = 0;
@@ -102,6 +103,20 @@ Engine::Engine(Board* b, Moves* m) : board(b), moves(m) {
         std::cout << "✓ Neural network evaluation ENABLED" << std::endl;
     } else {
         std::cout << "✗ Neural network evaluation DISABLED - using classical evaluation" << std::endl;
+    }
+
+    // Override based on evaluation mode
+    if (evaluationMode == EvaluationMode::CLASSICAL) {
+        useNeuralEval = false;
+        std::cout << "⚙️  Evaluation mode: CLASSICAL (forced)" << std::endl;
+    } else if (evaluationMode == EvaluationMode::NEURAL) {
+        if (!useNeuralEval) {
+            std::cerr << "⚠️  Warning: Neural mode requested but model failed to load. Falling back to classical." << std::endl;
+        } else {
+            std::cout << "🧠 Evaluation mode: NEURAL NETWORK (forced)" << std::endl;
+        }
+    } else {
+        std::cout << "🔄 Evaluation mode: AUTO (using " << (useNeuralEval ? "neural" : "classical") << ")" << std::endl;
     }
 }
 

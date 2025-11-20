@@ -1304,6 +1304,21 @@
 
                 <!-- Engine Play Section -->
                 <div class="controls">
+                    <!-- Engine Type Selection -->
+                    <div class="control-row" style="margin-bottom: 15px;">
+                        <label for="engineType" style="display: block; margin-bottom: 5px; font-weight: bold;">
+                            Engine Type:
+                        </label>
+                        <select id="engineType" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; background: white; font-size: 14px;">
+                            <option value="classical">Classical (Beginner)</option>
+                            <option value="neural">Neural Network (Strong)</option>
+                            <option value="auto" selected>Auto (Best Available)</option>
+                        </select>
+                        <div id="engineTypeInfo" style="margin-top: 5px; padding: 8px; background: #e8f4f8; border-radius: 4px; font-size: 12px; display: none;">
+                            <span id="engineTypeDescription"></span>
+                        </div>
+                    </div>
+
                     <div class="control-row">
                         <label for="engineColor">Engine plays:</label>
                         <select id="engineColor">
@@ -2576,8 +2591,11 @@
                 const fen = boardToFEN();
                 const encodedFEN = encodeURIComponent(fen);
 
-                // Make API call
-                const response = await fetch(`${API_ENDPOINT}?fen=${encodedFEN}`);
+                // Get selected engine type
+                const engineMode = document.getElementById('engineType').value;
+
+                // Make API call with engine mode parameter
+                const response = await fetch(`${API_ENDPOINT}?fen=${encodedFEN}&engineMode=${engineMode}`);
 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -3455,6 +3473,30 @@
             renderBoard();
             console.log('Chess board initialized!');
             console.log('API Endpoint:', API_ENDPOINT);
+
+            // Wire up Engine Type selection change handler
+            const engineTypeSelect = document.getElementById('engineType');
+            engineTypeSelect.addEventListener('change', function() {
+                const infoDiv = document.getElementById('engineTypeInfo');
+                const descSpan = document.getElementById('engineTypeDescription');
+                const mode = this.value;
+
+                let description = '';
+
+                if (mode === 'classical') {
+                    description = '⚙️ Classical: Hand-coded evaluation function. Good for learning basic chess principles.';
+                } else if (mode === 'neural') {
+                    description = '🧠 Neural Network: ML model trained on 1M positions. Plays at ~2000-2200 Elo.';
+                } else {
+                    description = '🔄 Auto: Uses neural network if available, falls back to classical.';
+                }
+
+                descSpan.textContent = description;
+                infoDiv.style.display = 'block';
+            });
+
+            // Trigger on page load to show initial description
+            engineTypeSelect.dispatchEvent(new Event('change'));
 
             // Wire up Learn Mode button
             const learnModeBtn = document.getElementById('learnModeBtn');
