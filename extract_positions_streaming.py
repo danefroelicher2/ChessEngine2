@@ -6,29 +6,34 @@ from pathlib import Path
 import io
 
 def should_use_game(game):
-    """Filter: 2050+ Elo, 3+ minute games"""
+    """Filter: 2400+ Elo, 4+ minute games, finished games only"""
     white_elo = game.headers.get("WhiteElo", "0")
     black_elo = game.headers.get("BlackElo", "0")
     time_control = game.headers.get("TimeControl", "")
-    
+    result = game.headers.get("Result", "*")
+
+    # Skip unfinished games
+    if result == "*":
+        return False
+
     try:
         white_elo = int(white_elo)
         black_elo = int(black_elo)
     except:
         return False
-    
-    # Both players 2050+ Elo
-    if white_elo < 2050 or black_elo < 2050:
+
+    # Both players 2400+ Elo
+    if white_elo < 2400 or black_elo < 2400:
         return False
-    
-    # 180+ seconds (3+ minutes)
+
+    # 240+ seconds (4+ minutes)
     try:
         base_time = int(time_control.split('+')[0])
-        if base_time < 180:
+        if base_time < 240:
             return False
     except:
         return False
-    
+
     return True
 
 def extract_positions_from_game(game, positions_per_game=10):
@@ -60,12 +65,12 @@ def extract_positions_from_game(game, positions_per_game=10):
 def main():
     input_file = "data/raw/lichess_db_standard_rated_2024-01.pgn.zst"
     output_file = "data/processed/positions.jsonl"
-    target_positions = 300_000  # 300K positions
+    target_positions = 2_500_000  # 2.5M positions
     
     print(f"Reading from: {input_file}")
     print(f"Output: {output_file}")
     print(f"Target: {target_positions:,} positions")
-    print(f"Filter: 2050+ Elo, 3+ minute games")
+    print(f"Filter: 2400+ Elo, 4+ minute games, finished games only")
     print("=" * 60)
     
     games_processed = 0
