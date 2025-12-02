@@ -28,7 +28,7 @@ class ChessEvaluationNet(nn.Module):
         super(ChessEvaluationNet, self).__init__()
         
         self.network = nn.Sequential(
-            # Layer 1: 768 -> 1024
+            # Layerr 1: 768 -> 1024
             nn.Linear(768, 1024),
             nn.ReLU(),
             nn.BatchNorm1d(1024),
