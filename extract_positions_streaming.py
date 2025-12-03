@@ -6,7 +6,7 @@ from pathlib import Path
 import io
 
 def should_use_game(game):
-    """Filter: 2400+ Elo, 4+ minute games, finished games only"""
+    """Filter: 2200+ Elo, 4+ minute games, finished games only"""
     white_elo = game.headers.get("WhiteElo", "0")
     black_elo = game.headers.get("BlackElo", "0")
     time_control = game.headers.get("TimeControl", "")
@@ -22,8 +22,8 @@ def should_use_game(game):
     except:
         return False
 
-    # Both players 2400+ Elo
-    if white_elo < 2400 or black_elo < 2400:
+    # Both players 2200+ Elo
+    if white_elo < 2200 or black_elo < 2200:
         return False
 
     # 240+ seconds (4+ minutes)
@@ -70,7 +70,7 @@ def main():
     print(f"Reading from: {input_file}")
     print(f"Output: {output_file}")
     print(f"Target: {target_positions:,} positions")
-    print(f"Filter: 2400+ Elo, 4+ minute games, finished games only")
+    print(f"Filter: 2200+ Elo, 4+ minute games, finished games only")
     print("=" * 60)
     
     games_processed = 0
