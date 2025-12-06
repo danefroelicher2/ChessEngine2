@@ -880,28 +880,30 @@ int main()
               << std::endl;
     std::flush(std::cout); // Force output to appear immediately
 
-    // Initialize database connection
+    // Initialize database connection (optional - only needed for opening book)
     std::cout << "Connecting to database..." << std::endl;
     const char *dbUrl = std::getenv("DATABASE_URL");
     if (!dbUrl)
     {
-        std::cerr << "ERROR: DATABASE_URL environment variable not set!" << std::endl;
-        std::cerr << "Please set DATABASE_URL in Render environment settings." << std::endl;
-        closesocket(serverSocket);
-        cleanupSockets();
-        return 1;
+        std::cerr << "⚠️  WARNING: DATABASE_URL environment variable not set!" << std::endl;
+        std::cerr << "⚠️  Server will run without database (opening book features disabled)" << std::endl;
+        db = nullptr;
     }
-
-    db = new Database(dbUrl);
-    if (!db->connect())
+    else
     {
-        std::cerr << "Failed to connect to database. Exiting." << std::endl;
-        delete db;
-        closesocket(serverSocket);
-        cleanupSockets();
-        return 1;
+        db = new Database(dbUrl);
+        if (!db->connect())
+        {
+            std::cerr << "⚠️  WARNING: Failed to connect to database." << std::endl;
+            std::cerr << "⚠️  Server will run without database (opening book features disabled)" << std::endl;
+            delete db;
+            db = nullptr;
+        }
+        else
+        {
+            std::cout << "✓ Database connected successfully!" << std::endl;
+        }
     }
-    std::cout << "Database connected successfully!" << std::endl;
 
     // Main server loop - handle requests one at a time
     while (true)
