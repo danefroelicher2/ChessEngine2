@@ -13,7 +13,7 @@ def main():
     print("=" * 80)
     print(f"Input: {input_file}")
     print(f"Output: {output_file}")
-    print(f"Stockfish depth: 15")
+    print(f"Stockfish depth: 14")
     print(f"Filter: Skip positions evaluated between -0.3 and +0.3")
     print("=" * 80)
     
@@ -36,7 +36,7 @@ def main():
                     board = chess.Board(fen)
                     
                     # Analyze with Stockfish depth 15
-                    info = engine.analyse(board, chess.engine.Limit(depth=15))
+                    info = engine.analyse(board, chess.engine.Limit(depth=14))
                     
                     # Extract evaluation (in centipawns)
                     score = info["score"].relative
