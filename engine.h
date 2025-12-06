@@ -37,6 +37,7 @@ public:
     enum class EvaluationMode {
         CLASSICAL,      // Use hand-coded evaluation only
         NEURAL,         // Use neural network only
+        HYBRID,         // Combine classical (70%) + neural (30%)
         AUTO            // Use neural if available, else classical
     };
 
@@ -84,6 +85,7 @@ private:
     int evaluateMobility();
     int evaluateDevelopment();
     bool isEndgame();
+    int evaluateClassical();  // Classical evaluation (material + positional)
     int minimax(int depth, int alpha, int beta, bool maximizing);
     int quiescence(int alpha, int beta, int qDepth);
     int getPSTValue(char piece, int row, int col, bool isWhite);
@@ -124,6 +126,7 @@ public:
 
     // Evaluation functions (public for diagnostic testing)
     int evaluate();
+    int evaluateHybrid();
 
     // TEMPORARY: Expose for diagnostic testing
     int staticExchangeEvaluation(const std::string& move);

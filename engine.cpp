@@ -98,9 +98,16 @@ Engine::Engine(Board* b, Moves* m, EvaluationMode mode)
 
     // Initialize neural network evaluator
     std::cout << "Initializing neural network evaluator..." << std::endl;
-    useNeuralEval = neuralEvaluator.initialize("models/chess_eval.onnx");
+
+    // Choose ONNX model based on evaluation mode
+    std::string modelPath = "models/chess_eval.onnx";
+    if (evaluationMode == EvaluationMode::HYBRID) {
+        modelPath = "models/chess_eval_hybrid.onnx";
+    }
+
+    useNeuralEval = neuralEvaluator.initialize(modelPath);
     if (useNeuralEval) {
-        std::cout << "✓ Neural network evaluation ENABLED" << std::endl;
+        std::cout << "✓ Neural network evaluation ENABLED (" << modelPath << ")" << std::endl;
     } else {
         std::cout << "✗ Neural network evaluation DISABLED - using classical evaluation" << std::endl;
     }
@@ -114,6 +121,13 @@ Engine::Engine(Board* b, Moves* m, EvaluationMode mode)
             std::cerr << "⚠️  Warning: Neural mode requested but model failed to load. Falling back to classical." << std::endl;
         } else {
             std::cout << "🧠 Evaluation mode: NEURAL NETWORK (forced)" << std::endl;
+        }
+    } else if (evaluationMode == EvaluationMode::HYBRID) {
+        if (!useNeuralEval) {
+            std::cerr << "⚠️  Warning: Hybrid mode requested but model failed to load. Falling back to classical." << std::endl;
+            evaluationMode = EvaluationMode::CLASSICAL;
+        } else {
+            std::cout << "🔀 Evaluation mode: HYBRID (70% classical + 30% neural)" << std::endl;
         }
     } else {
         std::cout << "🔄 Evaluation mode: AUTO (using " << (useNeuralEval ? "neural" : "classical") << ")" << std::endl;
@@ -1221,13 +1235,8 @@ bool Engine::isTimeUp() {
 // Evaluation Functions
 // =============================================================================
 
-int Engine::evaluate() {
-    // Use neural network evaluation if available
-    if (useNeuralEval) {
-        return neuralEvaluator.evaluate(board);
-    }
-
-    // Fall back to classical evaluation
+int Engine::evaluateClassical() {
+    // Classical evaluation (material + positional)
     int score = 0;
     int materialScore = 0;
     int pstScore = 0;
@@ -1316,6 +1325,33 @@ int Engine::evaluate() {
     }
 
     return score;
+}
+
+int Engine::evaluate() {
+    // Check for hybrid mode first
+    if (evaluationMode == EvaluationMode::HYBRID) {
+        return evaluateHybrid();
+    }
+
+    // Use neural network evaluation if available
+    if (useNeuralEval) {
+        return neuralEvaluator.evaluate(board);
+    }
+
+    // Fall back to classical evaluation
+    return evaluateClassical();
+}
+
+int Engine::evaluateHybrid() {
+    // Get classical evaluation
+    int classical = evaluateClassical();
+
+    // Get ML evaluation (neural network returns centipawn score)
+    float ml = neuralEvaluator.evaluate(board);
+
+    // Combine: 70% classical, 30% ML
+    // ML score is already in centipawns, so multiply by 100 to match classical scale
+    return (int)(classical * 0.7 + ml * 100 * 0.3);
 }
 
 int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {

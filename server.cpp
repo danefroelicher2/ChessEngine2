@@ -231,6 +231,8 @@ std::string processMoveRequest(const std::string &fenString, const std::string &
             mode = Engine::EvaluationMode::CLASSICAL;
         } else if (engineModeStr == "neural") {
             mode = Engine::EvaluationMode::NEURAL;
+        } else if (engineModeStr == "hybrid") {
+            mode = Engine::EvaluationMode::HYBRID;
         }
 
         // Create Engine object with specified mode and find best move
