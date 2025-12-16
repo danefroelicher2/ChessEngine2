@@ -5,26 +5,24 @@ from torch.utils.data import TensorDataset, DataLoader
 import time
 
 class ChessEvaluationNet(nn.Module):
-    """Neural network for chess position evaluation"""
+    """Simpler neural network for better generalization"""
     def __init__(self):
         super(ChessEvaluationNet, self).__init__()
         
-        self.fc1 = nn.Linear(768, 1024)
-        self.bn1 = nn.BatchNorm1d(1024)
-        self.dropout1 = nn.Dropout(0.1)
+        # Smaller, more focused architecture
+        self.fc1 = nn.Linear(768, 512)
+        self.bn1 = nn.BatchNorm1d(512)
+        self.dropout1 = nn.Dropout(0.2)
         
-        self.fc2 = nn.Linear(1024, 512)
-        self.bn2 = nn.BatchNorm1d(512)
-        self.dropout2 = nn.Dropout(0.1)
+        self.fc2 = nn.Linear(512, 256)
+        self.bn2 = nn.BatchNorm1d(256)
+        self.dropout2 = nn.Dropout(0.2)
         
-        self.fc3 = nn.Linear(512, 256)
-        self.bn3 = nn.BatchNorm1d(256)
-        self.dropout3 = nn.Dropout(0.1)
+        self.fc3 = nn.Linear(256, 128)
+        self.bn3 = nn.BatchNorm1d(128)
+        self.dropout3 = nn.Dropout(0.2)
         
-        self.fc4 = nn.Linear(256, 128)
-        self.bn4 = nn.BatchNorm1d(128)
-        
-        self.fc5 = nn.Linear(128, 1)
+        self.fc4 = nn.Linear(128, 1)
         
     def forward(self, x):
         x = torch.relu(self.bn1(self.fc1(x)))
@@ -36,9 +34,7 @@ class ChessEvaluationNet(nn.Module):
         x = torch.relu(self.bn3(self.fc3(x)))
         x = self.dropout3(x)
         
-        x = torch.relu(self.bn4(self.fc4(x)))
-        
-        x = self.fc5(x)
+        x = self.fc4(x)
         return x.squeeze()
 
 def train_epoch(model, train_loader, criterion, optimizer, device):
@@ -83,10 +79,9 @@ def validate(model, val_loader, criterion, device):
     return avg_loss, avg_mae
 
 def main():
-    # Device selection
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("=" * 80)
-    print("CHESS EVALUATION MODEL TRAINING")
+    print("CHESS EVALUATION MODEL TRAINING (V2 - SIMPLIFIED)")
     print("=" * 80)
     print(f"Device: {device}")
     if device.type == "cuda":
@@ -111,7 +106,7 @@ def main():
     print()
     
     # Create data loaders
-    batch_size = 1024
+    batch_size = 2048  # Larger batches for stability
     train_dataset = TensorDataset(X_train, y_train)
     val_dataset = TensorDataset(X_val, y_val)
     test_dataset = TensorDataset(X_test, y_test)
@@ -128,20 +123,22 @@ def main():
     
     # Loss function and optimizer
     criterion = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    optimizer = optim.Adam(model.parameters(), lr=0.0001)  # Lower learning rate
     
     # Learning rate scheduler
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode='min', factor=0.5, patience=5
+        optimizer, mode='min', factor=0.5, patience=3  # More aggressive scheduling
     )
     
     # Training configuration
-    num_epochs = 100
-    early_stopping_patience = 10
-    best_val_loss = float('inf')
+    num_epochs = 50
+    early_stopping_patience = 8  # Less patience
+    best_val_mae = float('inf')
     epochs_without_improvement = 0
     
     print("Starting training...")
+    print("Lower learning rate (0.0001) for better convergence")
+    print("Simpler model for better generalization")
     print("=" * 80)
     
     start_time = time.time()
@@ -156,18 +153,19 @@ def main():
         val_loss, val_mae = validate(model, val_loader, criterion, device)
         
         # Learning rate scheduling
-        scheduler.step(val_loss)
+        scheduler.step(val_mae)
+        current_lr = optimizer.param_groups[0]['lr']
         
         epoch_time = time.time() - epoch_start
         
         print(f"Epoch {epoch+1:3d}/{num_epochs} | "
               f"Train Loss: {train_loss:.4f} | Train MAE: {train_mae:.4f} | "
               f"Val Loss: {val_loss:.4f} | Val MAE: {val_mae:.4f} | "
-              f"Time: {epoch_time:.1f}s")
+              f"LR: {current_lr:.6f} | Time: {epoch_time:.1f}s")
         
         # Early stopping
-        if val_loss < best_val_loss:
-            best_val_loss = val_loss
+        if val_mae < best_val_mae:
+            best_val_mae = val_mae
             epochs_without_improvement = 0
             
             # Save best model
@@ -186,6 +184,7 @@ def main():
             
             if epochs_without_improvement >= early_stopping_patience:
                 print(f"\nEarly stopping triggered after {epoch+1} epochs")
+                print(f"Validation MAE stopped improving (best: {best_val_mae:.4f})")
                 break
     
     total_time = time.time() - start_time
@@ -193,7 +192,7 @@ def main():
     print("=" * 80)
     print("TRAINING COMPLETE")
     print(f"Total time: {total_time/3600:.2f} hours")
-    print(f"Best validation MAE: {best_val_loss:.4f}")
+    print(f"Best validation MAE: {best_val_mae:.4f} pawns")
     print()
     
     # Test on test set
@@ -204,6 +203,14 @@ def main():
     test_loss, test_mae = validate(model, test_loader, criterion, device)
     print(f"Test Loss: {test_loss:.4f}")
     print(f"Test MAE: {test_mae:.4f} pawns")
+    print()
+    
+    # Show if this is better than last attempt
+    if test_mae < 1.2:
+        print("✓ SUCCESS! This model is better than the previous attempt (1.2 MAE)")
+    else:
+        print("⚠ Model performance similar to or worse than previous attempt")
+    
     print("=" * 80)
 
 if __name__ == "__main__":
