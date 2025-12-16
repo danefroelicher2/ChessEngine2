@@ -223,6 +223,58 @@ std::string Board::toString() const {
     return result;
 }
 
+std::string Board::toFEN() const {
+    std::ostringstream fen;
+
+    // 1. Piece placement
+    for (int row = 0; row < 8; row++) {
+        int emptyCount = 0;
+        for (int col = 0; col < 8; col++) {
+            char piece = squares[row][col];
+            if (piece == '.') {
+                emptyCount++;
+            } else {
+                if (emptyCount > 0) {
+                    fen << emptyCount;
+                    emptyCount = 0;
+                }
+                fen << piece;
+            }
+        }
+        if (emptyCount > 0) {
+            fen << emptyCount;
+        }
+        if (row < 7) {
+            fen << '/';
+        }
+    }
+
+    // 2. Side to move
+    fen << (whiteToMove ? " w " : " b ");
+
+    // 3. Castling rights
+    std::string castling;
+    if (whiteCanCastleKingside) castling += 'K';
+    if (whiteCanCastleQueenside) castling += 'Q';
+    if (blackCanCastleKingside) castling += 'k';
+    if (blackCanCastleQueenside) castling += 'q';
+    fen << (castling.empty() ? "-" : castling) << " ";
+
+    // 4. En passant target square
+    if (enPassantTargetRow >= 0 && enPassantTargetCol >= 0) {
+        char file = 'a' + enPassantTargetCol;
+        char rank = '8' - enPassantTargetRow;
+        fen << file << rank;
+    } else {
+        fen << '-';
+    }
+
+    // 5. Halfmove clock and fullmove number (simplified - set to 0 and 1)
+    fen << " 0 1";
+
+    return fen.str();
+}
+
 void Board::updateHashForMove(int fromRow, int fromCol, int toRow, int toCol,
                                char movingPiece, char capturedPiece,
                                bool epCapture, int epCaptureRow, int epCaptureCol,

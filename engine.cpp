@@ -756,15 +756,15 @@ int Engine::scoreMove(const std::string& move, int depth) {
     char capturedPiece = board->getPiece(toRow, toCol);
 
     // DIAGNOSTIC: Log pawn moves to debug capture detection
-    if (tolower(movingPiece) == 'p') {
-        std::cout << "[PAWN-MOVE-DEBUG] Move=" << move
-                  << " MovingPiece=" << movingPiece
-                  << " From=(" << fromRow << "," << fromCol << ")"
-                  << " To=(" << toRow << "," << toCol << ")"
-                  << " TargetPiece='" << capturedPiece << "'"
-                  << " IsCapture=" << (capturedPiece != '.' ? "YES" : "NO")
-                  << std::endl;
-    }
+    // if (tolower(movingPiece) == 'p') {
+    //     std::cout << "[PAWN-MOVE-DEBUG] Move=" << move
+    //               << " MovingPiece=" << movingPiece
+    //               << " From=(" << fromRow << "," << fromCol << ")"
+    //               << " To=(" << toRow << "," << toCol << ")"
+    //               << " TargetPiece='" << capturedPiece << "'"
+    //               << " IsCapture=" << (capturedPiece != '.' ? "YES" : "NO")
+    //               << std::endl;
+    // }
 
     // CRITICAL FIX: Pawn diagonal moves are ALWAYS captures
     // This handles cases where coordinate system issues prevent normal detection
@@ -779,9 +779,9 @@ int Engine::scoreMove(const std::string& move, int depth) {
             int attackerValue = 100;  // Pawn value
             int seeScore = staticExchangeEvaluation(move);
 
-            std::cout << "[PAWN-CAPTURE-FIX] Move=" << move
-                      << " ForcedAsCapture VictimValue=" << victimValue
-                      << " SEE=" << seeScore << std::endl;
+            // std::cout << "[PAWN-CAPTURE-FIX] Move=" << move
+            //           << " ForcedAsCapture VictimValue=" << victimValue
+            //           << " SEE=" << seeScore << std::endl;
 
             if (seeScore >= 0) {
                 return 1000000 + (victimValue * 100 - attackerValue) + seeScore;
@@ -1314,15 +1314,15 @@ int Engine::evaluateClassical() {
     #endif
 
     // DIAGNOSTIC LOGGING: Show breakdown of evaluation
-    static int evalCount = 0;
-    evalCount++;
-    if (evalCount <= 20) {  // Only log first 20 evaluations to avoid spam
-        std::cout << "[EVAL-DEBUG #" << evalCount << "] Total: " << score
-                  << " = Material: " << materialScore
-                  << " + PST: " << pstScore
-                  << " + PawnStruct: " << pawnStructureScore
-                  << " + KingSafety: " << kingSafetyScore << std::endl;
-    }
+    // static int evalCount = 0;
+    // evalCount++;
+    // if (evalCount <= 20) {  // Only log first 20 evaluations to avoid spam
+    //     std::cout << "[EVAL-DEBUG #" << evalCount << "] Total: " << score
+    //               << " = Material: " << materialScore
+    //               << " + PST: " << pstScore
+    //               << " + PawnStruct: " << pawnStructureScore
+    //               << " + KingSafety: " << kingSafetyScore << std::endl;
+    // }
 
     return score;
 }
@@ -1408,15 +1408,15 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
     std::string bestMoveFound = "";
 
     // DIAGNOSTIC: Log move ordering at deeper levels
-    if (depth >= 3) {
-        const char* sideLabel = board->isWhiteToMove() ? "white to move" : "black to move";
-        std::cout << "[SEARCH-DEBUG] Depth " << depth << " (" << sideLabel << "): Searching "
-                  << scoredMoves.size() << " moves" << std::endl;
-        for (int i = 0; i < std::min(5, (int)scoredMoves.size()); i++) {
-            std::cout << "  Move " << (i+1) << ": " << scoredMoves[i].move
-                      << " (ordering score: " << scoredMoves[i].score << ")" << std::endl;
-        }
-    }
+    // if (depth >= 3) {
+    //     const char* sideLabel = board->isWhiteToMove() ? "white to move" : "black to move";
+    //     std::cout << "[SEARCH-DEBUG] Depth " << depth << " (" << sideLabel << "): Searching "
+    //               << scoredMoves.size() << " moves" << std::endl;
+    //     for (int i = 0; i < std::min(5, (int)scoredMoves.size()); i++) {
+    //         std::cout << "  Move " << (i+1) << ": " << scoredMoves[i].move
+    //                   << " (ordering score: " << scoredMoves[i].score << ")" << std::endl;
+    //     }
+    // }
 
     for (const ScoredMove& scoredMove : scoredMoves) {
         const std::string& move = scoredMove.move;
@@ -1427,30 +1427,30 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
         }
 
         // DIAGNOSTIC: Log move about to be tried
-        if (depth >= 3 && moveIndex < 5) {
-            std::cout << "[SEARCH-DEBUG] Depth " << depth << " trying move #" << (moveIndex+1)
-                      << ": " << move << " (ordering score: " << scoredMove.score << ")" << std::endl;
-        }
+        // if (depth >= 3 && moveIndex < 5) {
+        //     std::cout << "[SEARCH-DEBUG] Depth " << depth << " trying move #" << (moveIndex+1)
+        //               << ": " << move << " (ordering score: " << scoredMove.score << ")" << std::endl;
+        // }
 
         // DIAGNOSTIC: Detailed logging for King moves (especially captures)
-        if (depth >= 2) {
-            int fromRow, fromCol, toRow, toCol;
-            parseMove(move, fromRow, fromCol, toRow, toCol);
-            char movingPiece = board->getPiece(fromRow, fromCol);
-            char targetPiece = board->getPiece(toRow, toCol);
-
-            if ((movingPiece == 'K' || movingPiece == 'k')) {
-                std::cout << "[KING-MOVE-DEBUG] Depth=" << depth
-                          << " Move=" << move
-                          << " Piece=" << movingPiece;
-                if (targetPiece != '.') {
-                    std::cout << "x" << targetPiece << " (CAPTURE)";
-                } else {
-                    std::cout << " (quiet)";
-                }
-                std::cout << " OrderScore=" << scoredMove.score << std::endl;
-            }
-        }
+        // if (depth >= 2) {
+        //     int fromRow, fromCol, toRow, toCol;
+        //     parseMove(move, fromRow, fromCol, toRow, toCol);
+        //     char movingPiece = board->getPiece(fromRow, fromCol);
+        //     char targetPiece = board->getPiece(toRow, toCol);
+        //
+        //     if ((movingPiece == 'K' || movingPiece == 'k')) {
+        //         std::cout << "[KING-MOVE-DEBUG] Depth=" << depth
+        //                   << " Move=" << move
+        //                   << " Piece=" << movingPiece;
+        //         if (targetPiece != '.') {
+        //             std::cout << "x" << targetPiece << " (CAPTURE)";
+        //         } else {
+        //             std::cout << " (quiet)";
+        //         }
+        //         std::cout << " OrderScore=" << scoredMove.score << std::endl;
+        //     }
+        // }
 
         // Make move
         MoveInfo info = moves->makeMoveWithInfo(move);
@@ -1477,24 +1477,24 @@ int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
         moves->unmakeMove(move, info);
 
         // DIAGNOSTIC: Log evaluation result
-        if (depth >= 3 && moveIndex < 5) {
-            std::cout << "[SEARCH-DEBUG] Depth " << depth << " move " << move
-                      << " returned eval: " << score << std::endl;
-        }
+        // if (depth >= 3 && moveIndex < 5) {
+        //     std::cout << "[SEARCH-DEBUG] Depth " << depth << " move " << move
+        //               << " returned eval: " << score << std::endl;
+        // }
 
         // DIAGNOSTIC: Log King move results
-        if (depth >= 2) {
-            int fromRow, fromCol, toRow, toCol;
-            parseMove(move, fromRow, fromCol, toRow, toCol);
-            char movingPiece = board->getPiece(fromRow, fromCol);
-
-            if ((movingPiece == 'K' || movingPiece == 'k')) {
-                std::cout << "[KING-RESULT-DEBUG] Depth=" << depth
-                          << " Move=" << move
-                          << " ReturnedScore=" << score
-                          << " (Current best=" << bestScore << ")" << std::endl;
-            }
-        }
+        // if (depth >= 2) {
+        //     int fromRow, fromCol, toRow, toCol;
+        //     parseMove(move, fromRow, fromCol, toRow, toCol);
+        //     char movingPiece = board->getPiece(fromRow, fromCol);
+        //
+        //     if ((movingPiece == 'K' || movingPiece == 'k')) {
+        //         std::cout << "[KING-RESULT-DEBUG] Depth=" << depth
+        //                   << " Move=" << move
+        //                   << " ReturnedScore=" << score
+        //                   << " (Current best=" << bestScore << ")" << std::endl;
+        //     }
+        // }
 
         if (score > bestScore) {
             bestScore = score;
@@ -1565,13 +1565,13 @@ std::string Engine::searchAtDepth(int depth, int& outScore) {
     std::sort(scoredMoves.begin(), scoredMoves.end());
 
     // DIAGNOSTIC: Log root level move ordering
-    std::cout << "\n[ROOT-SEARCH] Depth " << depth << ": Searching "
-              << scoredMoves.size() << " root moves" << std::endl;
-    std::cout << "[MINIMAX-DEBUG] Depth " << depth << " root search starting" << std::endl;
-    for (int i = 0; i < std::min(5, (int)scoredMoves.size()); i++) {
-        std::cout << "  Root move " << (i+1) << ": " << scoredMoves[i].move
-                  << " (ordering score: " << scoredMoves[i].score << ")" << std::endl;
-    }
+    // std::cout << "\n[ROOT-SEARCH] Depth " << depth << ": Searching "
+    //           << scoredMoves.size() << " root moves" << std::endl;
+    // std::cout << "[MINIMAX-DEBUG] Depth " << depth << " root search starting" << std::endl;
+    // for (int i = 0; i < std::min(5, (int)scoredMoves.size()); i++) {
+    //     std::cout << "  Root move " << (i+1) << ": " << scoredMoves[i].move
+    //               << " (ordering score: " << scoredMoves[i].score << ")" << std::endl;
+    // }
 
     std::string bestMove = scoredMoves[0].move;
     int bestScore = std::numeric_limits<int>::min();
@@ -1588,10 +1588,10 @@ std::string Engine::searchAtDepth(int depth, int& outScore) {
         }
 
         // DIAGNOSTIC: Log BEFORE trying the move
-        std::cout << "\n[ROOT-SEARCH-DEBUG] ========================================" << std::endl;
-        std::cout << "[ROOT-SEARCH-DEBUG] Trying move #" << (moveNum+1) << ": " << move << std::endl;
-        std::cout << "[ROOT-SEARCH-DEBUG] Ordering score: " << scoredMove.score << std::endl;
-        std::cout << "[MINIMAX-DEBUG] Trying " << move << " (order score: " << scoredMove.score << ")" << std::endl;
+        // std::cout << "\n[ROOT-SEARCH-DEBUG] ========================================" << std::endl;
+        // std::cout << "[ROOT-SEARCH-DEBUG] Trying move #" << (moveNum+1) << ": " << move << std::endl;
+        // std::cout << "[ROOT-SEARCH-DEBUG] Ordering score: " << scoredMove.score << std::endl;
+        // std::cout << "[MINIMAX-DEBUG] Trying " << move << " (order score: " << scoredMove.score << ")" << std::endl;
 
         // Make move
         MoveInfo info = moves->makeMoveWithInfo(move);
@@ -1602,8 +1602,8 @@ std::string Engine::searchAtDepth(int depth, int& outScore) {
         moves->unmakeMove(move, info);
 
         // DIAGNOSTIC: Log AFTER getting minimax result
-        std::cout << "[ROOT-SEARCH-DEBUG] Move " << move << " returned MINIMAX score: " << minimaxScore << std::endl;
-        std::cout << "[MINIMAX-DEBUG] " << move << " returned minimax score: " << minimaxScore << std::endl;
+        // std::cout << "[ROOT-SEARCH-DEBUG] Move " << move << " returned MINIMAX score: " << minimaxScore << std::endl;
+        // std::cout << "[MINIMAX-DEBUG] " << move << " returned minimax score: " << minimaxScore << std::endl;
 
         // Update best move if this is better
         int oldBestScore = bestScore;
@@ -1616,18 +1616,18 @@ std::string Engine::searchAtDepth(int depth, int& outScore) {
         }
 
         // DIAGNOSTIC: Log whether this became the new best
-        if (isNewBest) {
-            std::cout << "[ROOT-SEARCH-DEBUG] *** NEW BEST MOVE: " << move << " ***" << std::endl;
-            std::cout << "[ROOT-SEARCH-DEBUG] Minimax score: " << minimaxScore
-                      << " (previous best: " << oldBestScore << ")" << std::endl;
-            std::cout << "[MINIMAX-DEBUG] *** NEW BEST: " << move << " (score: " << minimaxScore << ") ***" << std::endl;
-        } else {
-            std::cout << "[ROOT-SEARCH-DEBUG] Move NOT chosen" << std::endl;
-            std::cout << "[ROOT-SEARCH-DEBUG] Minimax score " << minimaxScore
-                      << " vs current best " << bestScore << std::endl;
-            std::cout << "[ROOT-SEARCH-DEBUG] (Side to move wants higher score)" << std::endl;
-        }
-        std::cout << "[ROOT-SEARCH-DEBUG] ========================================\n" << std::endl;
+        // if (isNewBest) {
+        //     std::cout << "[ROOT-SEARCH-DEBUG] *** NEW BEST MOVE: " << move << " ***" << std::endl;
+        //     std::cout << "[ROOT-SEARCH-DEBUG] Minimax score: " << minimaxScore
+        //               << " (previous best: " << oldBestScore << ")" << std::endl;
+        //     std::cout << "[MINIMAX-DEBUG] *** NEW BEST: " << move << " (score: " << minimaxScore << ") ***" << std::endl;
+        // } else {
+        //     std::cout << "[ROOT-SEARCH-DEBUG] Move NOT chosen" << std::endl;
+        //     std::cout << "[ROOT-SEARCH-DEBUG] Minimax score " << minimaxScore
+        //               << " vs current best " << bestScore << std::endl;
+        //     std::cout << "[ROOT-SEARCH-DEBUG] (Side to move wants higher score)" << std::endl;
+        // }
+        // std::cout << "[ROOT-SEARCH-DEBUG] ========================================\n" << std::endl;
 
         alpha = std::max(alpha, minimaxScore);
 
@@ -1635,8 +1635,8 @@ std::string Engine::searchAtDepth(int depth, int& outScore) {
     }
 
     // DIAGNOSTIC: Log final choice
-    std::cout << "[ROOT-SEARCH] Final choice at depth " << depth << ": "
-              << bestMove << " (score: " << bestScore << ")\n" << std::endl;
+    // std::cout << "[ROOT-SEARCH] Final choice at depth " << depth << ": "
+    //           << bestMove << " (score: " << bestScore << ")\n" << std::endl;
 
     outScore = bestScore;
     return bestMove;
@@ -1674,14 +1674,14 @@ std::string Engine::getBestMove(int timeLimitMs) {
     std::vector<std::string> legalMoves = moves->generateLegalMoves();
 
     // DIAGNOSTIC: Log ALL moves generated to check if captures are missing
-    std::cout << "\n[MOVE-GEN-DEBUG] Total legal moves generated: " << legalMoves.size() << std::endl;
-    std::cout << "[MOVE-GEN-DEBUG] All moves:" << std::endl;
-    for (size_t i = 0; i < legalMoves.size() && i < 20; i++) {
-        std::cout << "[MOVE-GEN-DEBUG] " << legalMoves[i] << std::endl;
-    }
+    // std::cout << "\n[MOVE-GEN-DEBUG] Total legal moves generated: " << legalMoves.size() << std::endl;
+    // std::cout << "[MOVE-GEN-DEBUG] All moves:" << std::endl;
+    // for (size_t i = 0; i < legalMoves.size() && i < 20; i++) {
+    //     std::cout << "[MOVE-GEN-DEBUG] " << legalMoves[i] << std::endl;
+    // }
 
     if (legalMoves.empty()) {
-        std::cout << "[DEBUG] No legal moves - returning empty string (checkmate/stalemate)" << std::endl;
+        // std::cout << "[DEBUG] No legal moves - returning empty string (checkmate/stalemate)" << std::endl;
         std::cout.flush();
         return "";
     }
@@ -1749,8 +1749,8 @@ std::string Engine::getBestMove(int timeLimitMs) {
     }
 
     // DEBUG: Confirm loop completion
-    std::cout << "\n[DEBUG] Iterative deepening loop completed" << std::endl;
-    std::cout << "[DEBUG] About to print statistics..." << std::endl;
+    // std::cout << "\n[DEBUG] Iterative deepening loop completed" << std::endl;
+    // std::cout << "[DEBUG] About to print statistics..." << std::endl;
     std::cout.flush();
 
     // Calculate total search time

@@ -75,6 +75,7 @@ public:
     }
 
     std::string toString() const;
+    std::string toFEN() const;
 
     // Zobrist hashing
     uint64_t getHash() const { return currentHash; }
