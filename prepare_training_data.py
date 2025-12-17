@@ -31,7 +31,7 @@ def board_to_tensor(board):
 
 def prepare_dataset():
     """Load positions and convert to tensors"""
-    input_file = "data/processed/positions_with_evals.jsonl"
+    input_file = "data/training/combined_dataset.jsonl"
     output_dir = Path("data/training")
     output_dir.mkdir(parents=True, exist_ok=True)
 

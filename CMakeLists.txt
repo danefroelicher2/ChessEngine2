@@ -32,13 +32,13 @@ add_executable(chess_server
 )
 
 # Executable 3: Self-play system for training data generation
-#add_executable(self_play
- #   self_play.cpp
-  #  board.cpp
-   # moves.cpp
-    #engine.cpp
-   # neural_evaluator.cpp
-#)
+add_executable(self_play
+   self_play.cpp
+    board.cpp
+    moves.cpp
+    engine.cpp
+    neural_evaluator.cpp
+)
 
 # Diagnostic executables commented out - not needed for production
 # These can be uncommented for local testing if needed
@@ -84,7 +84,7 @@ add_executable(chess_server
 # Link ONNX Runtime for all executables that need it
 target_link_libraries(chess_engine onnxruntime)
 target_link_libraries(chess_server onnxruntime)
-# target_link_libraries(self_play onnxruntime)
+ target_link_libraries(self_play onnxruntime)
 
 # Link PostgreSQL
 target_link_libraries(chess_server PostgreSQL::PostgreSQL)

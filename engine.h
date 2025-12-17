@@ -122,7 +122,10 @@ private:
 public:
     Engine(Board* b, Moves* m, EvaluationMode mode = EvaluationMode::AUTO);
 
-    std::string getBestMove(int timeLimitMs = 5000);
+    std::string getBestMove(int timeLimitMs = 1000);
+
+    // Time management
+    void setTimeLimit(int ms) { timeLimit = ms; }
 
     // Evaluation functions (public for diagnostic testing)
     int evaluate();

@@ -39,14 +39,14 @@ GameResult playGame(bool hybridIsWhite, std::vector<std::string>& positions) {
 
     if (hybridIsWhite) {
         whiteEngine = new Engine(&board, &moves, Engine::EvaluationMode::HYBRID);
-        whiteEngine->setTimeLimit(2000);  // 2 seconds per move
+        whiteEngine->setTimeLimit(1000);  // 1 second per move
         blackEngine = new Engine(&board, &moves, Engine::EvaluationMode::CLASSICAL);
-        blackEngine->setTimeLimit(2000);  // 2 seconds per move
+        blackEngine->setTimeLimit(1000);  // 1 second per move
     } else {
         whiteEngine = new Engine(&board, &moves, Engine::EvaluationMode::CLASSICAL);
-        whiteEngine->setTimeLimit(2000);  // 2 seconds per move
+        whiteEngine->setTimeLimit(1000);  // 1 second per move
         blackEngine = new Engine(&board, &moves, Engine::EvaluationMode::HYBRID);
-        blackEngine->setTimeLimit(2000);  // 2 seconds per move
+        blackEngine->setTimeLimit(1000);  // 1 second per move
     }
 
     int moveCount = 0;
@@ -121,7 +121,7 @@ int main() {
     setenv("ORT_LOGGING_LEVEL", "3", 1);  // 3 = ERROR only, suppress warnings
 
     std::cout << "=== Chess Engine Self-Play System ===" << std::endl;
-    std::cout << "HYBRID mode (70% classical + 30% NN) vs CLASSICAL mode (100% classical)" << std::endl;
+    std::cout << "HYBRID mode (50% classical + 50% NN) vs CLASSICAL mode (100% classical)" << std::endl;
     std::cout << std::endl;
 
     // Check if data/self_play directory exists
@@ -152,7 +152,7 @@ int main() {
     int draws = 0;
     long long totalPositions = 0;
 
-    const int TOTAL_GAMES = 85;
+    const int TOTAL_GAMES = 646;
 
     std::cout << "Starting self-play: " << TOTAL_GAMES << " games" << std::endl;
     std::cout << "Progress will be shown every 10 games" << std::endl;

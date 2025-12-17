@@ -23,7 +23,7 @@ bool NeuralEvaluator::initialize(const std::string& modelPath) {
         session = std::make_unique<Ort::Session>(env, modelPath.c_str(), sessionOptions);
         
         // Set input/output names (must match export_model.py)
-        inputNames = {"board_input"};
+        inputNames = {"input"};
         outputNames = {"evaluation"};
         
         initialized = true;
