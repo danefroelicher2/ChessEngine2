@@ -84,7 +84,7 @@ add_executable(chess_server
 # Link ONNX Runtime for all executables that need it
 target_link_libraries(chess_engine onnxruntime)
 target_link_libraries(chess_server onnxruntime)
-target_link_libraries(self_play onnxruntime)
+# target_link_libraries(self_play onnxruntime)
 
 # Link PostgreSQL
 target_link_libraries(chess_server PostgreSQL::PostgreSQL)
