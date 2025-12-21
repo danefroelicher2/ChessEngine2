@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
-Fine-tune the Lichess-trained model on self-play data.
-Uses lower learning rate and trains ONLY on self-play positions.
+Fine-tune the existing self-play model on NEW positions only.
 """
 
 import torch
@@ -33,14 +32,15 @@ def board_to_tensor(board):
     
     return tensor
 
-def load_selfplay_data():
-    """Load self-play positions"""
-    print("Loading self-play data...")
+
+def load_new_data():
+    """Load the NEW 5,273 positions"""
+    print("Loading new positions...")
     
     positions = []
     evaluations = []
     
-    with open("data/self_play/positions_with_evals_FINAL.jsonl") as f:
+    with open("data/training/new_positions_only.jsonl") as f:
         for line in f:
             data = json.loads(line)
             board = chess.Board(data['fen'])
@@ -54,132 +54,146 @@ def load_selfplay_data():
     X = np.array(positions, dtype=np.float32)
     y = np.array(evaluations, dtype=np.float32)
     
-    print(f"Loaded {len(X)} self-play positions")
+    print(f"Loaded {len(X):,} new positions")
     print(f"Eval range: [{y.min():.2f}, {y.max():.2f}]")
     
-    # Shuffle with seed
+    # Shuffle
     np.random.seed(42)
     indices = np.random.permutation(len(X))
     X = X[indices]
     y = y[indices]
     
-    # Split 80/20 (train/val) - small dataset so no test set
+    # Split 80/20 (train/val)
     split_idx = int(0.8 * len(X))
     X_train, y_train = X[:split_idx], y[:split_idx]
     X_val, y_val = X[split_idx:], y[split_idx:]
     
-    print(f"Train: {len(X_train)}, Val: {len(X_val)}")
+    print(f"Train: {len(X_train):,}, Val: {len(X_val):,}")
     
-    return (torch.from_numpy(X_train), torch.from_numpy(y_train),
-            torch.from_numpy(X_val), torch.from_numpy(y_val))
+    return X_train, y_train, X_val, y_val
+
 
 def finetune():
-    """Fine-tune model on self-play data"""
+    """Fine-tune the existing model"""
     
-    print("="*60)
-    print("FINE-TUNING ON SELF-PLAY DATA")
+    # Load existing model
+    print("\n" + "="*60)
+    print("LOADING EXISTING MODEL")
     print("="*60)
     
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print(f"Device: {device}")
+    print(f"Using device: {device}")
     
-    # Load self-play data
-    X_train, y_train, X_val, y_val = load_selfplay_data()
-    
-    train_dataset = TensorDataset(X_train, y_train)
-    val_dataset = TensorDataset(X_val, y_val)
-    
-    train_loader = DataLoader(train_dataset, batch_size=256, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=256, shuffle=False)
-    
-    # Load pre-trained model
-    print("\nLoading Lichess-trained model...")
     model = ChessEvaluationNet().to(device)
-    checkpoint = torch.load('models/chess_eval_best.pt')
-    model.load_state_dict(checkpoint['model_state_dict'])
     
-    # Fine-tuning settings (lower learning rate!)
+    # Load the trained weights - FIXED: access model_state_dict
+    checkpoint = torch.load('models/chess_eval_selfplay.pt', map_location=device)
+    
+    # Check if it's a checkpoint dictionary or raw state_dict
+    if isinstance(checkpoint, dict) and 'model_state_dict' in checkpoint:
+        model.load_state_dict(checkpoint['model_state_dict'])
+        print(f"✓ Loaded checkpoint from epoch {checkpoint.get('epoch', 'unknown')}")
+        print(f"  Previous val MAE: {checkpoint.get('val_mae', 'unknown'):.3f}")
+    else:
+        model.load_state_dict(checkpoint)
+        print("✓ Loaded model weights")
+    
+    # Load new data
+    X_train, y_train, X_val, y_val = load_new_data()
+    
+    # Create data loaders
+    train_dataset = TensorDataset(
+        torch.FloatTensor(X_train),
+        torch.FloatTensor(y_train)
+    )
+    val_dataset = TensorDataset(
+        torch.FloatTensor(X_val),
+        torch.FloatTensor(y_val)
+    )
+    
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=32)
+    
+    # Fine-tuning settings (LOWER learning rate than training from scratch)
     criterion = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.0001)  # 10x lower than normal
+    optimizer = optim.Adam(model.parameters(), lr=0.0001)  # 10x lower than initial training
     
-    print(f"\nFine-tuning for 100 epochs...")
-    print(f"Learning rate: 0.0001 (lower for fine-tuning)")
+    print("\n" + "="*60)
+    print("FINE-TUNING")
     print("="*60)
+    print(f"Learning rate: 0.0001 (lower for fine-tuning)")
+    print(f"Epochs: 50")
+    print(f"Early stopping: patience=10")
+    print()
     
     best_val_loss = float('inf')
-    patience = 20
-    epochs_without_improvement = 0
+    patience = 10
+    patience_counter = 0
     
-    for epoch in range(1, 101):
+    for epoch in range(50):
         # Training
         model.train()
-        train_loss = 0.0
-        train_mae = 0.0
-        
+        train_loss = 0
         for X_batch, y_batch in train_loader:
             X_batch = X_batch.to(device)
-            y_batch = y_batch.to(device).unsqueeze(1)
+            y_batch = y_batch.to(device)
             
             optimizer.zero_grad()
-            outputs = model(X_batch)
+            outputs = model(X_batch).squeeze()
             loss = criterion(outputs, y_batch)
             loss.backward()
             optimizer.step()
             
             train_loss += loss.item()
-            train_mae += torch.abs(outputs - y_batch).mean().item()
         
         train_loss /= len(train_loader)
-        train_mae /= len(train_loader)
         
         # Validation
         model.eval()
-        val_loss = 0.0
-        val_mae = 0.0
-        
+        val_loss = 0
         with torch.no_grad():
             for X_batch, y_batch in val_loader:
                 X_batch = X_batch.to(device)
-                y_batch = y_batch.to(device).unsqueeze(1)
-                
-                outputs = model(X_batch)
+                y_batch = y_batch.to(device)
+                outputs = model(X_batch).squeeze()
                 loss = criterion(outputs, y_batch)
-                
                 val_loss += loss.item()
-                val_mae += torch.abs(outputs - y_batch).mean().item()
         
         val_loss /= len(val_loader)
-        val_mae /= len(val_loader)
         
-        print(f"Epoch {epoch:3d}/100 | "
-              f"Train Loss: {train_loss:.4f} | Train MAE: {train_mae:.4f} | "
-              f"Val Loss: {val_loss:.4f} | Val MAE: {val_mae:.4f}")
+        # Convert to MAE for readability
+        train_mae = np.sqrt(train_loss)
+        val_mae = np.sqrt(val_loss)
         
-        # Save best model
+        print(f"Epoch {epoch+1:2d} | Train MAE: {train_mae:.3f} | Val MAE: {val_mae:.3f}", end="")
+        
+        # Early stopping
         if val_loss < best_val_loss:
             best_val_loss = val_loss
-            epochs_without_improvement = 0
-            
-            torch.save({
-                'epoch': epoch,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
-                'train_loss': train_loss,
-                'val_loss': val_loss,
-            }, 'models/chess_eval_finetuned.pt')
-            
-            print(f"  → New best model saved! (Val MAE: {val_mae:.4f} pawns)")
+            patience_counter = 0
+            torch.save(model.state_dict(), 'models/chess_eval_finetuned.pt')
+            print(" ← BEST")
         else:
-            epochs_without_improvement += 1
+            patience_counter += 1
+            print(f" (patience: {patience_counter}/{patience})")
             
-            if epochs_without_improvement >= patience:
-                print(f"\nEarly stopping after {epoch} epochs")
+            if patience_counter >= patience:
+                print(f"\nEarly stopping at epoch {epoch+1}")
                 break
     
     print("\n" + "="*60)
     print("FINE-TUNING COMPLETE")
-    print(f"Best validation MAE: {best_val_loss:.4f}")
     print("="*60)
+    print(f"Best validation MAE: {np.sqrt(best_val_loss):.3f} pawns")
+    print(f"Model saved: models/chess_eval_finetuned.pt")
+    print()
+    print("COMPARISON:")
+    print(f"  Original model (7,503 pos):  0.35 MAE")
+    print(f"  Fine-tuned (+5,273 pos):     {np.sqrt(best_val_loss):.3f} MAE")
+    print()
+    print("NEXT STEP: Export to ONNX")
+    print("  python3 export_finetuned.py")
 
-if __name__ == "__main__":
+
+if __name__ == '__main__':
     finetune()

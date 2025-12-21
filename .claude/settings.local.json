@@ -79,7 +79,10 @@
       "Bash(awk:*)",
       "Bash(build_info.txt)",
       "Bash(python chess_model.py:*)",
-      "Bash(python -m py_compile:*)"
+      "Bash(python -m py_compile:*)",
+      "Bash(./quick_test:*)",
+      "Bash(ls:*)",
+      "Bash(./build/quick_test)"
     ],
     "deny": [],
     "ask": []

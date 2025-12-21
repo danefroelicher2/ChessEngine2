@@ -40,6 +40,15 @@ add_executable(self_play
     neural_evaluator.cpp
 )
 
+# Executable 4: Quick test for 100% NN vs Classical
+add_executable(quick_test
+    quick_test.cpp
+    board.cpp
+    moves.cpp
+    engine.cpp
+    neural_evaluator.cpp
+)
+
 # Diagnostic executables commented out - not needed for production
 # These can be uncommented for local testing if needed
 
@@ -84,7 +93,8 @@ add_executable(self_play
 # Link ONNX Runtime for all executables that need it
 target_link_libraries(chess_engine onnxruntime)
 target_link_libraries(chess_server onnxruntime)
- target_link_libraries(self_play onnxruntime)
+target_link_libraries(self_play onnxruntime)
+target_link_libraries(quick_test onnxruntime)
 
 # Link PostgreSQL
 target_link_libraries(chess_server PostgreSQL::PostgreSQL)

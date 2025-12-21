@@ -127,7 +127,7 @@ Engine::Engine(Board* b, Moves* m, EvaluationMode mode)
             std::cerr << "⚠️  Warning: Hybrid mode requested but model failed to load. Falling back to classical." << std::endl;
             evaluationMode = EvaluationMode::CLASSICAL;
         } else {
-            std::cout << "🔀 Evaluation mode: HYBRID (50% classical + 50% neural)" << std::endl;
+            std::cout << "🔀 Evaluation mode: HYBRID (70% neural + 30% classical)" << std::endl;
         }
     } else {
         std::cout << "🔄 Evaluation mode: AUTO (using " << (useNeuralEval ? "neural" : "classical") << ")" << std::endl;
@@ -1349,9 +1349,9 @@ int Engine::evaluateHybrid() {
     // Get ML evaluation (neural network returns centipawn score)
     float ml = neuralEvaluator.evaluate(board);
 
-    // Combine: 50% classical, 50% ML (neural network)
+    // Combine: 70% neural network, 30% classical
     // ML score is already in centipawns, so multiply by 100 to match classical scale
-    return (int)(classical * 0.5 + ml * 100 * 0.5);
+    return (int)(classical * 0.3 + ml * 100 * 0.7);
 }
 
 int Engine::minimax(int depth, int alpha, int beta, bool maximizing) {
