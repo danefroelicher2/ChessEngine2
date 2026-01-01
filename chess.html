@@ -1411,7 +1411,7 @@
                     selectedSquare = { row, col };
                     // Filter moves for the new piece
                     const fromSquare = coordsToAlgebraic(row, col);
-                    legalMovesForPiece = cachedLegalMoves.filter(move => move.startsWith(fromSquare));
+                    legalMovesForPiece = cachedLegalMoves ? cachedLegalMoves.filter(move => move.startsWith(fromSquare)) : [];
                     renderBoard();
                     return;
                 }
@@ -1824,6 +1824,28 @@
                 legalMovesForPiece = [];
                 renderBoard();
                 return;
+            }
+
+            // Ensure legal moves are fetched before validating
+            if (!cachedLegalMoves) {
+                showStatus('Fetching legal moves...', 'thinking');
+                try {
+                    cachedLegalMoves = await getLegalMoves();
+                } catch (error) {
+                    console.error('Error fetching legal moves:', error);
+                    showStatus('Error fetching legal moves', 'error');
+                    setTimeout(hideStatus, 2000);
+                    selectedSquare = null;
+                    legalMovesForPiece = [];
+                    renderBoard();
+                    return;
+                }
+            }
+
+            // If legalMovesForPiece is empty but we have a selected square, rebuild it
+            if (legalMovesForPiece.length === 0 && selectedSquare) {
+                const fromSquare = coordsToAlgebraic(selectedSquare.row, selectedSquare.col);
+                legalMovesForPiece = cachedLegalMoves.filter(move => move.startsWith(fromSquare));
             }
 
             // Check if this is a promotion move BEFORE checking if it's legal
@@ -2713,12 +2735,21 @@
         // ============================================
         // Initialize on Page Load
         // ============================================
-        window.onload = function() {
+        window.onload = async function() {
             initializeBoard();
             initializeDarkMode();
             renderBoard();
             console.log('Chess board initialized!');
             console.log('API Endpoint:', API_ENDPOINT);
+
+            // Pre-fetch legal moves for starting position to avoid race conditions
+            try {
+                cachedLegalMoves = await getLegalMoves();
+                console.log('Legal moves pre-fetched:', cachedLegalMoves.length, 'moves');
+            } catch (error) {
+                console.error('Failed to pre-fetch legal moves:', error);
+                // Don't block initialization if this fails
+            }
 
             // Add document-level drag-and-drop event listeners
             document.addEventListener('mousemove', handleMouseMove);
