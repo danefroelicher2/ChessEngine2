@@ -393,15 +393,19 @@ bool Moves::isSquareAttacked(int row, int col, bool byWhite) {
 
     if (byWhite) {
         // White pawns attack one row up (toward lower indices)
-        if (row > 0) {
-            if (col > 0 && board->getPiece(row - 1, col - 1) == 'P') return true;
-            if (col < 7 && board->getPiece(row - 1, col + 1) == 'P') return true;
+        // White pawns are at higher row indices, they attack squares at lower row indices
+        // To check if a square is attacked by white pawns, look at higher row indices
+        if (row < 7) {
+            if (col > 0 && board->getPiece(row + 1, col - 1) == 'P') return true;
+            if (col < 7 && board->getPiece(row + 1, col + 1) == 'P') return true;
         }
     } else {
         // Black pawns attack one row down (toward higher indices)
-        if (row < 7) {
-            if (col > 0 && board->getPiece(row + 1, col - 1) == 'p') return true;
-            if (col < 7 && board->getPiece(row + 1, col + 1) == 'p') return true;
+        // Black pawns are at lower row indices, they attack squares at higher row indices
+        // To check if a square is attacked by black pawns, look at lower row indices
+        if (row > 0) {
+            if (col > 0 && board->getPiece(row - 1, col - 1) == 'p') return true;
+            if (col < 7 && board->getPiece(row - 1, col + 1) == 'p') return true;
         }
     }
 

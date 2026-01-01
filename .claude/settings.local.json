@@ -78,11 +78,18 @@
       "Bash(then echo \"✓ Server responded!\")",
       "Bash(awk:*)",
       "Bash(build_info.txt)",
+<<<<<<< HEAD
       "Bash(python chess_model.py:*)",
       "Bash(python -m py_compile:*)",
       "Bash(./quick_test:*)",
       "Bash(ls:*)",
       "Bash(./build/quick_test)"
+=======
+      "Bash(ls:*)",
+      "Bash(timeout 30 C:/msys64/mingw64/bin/g++.exe:*)",
+      "Bash(./test_king_illegal.exe:*)",
+      "Bash(timeout 120 C:/msys64/mingw64/bin/g++.exe:*)"
+>>>>>>> 8e1b53a (king safety fix)
     ],
     "deny": [],
     "ask": []

@@ -10,7 +10,7 @@
 #include <sstream>
 #include <cstring>
 #include <algorithm>
-#include <cstdlib> // for getenvv
+#include <cstdlib> // for getenvvg
 #include <fstream> // for file I/O
 #include <ctime>   // for timestamp
 
