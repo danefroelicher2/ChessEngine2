@@ -1974,6 +1974,18 @@
 
             // Move the piece
             const piece = board[fromRow][fromCol];
+            const destinationPiece = board[toRow][toCol];
+
+            // Prevent capturing your own pieces
+            if (destinationPiece !== '.') {
+                const movingPieceColor = getPieceColor(piece);
+                const destinationPieceColor = getPieceColor(destinationPiece);
+
+                if (movingPieceColor === destinationPieceColor) {
+                    console.error('Cannot capture your own piece!');
+                    return false;
+                }
+            }
             let pieceToPlace = piece;
 
             // Handle pawn promotion
