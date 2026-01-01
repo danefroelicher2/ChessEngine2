@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -280,7 +281,8 @@
             top: 0;
             display: flex;
             flex-direction: column;
-            height: 920px; /* 8 * 115px */
+            height: 920px;
+            /* 8 * 115px */
             justify-content: space-around;
             align-items: center;
             width: 32px;
@@ -301,7 +303,8 @@
             left: 32px;
             bottom: -32px;
             display: flex;
-            width: 920px; /* 8 * 115px */
+            width: 920px;
+            /* 8 * 115px */
             justify-content: space-around;
         }
 
@@ -539,6 +542,7 @@
                 opacity: 0;
                 transform: translateX(-10px);
             }
+
             to {
                 opacity: 1;
                 transform: translateX(0);
@@ -833,7 +837,8 @@
             gap: 12px;
             align-items: center;
             justify-content: center;
-            margin-top: 50px;  /* Space for file labels: 32px position + ~18px label height */
+            margin-top: 30px;
+            /* Space for file labels: 32px position + ~18px label height */
             margin-bottom: 0;
             padding: 15px;
             background-color: var(--nav-bg);
@@ -898,9 +903,12 @@
         }
 
         @keyframes counter-pulse {
-            0%, 100% {
+
+            0%,
+            100% {
                 box-shadow: 0 0 10px rgba(33, 150, 243, 0.5);
             }
+
             50% {
                 box-shadow: 0 0 20px rgba(33, 150, 243, 0.8);
             }
@@ -910,6 +918,7 @@
            Responsive Design
            ============================================ */
         @media (max-width: 1500px) {
+
             /* Stack layout vertically on smaller screens */
             .main-content {
                 flex-direction: column;
@@ -928,6 +937,7 @@
         }
 
         @media (max-width: 768px) {
+
             /* Board stays fixed size, only controls shrink */
             .controls-section {
                 max-width: 100%;
@@ -936,6 +946,7 @@
         }
 
         @media (max-width: 600px) {
+
             /* Mobile layout - board stays fixed, UI elements scale */
             h1 {
                 font-size: 24px;
@@ -952,6 +963,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <h1>♔ Chess Engine Interface ♔</h1>
@@ -968,7 +980,8 @@
                 </div>
                 <div class="settings-option">
                     <label style="display: flex; align-items: center; cursor: pointer; width: 100%;">
-                        <input type="checkbox" id="darkModeToggle" onchange="toggleDarkMode()" style="margin-right: 8px;">
+                        <input type="checkbox" id="darkModeToggle" onchange="toggleDarkMode()"
+                            style="margin-right: 8px;">
                         🌙 Dark Mode
                     </label>
                 </div>
@@ -1020,7 +1033,8 @@
                     <button id="forwardBtn" onclick="goForwardOneMove()" title="Next move" disabled>
                         ➡️ Forward
                     </button>
-                    <button id="fastForwardBtn" onclick="goToCurrentPosition()" title="Jump to current position" disabled>
+                    <button id="fastForwardBtn" onclick="goToCurrentPosition()" title="Jump to current position"
+                        disabled>
                         ⏩ Latest
                     </button>
                     <span id="moveCounter" class="move-counter">Start Position</span>
@@ -1309,7 +1323,7 @@
 
             // If no piece is selected
             if (selectedSquare === null) {
-                    // Don't allow moving pieces on engine's turn
+                // Don't allow moving pieces on engine's turn
                 if (isEngineTurn) {
                     showStatus("It's the engine's turn!", 'error');
                     setTimeout(hideStatus, 2000);
@@ -2098,7 +2112,7 @@
 
             // Add click handlers to promotion options
             document.querySelectorAll('.promotion-option').forEach(option => {
-                option.onclick = function() {
+                option.onclick = function () {
                     const promotionPiece = this.getAttribute('data-piece');
                     completePromotion(promotionPiece);
                 };
@@ -2483,7 +2497,7 @@
                             const fromSquare = m.substring(0, 2);
                             // Knights start on b and g files, rank 1 or 8
                             const isKnightSquare = (fromSquare[0] === 'b' || fromSquare[0] === 'g') &&
-                                                   (fromSquare[1] === '1' || fromSquare[1] === '8');
+                                (fromSquare[1] === '1' || fromSquare[1] === '8');
                             const isValidPawn = !isKnightSquare;
                             if (!isValidPawn) {
                                 console.log('Rejecting', m, '- starts from knight square');
@@ -2709,7 +2723,7 @@
         // ============================================
         // Initialize on Page Load
         // ============================================
-        window.onload = async function() {
+        window.onload = async function () {
             initializeBoard();
             initializeDarkMode();
             renderBoard();
@@ -2732,7 +2746,7 @@
             console.log('Drag-and-drop event handlers initialized');
 
             // Keyboard shortcuts for move navigation
-            document.addEventListener('keydown', function(event) {
+            document.addEventListener('keydown', function (event) {
                 // Only handle if not typing in an input field
                 if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
                     return;
@@ -2767,7 +2781,7 @@
             console.log('Keyboard shortcuts initialized');
 
             // Close settings menu when clicking outside
-            document.addEventListener('click', function(event) {
+            document.addEventListener('click', function (event) {
                 const settingsContainer = document.querySelector('.settings-container');
                 const settingsBtn = document.getElementById('settingsBtn');
 
@@ -2780,4 +2794,5 @@
         };
     </script>
 </body>
+
 </html>
