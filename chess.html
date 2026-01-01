@@ -60,12 +60,6 @@
             --dialogue-success: #e8f5e9;
             --dialogue-error: #ffebee;
 
-            /* Learn Mode */
-            --learn-active-bg: #4CAF50;
-            --learn-inactive-bg: #cccccc;
-            --learn-panel-bg: #e8f5e9;
-            --learn-panel-border: #4CAF50;
-
             /* Settings */
             --settings-dropdown-bg: white;
             --settings-hover-bg: #f0f0f0;
@@ -137,12 +131,6 @@
             --dialogue-thinking: #1565C0;
             --dialogue-success: #2E7D32;
             --dialogue-error: #C62828;
-
-            /* Learn Mode */
-            --learn-active-bg: #388E3C;
-            --learn-inactive-bg: #555555;
-            --learn-panel-bg: #1a3a1a;
-            --learn-panel-border: #388E3C;
 
             /* Settings */
             --settings-dropdown-bg: #2d2d2d;
@@ -822,173 +810,6 @@
         }
 
         /* ============================================
-           Learn Mode Styles
-           ============================================ */
-        .learn-mode-section {
-            background: var(--learn-panel-bg);
-            border: 2px solid var(--learn-panel-border);
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 15px;
-            transition: background-color 0.3s ease, border-color 0.3s ease;
-        }
-
-        .learn-mode-section.active {
-            background: var(--learn-panel-bg);
-            border-color: var(--learn-active-bg);
-        }
-
-        .learn-mode-header {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 10px;
-            justify-content: center;
-        }
-
-        #learnModeBtn {
-            min-width: 150px;
-        }
-
-        #learnModeBtn.active {
-            background: linear-gradient(135deg, var(--learn-active-bg) 0%, var(--button-bg) 100%);
-        }
-
-        .opening-selection {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            justify-content: center;
-        }
-
-        .learn-mode-controls {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-
-        .danger-btn {
-            background-color: var(--button-danger);
-            color: var(--button-text);
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: background-color 0.3s ease;
-        }
-
-        .danger-btn:hover {
-            background-color: var(--button-danger-hover);
-        }
-
-        select:disabled {
-            background: #e9ecef;
-            cursor: not-allowed;
-            opacity: 0.6;
-        }
-
-        /* ============================================
-           Move Input Modal Styles
-           ============================================ */
-        .move-input-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: var(--modal-overlay);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1500;
-            transition: background-color 0.3s ease;
-        }
-
-        .move-input-dialog {
-            background-color: var(--modal-bg);
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px var(--shadow-color);
-            min-width: 350px;
-            transition: background-color 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .move-input-dialog h3 {
-            margin-top: 0;
-            margin-bottom: 20px;
-            text-align: center;
-            color: var(--text-secondary);
-            font-size: 20px;
-            transition: color 0.3s ease;
-        }
-
-        .move-input-form {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        #moveInput {
-            padding: 12px 15px;
-            font-size: 16px;
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            font-family: 'Courier New', monospace;
-            text-align: center;
-            background-color: var(--input-bg);
-            color: var(--text-primary);
-            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
-        }
-
-        #moveInput:focus {
-            outline: none;
-            border-color: var(--bg-primary-end);
-        }
-
-        .move-input-buttons {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-        }
-
-        .move-input-buttons button {
-            flex: 1;
-        }
-
-        .cancel-btn {
-            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
-        }
-
-        /* ============================================
-           Teaching Mode Visual Indicators
-           ============================================ */
-        body.teaching-mode {
-            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
-        }
-
-        body.teaching-mode .container {
-            box-shadow: 0 20px 60px rgba(255, 152, 0, 0.5);
-        }
-
-        body.teaching-mode .chessboard {
-            border: 4px solid #ff9800;
-            box-shadow: 0 0 30px rgba(255, 152, 0, 0.7);
-            animation: teaching-pulse 2s ease-in-out infinite;
-        }
-
-        @keyframes teaching-pulse {
-            0%, 100% {
-                box-shadow: 0 0 30px rgba(255, 152, 0, 0.7);
-            }
-            50% {
-                box-shadow: 0 0 50px rgba(255, 152, 0, 0.9);
-            }
-        }
-
-        /* ============================================
            Drag and Drop Styles
            ============================================ */
         body.dragging {
@@ -1281,27 +1102,6 @@
             <!-- RIGHT SIDE: All Controls -->
             <div class="controls-section">
 
-                <!-- Learn Mode Section -->
-                <div id="learnModeSection" class="learn-mode-section">
-                    <div class="learn-mode-header">
-                        <button id="learnModeBtn">Learn Mode: OFF</button>
-                    </div>
-                    <div class="learn-mode-controls">
-                        <div class="opening-selection">
-                            <label for="openingSelect">Teaching:</label>
-                            <select id="openingSelect" disabled>
-                                <option value="caro_kann_classical">Caro-Kann Classical</option>
-                            </select>
-                        </div>
-                        <button id="forgetMoveBtn"
-                                onclick="forgetLastMove()"
-                                class="danger-btn"
-                                style="display: none;">
-                            Forget Move
-                        </button>
-                    </div>
-                </div>
-
                 <!-- Engine Play Section -->
                 <div class="controls">
                     <!-- Engine Type Selection -->
@@ -1338,7 +1138,7 @@
                         <div class="info-label">Engine Dialogue:</div>
                         <div id="engineDialogue" class="engine-dialogue-box">
                             <div class="dialogue-message welcome">
-                                👋 Ready to play! Make your move or enable Learn Mode.
+                                👋 Ready to play! Make your move.
                             </div>
                         </div>
                     </div>
@@ -1380,20 +1180,6 @@
                 <button onclick="restartGame()">Play Again</button>
             </div>
         </div>
-
-        <!-- Move Input Modal (for Learn Mode) -->
-        <div id="moveInputModal" class="move-input-modal" style="display: none;">
-            <div class="move-input-dialog">
-                <h3>What's the best move in this position?</h3>
-                <div class="move-input-form">
-                    <input type="text" id="moveInput" placeholder="e.g., c6, Nf3, O-O" autocomplete="off">
-                    <div class="move-input-buttons">
-                        <button id="teachMoveBtn">Teach Move</button>
-                        <button id="cancelMoveBtn" class="cancel-btn">Cancel</button>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
     <script>
@@ -1418,11 +1204,6 @@
         let cachedLegalMoves = null; // Cached legal moves for current position
         let isProcessing = false; // Prevent moves while engine is thinking
         let isGameOver = false; // Track if game has ended (checkmate or stalemate)
-        let isLearnMode = false; // Track if Learn Mode is active
-        let lastEngineMove = null; // Tracks the last move the engine made
-        let lastEngineFEN = null; // FEN before the engine moved
-        let isTeachingMove = false; // Track if we're in visual teaching mode
-        let teachingFEN = null; // FEN of position being taught
 
         // Drag and drop state
         let isDragging = false;
@@ -1567,22 +1348,16 @@
 
             // If no piece is selected
             if (selectedSquare === null) {
-                // Allow moving engine pieces ONLY if teaching mode is active
-                if (isEngineTurn && !isTeachingMove) {
-                    // It's engine's turn and we're not teaching - don't allow user to move
+                    // Don't allow moving pieces on engine's turn
+                if (isEngineTurn) {
                     showStatus("It's the engine's turn!", 'error');
                     setTimeout(hideStatus, 2000);
                     return;
                 }
 
-                // User can only select their own pieces on their turn (or engine pieces during teaching)
-                if (piece === '.' || (!isUserTurn && !isTeachingMove)) {
+                // User can only select their own pieces on their turn
+                if (piece === '.' || !isUserTurn) {
                     return;
-                }
-
-                // If teaching mode is active, allow moving engine pieces
-                if (isTeachingMove && isEngineTurn) {
-                    console.log('Teaching mode: allowing user to move engine pieces');
                 }
 
                 const pieceColor = getPieceColor(piece);
@@ -1679,22 +1454,14 @@
             const expectedColor = whiteToMove ? 'white' : 'black';
             const canMovePiece = (pieceColor === expectedColor);
 
-            // Check permissions
-            if (isEngineTurn && !isTeachingMove) {
-                // It's engine's turn and we're not teaching
+            // Check permissions - it's engine's turn
+            if (isEngineTurn) {
                 return;
             }
 
-            // User can only move their own pieces (or engine pieces during teaching)
-            if (!canMovePiece && !isTeachingMove) {
+            // User can only move their own pieces
+            if (!canMovePiece) {
                 return;
-            }
-
-            // If teaching mode, verify we're moving engine's pieces
-            if (isTeachingMove && isEngineTurn) {
-                if (pieceColor !== expectedColor) {
-                    return;
-                }
             }
 
             // Start dragging
@@ -2079,42 +1846,6 @@
 
             // Make the move IMMEDIATELY for instant visual feedback
             if (makeMove(moveStr)) {
-                // Check if this was a teaching move BEFORE clearing state
-                if (isTeachingMove) {
-                    console.log('=== TEACHING MOVE MADE ===');
-                    console.log('Taught move:', moveStr);
-                    console.log('For FEN:', teachingFEN);
-
-                    // Convert internal format to algebraic notation for saving
-                    const moveNotation = await convertInternalToAlgebraic(moveStr);
-
-                    // Save the move to opening book
-                    await saveTeachingMove(teachingFEN, moveNotation || moveStr);
-
-                    // Exit teaching mode
-                    isTeachingMove = false;
-                    teachingFEN = null;
-                    document.body.classList.remove('teaching-mode');
-
-                    hideStatus();
-                    console.log('✅ Teaching complete');
-
-                    // Update display
-                    updateLastMoveDisplay(moveStr);
-                    selectedSquare = null;
-                    legalMovesForPiece = [];
-                    cachedLegalMoves = null;
-                    renderBoard();
-
-                    // Don't trigger automatic engine response after teaching
-                    return;
-                }
-
-                // Hide forget button after user moves
-                document.getElementById('forgetMoveBtn').style.display = 'none';
-                lastEngineMove = null;
-                lastEngineFEN = null;
-
                 // Record move in history
                 const moveRecord = {
                     from: moveStr.substring(0, 2),
@@ -2141,19 +1872,8 @@
                 cachedLegalMoves = null; // Clear cache for new position
                 renderBoard();
 
-                // Check if Learn Mode is active and engine should respond
-                const engineColor = document.getElementById('engineColor').value;
-                const isEngineWhite = engineColor === 'white';
-                const engineShouldRespond = (whiteToMove === isEngineWhite);
-
-                if (isLearnMode && engineShouldRespond) {
-                    // In Learn Mode: check if we should ask for a move
-                    checkIfEngineShouldAskForMove();
-                } else {
-                    // Normal mode: trigger engine move automatically
-                    // This runs in the background without blocking
-                    getEngineMove(true);
-                }
+                // Trigger engine move automatically
+                getEngineMove(true);
             } else {
                 // Invalid move format (shouldn't happen if validation passed)
                 selectedSquare = null;
@@ -2387,37 +2107,6 @@
 
             // Make the move with promotion
             if (makeMove(fullMove)) {
-                // Check if this was a teaching move
-                if (isTeachingMove) {
-                    console.log('=== TEACHING PROMOTION MOVE ===');
-                    console.log('Taught move:', fullMove);
-                    console.log('For FEN:', teachingFEN);
-
-                    // Convert internal format to algebraic notation for saving
-                    const moveNotation = await convertInternalToAlgebraic(fullMove);
-
-                    // Save the move to opening book
-                    await saveTeachingMove(teachingFEN, moveNotation || fullMove);
-
-                    // Exit teaching mode
-                    isTeachingMove = false;
-                    teachingFEN = null;
-                    document.body.classList.remove('teaching-mode');
-
-                    hideStatus();
-                    console.log('✅ Teaching complete');
-
-                    // Update display
-                    updateLastMoveDisplay(fullMove);
-                    selectedSquare = null;
-                    legalMovesForPiece = [];
-                    cachedLegalMoves = null;
-                    renderBoard();
-
-                    pendingPromotionMove = null;
-                    return;
-                }
-
                 // Record promotion move in history
                 const moveRecord = {
                     from: fullMove.substring(0, 2),
@@ -2444,18 +2133,8 @@
                 cachedLegalMoves = null;
                 renderBoard();
 
-                // Check if Learn Mode is active and engine should respond
-                const engineColor = document.getElementById('engineColor').value;
-                const isEngineWhite = engineColor === 'white';
-                const engineShouldRespond = (whiteToMove === isEngineWhite);
-
-                if (isLearnMode && engineShouldRespond) {
-                    // In Learn Mode: check if we should ask for a move
-                    checkIfEngineShouldAskForMove();
-                } else {
-                    // Normal mode: trigger engine move
-                    getEngineMove(true);
-                }
+                // Trigger engine move
+                getEngineMove(true);
             }
 
             pendingPromotionMove = null;
@@ -2530,7 +2209,7 @@
          */
         function clearEngineDialogue() {
             const dialogueBox = document.getElementById('engineDialogue');
-            dialogueBox.innerHTML = '<div class="dialogue-message welcome">👋 Ready to play! Make your move or enable Learn Mode.</div>';
+            dialogueBox.innerHTML = '<div class="dialogue-message welcome">👋 Ready to play! Make your move.</div>';
         }
 
         /**
@@ -2670,321 +2349,6 @@
             addEngineDialogue('🔄 Board reset to starting position.', 'info');
 
             console.log('Move history cleared');
-        }
-
-        // ============================================
-        // Learn Mode Functions
-        // ============================================
-
-        // Toggle Learn Mode ON/OFF
-        function toggleLearnMode() {
-            isLearnMode = !isLearnMode;
-
-            const learnModeBtn = document.getElementById('learnModeBtn');
-            const openingSelect = document.getElementById('openingSelect');
-            const learnModeSection = document.getElementById('learnModeSection');
-            const forgetMoveBtn = document.getElementById('forgetMoveBtn');
-
-            if (isLearnMode) {
-                // Turn ON
-                learnModeBtn.textContent = 'Learn Mode: ON';
-                learnModeBtn.classList.add('active');
-                learnModeSection.classList.add('active');
-                openingSelect.disabled = false;
-                addEngineDialogue('📚 Learn Mode activated! I\'ll ask for help when I don\'t know the position.', 'info');
-                console.log('Learn Mode: ON');
-            } else {
-                // Turn OFF
-                learnModeBtn.textContent = 'Learn Mode: OFF';
-                learnModeBtn.classList.remove('active');
-                learnModeSection.classList.remove('active');
-                openingSelect.disabled = true;
-
-                // Hide forget button and clear state
-                forgetMoveBtn.style.display = 'none';
-                lastEngineMove = null;
-                lastEngineFEN = null;
-
-                addEngineDialogue('👋 Learn Mode deactivated. Playing normally now.', 'info');
-                console.log('Learn Mode: OFF');
-            }
-        }
-
-        // Show the Move Input Modal
-        function showMoveInputModal() {
-            const modal = document.getElementById('moveInputModal');
-            const input = document.getElementById('moveInput');
-
-            modal.style.display = 'flex';
-
-            // Focus the input field after a short delay to ensure modal is visible
-            setTimeout(() => {
-                input.focus();
-            }, 100);
-
-            console.log('Move Input Modal shown');
-        }
-
-        // Hide the Move Input Modal
-        function hideMoveInputModal() {
-            const modal = document.getElementById('moveInputModal');
-            const input = document.getElementById('moveInput');
-
-            modal.style.display = 'none';
-            input.value = ''; // Clear the input field
-
-            console.log('Move Input Modal hidden');
-        }
-
-        // Handle the "Teach Move" action
-        async function handleTeachMove() {
-            const input = document.getElementById('moveInput');
-            const move = input.value.trim();
-
-            if (!move) {
-                console.log('No move entered');
-                return;
-            }
-
-            // Validate move notation format
-            const validation = validateMoveNotation(move);
-            if (!validation.valid) {
-                console.error('Invalid move notation:', validation.errors);
-                showStatus('Invalid notation: ' + validation.errors[0], 'error');
-                setTimeout(hideStatus, 4000);
-                return;
-            }
-
-            try {
-                // Get current board state
-                const fen = boardToFEN();
-                const opening = document.getElementById('openingSelect').value;
-
-                console.log('Teaching move:', move, 'for FEN:', fen);
-
-                // Show status message
-                showStatus('Saving move to opening book...', 'thinking');
-
-                // Call save endpoint
-                const encodedFEN = encodeURIComponent(fen);
-                const response = await fetch(
-                    `${API_ENDPOINT.replace('/move', '')}/save-opening-move?opening=${opening}&fen=${encodedFEN}&move=${move}`
-                );
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const data = await response.json();
-
-                if (data.status === 'ok') {
-                    console.log('Move saved successfully! Positions learned:', data.positions_learned);
-
-                    // Hide modal
-                    hideMoveInputModal();
-                    hideStatus();
-
-                    // Now make the move on the board
-                    // The move input might be in different formats (e.g., "c6", "Nf3", "O-O")
-                    // We need to convert it to our internal format (e.g., "c7c6")
-                    const convertedMove = await convertAlgebraicToInternal(move);
-
-                    if (convertedMove) {
-                        // Make the move
-                        if (makeMove(convertedMove)) {
-                            updateLastMoveDisplay(convertedMove);
-                            cachedLegalMoves = null;
-                            renderBoard();
-                            console.log('Move played on board:', convertedMove);
-                        } else {
-                            showStatus('Saved to book but failed to make move on board', 'error');
-                            setTimeout(hideStatus, 3000);
-                        }
-                    } else {
-                        showStatus('Move saved but could not play it (invalid format)', 'error');
-                        setTimeout(hideStatus, 3000);
-                    }
-                } else {
-                    throw new Error(data.message || 'Failed to save move');
-                }
-            } catch (error) {
-                console.error('Error saving move:', error);
-                showStatus('Error: ' + error.message, 'error');
-                setTimeout(hideStatus, 5000);
-            }
-        }
-
-        // Undo the engine's last move, delete from opening book, and prompt re-teach
-        async function forgetLastMove() {
-            if (!lastEngineMove || !lastEngineFEN) {
-                showStatus('No engine move to forget', 'error');
-                setTimeout(hideStatus, 2000);
-                return;
-            }
-
-            console.log('=== FORGETTING LAST ENGINE MOVE ===');
-            console.log('Move to undo:', lastEngineMove);
-            console.log('Restoring FEN:', lastEngineFEN);
-
-            try {
-                // Step 1: Show status
-                showStatus('Undoing move...', 'thinking');
-
-                // Step 2: Restore board to position before engine moved
-                loadBoardFromFEN(lastEngineFEN);
-                renderBoard();
-                cachedLegalMoves = null; // Clear cached moves
-
-                console.log('✓ Board restored');
-
-                // Step 3: Delete position from opening book
-                const opening = document.getElementById('openingSelect').value;
-                const encodedFEN = encodeURIComponent(lastEngineFEN);
-
-                showStatus('Deleting from opening book...', 'thinking');
-
-                console.log('Deleting FEN:', lastEngineFEN);
-                console.log('Encoded FEN:', encodedFEN);
-                console.log('From opening:', opening);
-
-                const deleteURL = `${API_ENDPOINT.replace('/move', '')}/delete-opening-move?opening=${opening}&fen=${encodedFEN}`;
-                console.log('DELETE URL:', deleteURL);
-
-                const response = await fetch(deleteURL);
-                console.log('Response status:', response.status);
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const data = await response.json();
-                console.log('Delete response:', data);
-
-                if (data.status === 'ok') {
-                    console.log('✓ Position deleted from opening book');
-                    console.log('Positions remaining:', data.positions_learned);
-
-                    // Step 4: Brief pause (500ms) so user sees the undo
-                    showStatus('Move forgotten! Now teach the correct move...', 'success');
-                    await new Promise(resolve => setTimeout(resolve, 500));
-
-                    // Step 5: Store the FEN we're teaching BEFORE clearing it
-                    const fenToTeach = lastEngineFEN;
-
-                    // Step 6: Clear state and hide button
-                    document.getElementById('forgetMoveBtn').style.display = 'none';
-                    lastEngineMove = null;
-                    lastEngineFEN = null;
-
-                    // Step 7: Enable VISUAL teaching mode (NOT modal) ✅
-                    console.log('Enabling visual teaching mode');
-
-                    // Store the FEN we're teaching
-                    teachingFEN = fenToTeach;
-
-                    // Enable teaching mode flag
-                    isTeachingMove = true;
-
-                    // Show teaching status
-                    showStatus('Unknown position! Move the engine\'s piece yourself.', 'teaching');
-
-                    // Add visual indicator
-                    document.body.classList.add('teaching-mode');
-
-                    console.log('✅ Visual teaching mode enabled');
-                    console.log('✓ Ready to re-teach position');
-                } else {
-                    throw new Error(data.message || 'Failed to delete position');
-                }
-            } catch (error) {
-                console.error('❌ Error forgetting move:', error);
-                showStatus('Error: ' + error.message, 'error');
-                setTimeout(hideStatus, 5000);
-            }
-        }
-
-        // Save a move that was taught by visual piece movement
-        async function saveTeachingMove(fen, move) {
-            try {
-                const opening = document.getElementById('openingSelect').value;
-
-                console.log('Saving teaching move:', move, 'for FEN:', fen);
-
-                showStatus('Saving move to opening book...', 'thinking');
-
-                const encodedFEN = encodeURIComponent(fen);
-                const response = await fetch(
-                    `${API_ENDPOINT.replace('/move', '')}/save-opening-move?opening=${opening}&fen=${encodedFEN}&move=${move}`
-                );
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const data = await response.json();
-
-                if (data.status === 'ok') {
-                    console.log('✅ Move saved successfully! Positions learned:', data.positions_learned);
-                    showStatus('Move saved! ✓', 'success');
-                    setTimeout(hideStatus, 2000);
-                } else {
-                    throw new Error(data.message || 'Failed to save move');
-                }
-            } catch (error) {
-                console.error('Error saving teaching move:', error);
-                showStatus('Error: ' + error.message, 'error');
-                setTimeout(hideStatus, 5000);
-            }
-        }
-
-        // Convert internal format (e.g., "c7c6") to algebraic notation (e.g., "pc6")
-        async function convertInternalToAlgebraic(internalMove) {
-            try {
-                // For now, we'll use a simple conversion
-                // The API accepts moves in the format that convertAlgebraicToInternal produces
-                // So we need to reverse that process
-
-                if (internalMove.length < 4) {
-                    console.error('Invalid internal move format:', internalMove);
-                    return internalMove;
-                }
-
-                const fromSquare = internalMove.substring(0, 2);
-                const toSquare = internalMove.substring(2, 4);
-                const promotion = internalMove.length === 5 ? internalMove[4] : null;
-
-                // Get the piece at the from square (before the move was made, we need to look at current board)
-                // Actually, the move has already been made, so we need to look at the destination
-                const toCol = toSquare.charCodeAt(0) - 'a'.charCodeAt(0);
-                const toRow = 8 - parseInt(toSquare[1]);
-                const piece = board[toRow][toCol];
-
-                if (piece === '.') {
-                    console.error('No piece at destination square');
-                    return internalMove;
-                }
-
-                // Map piece to letter
-                const pieceMap = {
-                    'p': 'p', 'P': 'p',
-                    'n': 'n', 'N': 'n',
-                    'b': 'b', 'B': 'b',
-                    'r': 'r', 'R': 'r',
-                    'q': 'q', 'Q': 'q',
-                    'k': 'k', 'K': 'k'
-                };
-
-                const pieceLetter = pieceMap[piece] || 'p';
-
-                // Format: piece + destination square (e.g., "pc6", "Nf3")
-                const algebraic = pieceLetter + toSquare;
-
-                console.log('Converted', internalMove, 'to', algebraic);
-                return algebraic;
-            } catch (error) {
-                console.error('Error converting internal to algebraic:', error);
-                return internalMove; // Return original if conversion fails
-            }
         }
 
         // Convert algebraic notation (e.g., "pc6", "Nf3", "short castle") to internal format (e.g., "c7c6")
@@ -3277,130 +2641,6 @@
             return char;
         }
 
-        // Check if engine should ask for a move
-        async function checkIfEngineShouldAskForMove() {
-            try {
-                // Get current board state
-                const fen = boardToFEN();
-                const opening = document.getElementById('openingSelect').value;
-
-                console.log('Checking if engine knows position:', fen);
-
-                // Show thinking status
-                showStatus('Checking opening book...', 'thinking');
-
-                // Call get endpoint
-                const encodedFEN = encodeURIComponent(fen);
-                const response = await fetch(
-                    `${API_ENDPOINT.replace('/move', '')}/get-opening-move?opening=${opening}&fen=${encodedFEN}`
-                );
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const data = await response.json();
-
-                if (data.status === 'ok') {
-                    if (data.found && data.move) {
-                        // Position found in opening book!
-                        console.log('Position found in opening book! Move:', data.move);
-
-                        // Capture FEN before engine moves
-                        lastEngineFEN = boardToFEN();
-
-                        // Convert the move to internal format
-                        const convertedMove = await convertAlgebraicToInternal(data.move);
-
-                        if (convertedMove) {
-                            // Make the move automatically
-                            console.log('Auto-playing learned move:', convertedMove);
-
-                            if (makeMove(convertedMove)) {
-                                // Capture the move that was made
-                                lastEngineMove = convertedMove;
-
-                                // Record learned engine move in history
-                                const moveRecord = {
-                                    from: convertedMove.substring(0, 2),
-                                    to: convertedMove.substring(2, 4),
-                                    notation: convertedMove,
-                                    fen: boardToFEN(),
-                                    timestamp: Date.now(),
-                                    wasWhiteMove: !whiteToMove,
-                                    isEngineMove: true,
-                                    isLearnedMove: true
-                                };
-
-                                moveHistory.push(moveRecord);
-                                currentMoveIndex = moveHistory.length - 1;
-                                isViewingHistory = false;
-
-                                console.log('Learned engine move recorded in history. Total moves:', moveHistory.length);
-
-                                // Update navigation buttons
-                                updateNavigationButtons();
-
-                                updateLastMoveDisplay(convertedMove);
-                                cachedLegalMoves = null;
-                                renderBoard();
-                                hideStatus();
-
-                                // Show the "Forget Move" button
-                                const forgetBtn = document.getElementById('forgetMoveBtn');
-                                forgetBtn.style.display = 'inline-block';
-
-                                console.log('✅ FORGET MOVE BUTTON SHOWN');
-                                console.log('Button element:', forgetBtn);
-                                console.log('Button display style:', forgetBtn.style.display);
-                                console.log('Button computed display:', window.getComputedStyle(forgetBtn).display);
-                                console.log('Successfully played learned move');
-                                console.log('Last engine move captured:', lastEngineMove);
-                                console.log('FEN before move:', lastEngineFEN);
-                            } else {
-                                throw new Error('Failed to make the learned move on board');
-                            }
-                        } else {
-                            throw new Error('Could not convert learned move: ' + data.move);
-                        }
-                    } else {
-                        // Position NOT in opening book - enable visual teaching mode
-                        console.log('Position not in opening book - enabling visual teaching');
-
-                        // Capture the FEN of the position being taught
-                        teachingFEN = boardToFEN();
-                        console.log('Teaching FEN:', teachingFEN);
-
-                        // Show teaching status
-                        showStatus('Unknown position! Move the engine\'s piece yourself.', 'teaching');
-
-                        // Enable teaching mode flag
-                        isTeachingMove = true;
-
-                        // Highlight that we're in teaching mode
-                        document.body.classList.add('teaching-mode');
-
-                        // Hide forget button during teaching
-                        document.getElementById('forgetMoveBtn').style.display = 'none';
-
-                        console.log('✅ Teaching mode enabled - you can now move engine pieces');
-                    }
-                } else {
-                    throw new Error(data.message || 'Failed to check opening book');
-                }
-            } catch (error) {
-                console.error('Error checking opening book:', error);
-                showStatus('Error checking opening book: ' + error.message, 'error');
-                setTimeout(hideStatus, 5000);
-
-                // Fall back to visual teaching mode
-                teachingFEN = boardToFEN();
-                isTeachingMove = true;
-                document.body.classList.add('teaching-mode');
-                console.log('Enabled teaching mode after error');
-            }
-        }
-
         // ============================================
         // Dark Mode Management
         // ============================================
@@ -3467,27 +2707,6 @@
             renderBoard();
             console.log('Chess board initialized!');
             console.log('API Endpoint:', API_ENDPOINT);
-
-            // Wire up Learn Mode button
-            const learnModeBtn = document.getElementById('learnModeBtn');
-            learnModeBtn.addEventListener('click', toggleLearnMode);
-
-            // Wire up Move Input Modal buttons
-            const teachMoveBtn = document.getElementById('teachMoveBtn');
-            const cancelMoveBtn = document.getElementById('cancelMoveBtn');
-
-            teachMoveBtn.addEventListener('click', handleTeachMove);
-            cancelMoveBtn.addEventListener('click', hideMoveInputModal);
-
-            // Wire up Enter key support in move input field
-            const moveInput = document.getElementById('moveInput');
-            moveInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    handleTeachMove();
-                }
-            });
-
-            console.log('Learn Mode event handlers initialized');
 
             // Add document-level drag-and-drop event listeners
             document.addEventListener('mousemove', handleMouseMove);
