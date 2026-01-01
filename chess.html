@@ -505,19 +505,125 @@
         }
 
         /* ============================================
+           Move History Panel (Chess.com style)
+           ============================================ */
+        .move-history-panel {
+            background: var(--bg-tertiary);
+            border-radius: 10px;
+            padding: 20px;
+            transition: background-color 0.3s ease;
+            flex: 1 1 auto;  /* Takes up most of the available space */
+            min-height: 350px;
+            max-height: 500px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .move-history-title {
+            font-weight: bold;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            font-size: 16px;
+            transition: color 0.3s ease;
+        }
+
+        .move-history-container {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 12px;
+            overflow-y: auto;
+            flex: 1;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .move-history-row {
+            display: grid;
+            grid-template-columns: 40px 1fr 1fr;
+            gap: 12px;
+            padding: 6px 8px;
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.2s;
+        }
+
+        .move-history-row:last-child {
+            border-bottom: none;
+        }
+
+        .move-history-row:hover {
+            background-color: var(--bg-tertiary);
+        }
+
+        .move-number {
+            color: var(--text-muted);
+            font-weight: bold;
+            text-align: right;
+        }
+
+        .move-white, .move-black {
+            color: var(--text-primary);
+            transition: color 0.3s ease;
+        }
+
+        .move-white:empty::after,
+        .move-black:empty::after {
+            content: "...";
+            color: var(--text-muted);
+        }
+
+        /* Scrollbar for move history */
+        .move-history-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .move-history-container::-webkit-scrollbar-track {
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+        }
+
+        .move-history-container::-webkit-scrollbar-thumb {
+            background: var(--bg-primary);
+            border-radius: 4px;
+        }
+
+        .move-history-container::-webkit-scrollbar-thumb:hover {
+            background: var(--bg-primary-end);
+        }
+
+        /* ============================================
+           Engine Status Panel (smaller, bottom)
+           ============================================ */
+        .engine-status-panel {
+            background: var(--bg-tertiary);
+            border-radius: 10px;
+            padding: 16px;
+            transition: background-color 0.3s ease;
+            flex: 0 0 auto;  /* Fixed size, doesn't grow */
+        }
+
+        .engine-status-title {
+            font-weight: bold;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            font-size: 14px;
+            transition: color 0.3s ease;
+        }
+
+        /* ============================================
            Engine Dialogue Styles
            ============================================ */
         .engine-dialogue-box {
             background: var(--dialogue-bg);
             border: 2px solid var(--dialogue-border);
             border-radius: 8px;
-            padding: 15px;
-            min-height: 180px;
-            max-height: 300px;
+            padding: 12px;
+            min-height: 60px;
+            max-height: 120px;
             overflow-y: auto;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            font-size: 14px;
-            line-height: 1.6;
+            font-size: 13px;
+            line-height: 1.5;
         }
 
         /* Individual dialogue messages */
@@ -1068,20 +1174,22 @@
                     </div>
                 </div>
 
-                <!-- Information Panel -->
-                <div class="info-panel">
-                    <div class="info-row">
-                        <div class="info-label">Last Move:</div>
-                        <div id="lastMove" class="info-value">None</div>
+                <!-- Move History Panel (Top Box - Chess.com style) -->
+                <div class="move-history-panel">
+                    <div class="move-history-title">Move History</div>
+                    <div id="moveHistoryDisplay" class="move-history-container">
+                        <div style="color: var(--text-muted); text-align: center; padding: 20px;">
+                            No moves yet. Start playing!
+                        </div>
                     </div>
+                </div>
 
-                    <!-- Engine Dialogue Area -->
-                    <div class="info-row">
-                        <div class="info-label">Engine Dialogue:</div>
-                        <div id="engineDialogue" class="engine-dialogue-box">
-                            <div class="dialogue-message welcome">
-                                👋 Ready to play! Make your move.
-                            </div>
+                <!-- Engine Status Panel (Bottom Box - smaller) -->
+                <div class="engine-status-panel">
+                    <div class="engine-status-title">Engine Status</div>
+                    <div id="engineDialogue" class="engine-dialogue-box">
+                        <div class="dialogue-message welcome">
+                            👋 Ready to play! Make your move.
                         </div>
                     </div>
                 </div>
@@ -1875,6 +1983,9 @@
                 // Update navigation buttons
                 updateNavigationButtons();
 
+                // Update move history display
+                updateMoveHistoryDisplay();
+
                 // Update display instantly
                 updateLastMoveDisplay(moveStr);
                 selectedSquare = null;
@@ -2066,8 +2177,46 @@
         // Update Last Move Display
         // ============================================
         function updateLastMoveDisplay(move) {
-            const display = move ? `${move.substring(0, 2)}-${move.substring(2, 4)}` : 'None';
-            document.getElementById('lastMove').textContent = display;
+            // This function is now deprecated but kept for compatibility
+            // Move history is shown in the move history panel instead
+        }
+
+        // ============================================
+        // Update Move History Display (Chess.com style)
+        // ============================================
+        function updateMoveHistoryDisplay() {
+            const historyContainer = document.getElementById('moveHistoryDisplay');
+
+            if (moveHistory.length === 0) {
+                historyContainer.innerHTML = `
+                    <div style="color: var(--text-muted); text-align: center; padding: 20px;">
+                        No moves yet. Start playing!
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+
+            // Process moves in pairs (White + Black = 1 full move)
+            for (let i = 0; i < moveHistory.length; i += 2) {
+                const moveNumber = Math.floor(i / 2) + 1;
+                const whiteMove = moveHistory[i] ? moveHistory[i].notation : '';
+                const blackMove = moveHistory[i + 1] ? moveHistory[i + 1].notation : '';
+
+                html += `
+                    <div class="move-history-row">
+                        <div class="move-number">${moveNumber}.</div>
+                        <div class="move-white">${whiteMove}</div>
+                        <div class="move-black">${blackMove}</div>
+                    </div>
+                `;
+            }
+
+            historyContainer.innerHTML = html;
+
+            // Auto-scroll to bottom to show latest move
+            historyContainer.scrollTop = historyContainer.scrollHeight;
         }
 
         // ============================================
@@ -2148,6 +2297,9 @@
 
                 // Update navigation buttons
                 updateNavigationButtons();
+
+                // Update move history display
+                updateMoveHistoryDisplay();
 
                 updateLastMoveDisplay(fullMove);
                 selectedSquare = null;
@@ -2322,6 +2474,9 @@
                         // Update navigation buttons
                         updateNavigationButtons();
 
+                        // Update move history display
+                        updateMoveHistoryDisplay();
+
                         updateLastMoveDisplay(data.move);
                         cachedLegalMoves = null; // Clear cache after engine move
                         renderBoard();
@@ -2364,6 +2519,7 @@
             isViewingHistory = false;
 
             updateNavigationButtons();
+            updateMoveHistoryDisplay();
             document.body.classList.remove('viewing-history');
 
             // Clear and reset dialogue
