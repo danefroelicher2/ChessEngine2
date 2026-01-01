@@ -1315,6 +1315,39 @@
         }
 
         // ============================================
+        // Filter out moves that would capture own pieces
+        // ============================================
+        function filterOwnPieceCaptures(moves) {
+            return moves.filter(move => {
+                // Move format: "e2e4" (from square to destination)
+                if (move.length < 4) return true;
+
+                const toCol = move.charCodeAt(2) - 'a'.charCodeAt(0);
+                const toRow = 8 - parseInt(move[3]);
+
+                // Check if destination is valid
+                if (toRow < 0 || toRow > 7 || toCol < 0 || toCol > 7) return true;
+
+                const destinationPiece = board[toRow][toCol];
+
+                // If destination is empty, move is valid
+                if (destinationPiece === '.') return true;
+
+                // Get the moving piece
+                const fromCol = move.charCodeAt(0) - 'a'.charCodeAt(0);
+                const fromRow = 8 - parseInt(move[1]);
+                const movingPiece = board[fromRow][fromCol];
+
+                // Check if we're trying to capture our own piece
+                const movingColor = getPieceColor(movingPiece);
+                const destinationColor = getPieceColor(destinationPiece);
+
+                // Only allow move if colors are different (capturing opponent) or destination is empty
+                return movingColor !== destinationColor;
+            });
+        }
+
+        // ============================================
         // Handle Square Click
         // ============================================
         async function handleSquareClick(row, col) {
@@ -1374,6 +1407,9 @@
                     const fromSquare = coordsToAlgebraic(row, col);
                     legalMovesForPiece = cachedLegalMoves.filter(move => move.startsWith(fromSquare));
 
+                    // Remove moves that would capture own pieces
+                    legalMovesForPiece = filterOwnPieceCaptures(legalMovesForPiece);
+
                     hideStatus();
                     renderBoard();
                 }
@@ -1400,6 +1436,10 @@
                     // Filter moves for the new piece
                     const fromSquare = coordsToAlgebraic(row, col);
                     legalMovesForPiece = cachedLegalMoves ? cachedLegalMoves.filter(move => move.startsWith(fromSquare)) : [];
+
+                    // Remove moves that would capture own pieces
+                    legalMovesForPiece = filterOwnPieceCaptures(legalMovesForPiece);
+
                     renderBoard();
                     return;
                 }
@@ -1505,6 +1545,9 @@
             selectedSquare = { row, col };
             const fromSquare = coordsToAlgebraic(row, col);
             legalMovesForPiece = cachedLegalMoves.filter(move => move.startsWith(fromSquare));
+
+            // Remove moves that would capture own pieces
+            legalMovesForPiece = filterOwnPieceCaptures(legalMovesForPiece);
 
             // Dim the source square
             squareElement.style.opacity = '0.5';
@@ -1834,6 +1877,9 @@
             if (legalMovesForPiece.length === 0 && selectedSquare) {
                 const fromSquare = coordsToAlgebraic(selectedSquare.row, selectedSquare.col);
                 legalMovesForPiece = cachedLegalMoves.filter(move => move.startsWith(fromSquare));
+
+                // Remove moves that would capture own pieces
+                legalMovesForPiece = filterOwnPieceCaptures(legalMovesForPiece);
             }
 
             // Check if this is a promotion move BEFORE checking if it's legal
