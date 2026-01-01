@@ -378,6 +378,14 @@
             pointer-events: none;
         }
 
+        .square.legal-destination.has-piece::before {
+            width: 100%;
+            height: 100%;
+            background: rgba(220, 20, 60, 0.3);
+            border-radius: 0;
+            border: 3px solid rgba(220, 20, 60, 0.7);
+        }
+
         /* ============================================
            Control Panel Styles
            ============================================ */
@@ -1270,6 +1278,10 @@
                     const algebraicSquare = coordsToAlgebraic(row, col);
                     if (legalMovesForPiece.some(move => move.endsWith(algebraicSquare))) {
                         square.classList.add('legal-destination');
+                        // Add red box styling if square has an opponent's piece (capture move)
+                        if (board[row][col] !== '.') {
+                            square.classList.add('has-piece');
+                        }
                     }
 
                     // Add piece symbol if present
