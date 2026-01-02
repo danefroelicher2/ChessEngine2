@@ -1188,9 +1188,7 @@
                 <div class="engine-dialogue-panel">
                     <div class="engine-dialogue-title">Engine Dialogue</div>
                     <div id="engineDialogue" class="engine-dialogue-box">
-                        <div class="dialogue-message welcome">
-                            👋 Ready to play! Make your move.
-                        </div>
+                        <!-- Dialogue messages appear here when engine speaks -->
                     </div>
                 </div>
 
@@ -2420,7 +2418,7 @@
                 return message;
             }
 
-            // Capture messages
+            // Capture messages (always show)
             if (isCapture) {
                 const captureMessages = [
                     '🤖 Here I come.',
@@ -2433,22 +2431,20 @@
                 return message;
             }
 
-            // Move-specific messages for first 3 moves
-            if (engineMoveCount === 1) {
-                return '🤖 Good start.';
-            } else if (engineMoveCount === 2) {
-                return '🤖 Interesting…';
-            } else if (engineMoveCount === 3) {
-                return '🤖 Let\'s see.';
+            // Only speak every 3rd move (moves 3, 6, 9, 12...)
+            if (engineMoveCount % 3 !== 0) {
+                return null; // Don't speak this move
             }
 
-            // General messages for move 4 and beyond
+            // General messages (includes all rotation messages)
             const generalMessages = [
                 '🤖 Nice move.',
                 '🤖 Solid.',
                 '🤖 Well played.',
                 '🤖 Good idea.',
-                '🤖 Hmmmmm'
+                '🤖 Hmmmmm',
+                '🤖 Interesting…',
+                '🤖 Let\'s see.'
             ];
             const message = generalMessages[generalMessageIndex % generalMessages.length];
             generalMessageIndex++;
@@ -2488,7 +2484,7 @@
          */
         function clearEngineDialogue() {
             const dialogueBox = document.getElementById('engineDialogue');
-            dialogueBox.innerHTML = '<div class="dialogue-message welcome">👋 Ready to play! Make your move.</div>';
+            dialogueBox.innerHTML = ''; // Clear all messages
         }
 
         /**
@@ -2597,9 +2593,12 @@
                         cachedLegalMoves = null; // Clear cache after engine move
                         renderBoard();
 
-                        // Generate conversational dialogue
+                        // Clear previous dialogue and generate new conversational message
+                        clearEngineDialogue();
                         const dialogue = getEngineDialogue(data.move, isCapture, isCheck, isCheckmate);
-                        addEngineDialogue(dialogue, 'success');
+                        if (dialogue) {
+                            addEngineDialogue(dialogue, 'success');
+                        }
                     } else {
                         throw new Error('Failed to make move on board');
                     }
