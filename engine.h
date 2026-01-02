@@ -37,7 +37,7 @@ public:
     enum class EvaluationMode {
         CLASSICAL,      // Use hand-coded evaluation only
         NEURAL,         // Use neural network only
-        HYBRID,         // Combine classical (70%) + neural (30%)
+        HYBRID,         // Combine 70% classical + 30% neural
         AUTO            // Use neural if available, else classical
     };
 
