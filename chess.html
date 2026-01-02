@@ -592,9 +592,9 @@
         }
 
         /* ============================================
-           Engine Status Panel (smaller, bottom)
+           Engine Dialogue Panel (bottom)
            ============================================ */
-        .engine-status-panel {
+        .engine-dialogue-panel {
             background: var(--bg-tertiary);
             border-radius: 10px;
             padding: 16px;
@@ -602,7 +602,7 @@
             flex: 0 0 auto;  /* Fixed size, doesn't grow */
         }
 
-        .engine-status-title {
+        .engine-dialogue-title {
             font-weight: bold;
             color: var(--text-secondary);
             margin-bottom: 8px;
@@ -618,8 +618,8 @@
             border: 2px solid var(--dialogue-border);
             border-radius: 8px;
             padding: 12px;
-            min-height: 60px;
-            max-height: 120px;
+            min-height: 120px;
+            max-height: 240px;
             overflow-y: auto;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             font-size: 13px;
@@ -1184,9 +1184,9 @@
                     </div>
                 </div>
 
-                <!-- Engine Status Panel (Bottom Box - smaller) -->
-                <div class="engine-status-panel">
-                    <div class="engine-status-title">Engine Status</div>
+                <!-- Engine Dialogue Panel (Bottom Box) -->
+                <div class="engine-dialogue-panel">
+                    <div class="engine-dialogue-title">Engine Dialogue</div>
                     <div id="engineDialogue" class="engine-dialogue-box">
                         <div class="dialogue-message welcome">
                             👋 Ready to play! Make your move.
@@ -1268,6 +1268,13 @@
         let moveHistory = [];           // Array of all moves: [{from, to, piece, notation, fen}, ...]
         let currentMoveIndex = -1;      // Which move we're viewing (-1 = start position)
         let isViewingHistory = false;   // Are we reviewing history or at current position?
+
+        // Engine dialogue tracking
+        let engineMoveCount = 0;        // Number of moves the engine has made
+        let generalMessageIndex = 0;    // Index for rotating through general messages
+        let captureMessageIndex = 0;    // Index for rotating through capture messages
+        let checkMessageIndex = 0;      // Index for rotating through check messages
+        let checkmateMessageIndex = 0;  // Index for rotating through checkmate messages
 
         // Board orientation
         let isBoardFlipped = false;
@@ -2351,6 +2358,104 @@
         // ============================================
 
         /**
+         * Check if a king is in check
+         * @param {boolean} isWhiteKing - Whether to check the white king or black king
+         * @returns {boolean} - Whether the king is in check
+         */
+        function isKingInCheck(isWhiteKing) {
+            // Find the king's position
+            const kingSymbol = isWhiteKing ? 'K' : 'k';
+            let kingRow = -1, kingCol = -1;
+
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    if (board[row][col] === kingSymbol) {
+                        kingRow = row;
+                        kingCol = col;
+                        break;
+                    }
+                }
+                if (kingRow !== -1) break;
+            }
+
+            if (kingRow === -1) return false; // King not found (shouldn't happen)
+
+            // Check if any opponent piece can attack the king
+            // This is a simplified check - a full implementation would check all piece attack patterns
+            // For now, we'll use a heuristic: if the opponent has legal moves to the king's square, it's check
+            // Since we don't have a full attack checker, we'll return false for now and rely on legal moves count
+            return false;
+        }
+
+        /**
+         * Generate conversational dialogue based on game state
+         * @param {string} move - The move that was made
+         * @param {boolean} isCapture - Whether the move captured a piece
+         * @param {boolean} isCheck - Whether the move resulted in check
+         * @param {boolean} isCheckmate - Whether the move resulted in checkmate
+         * @returns {string} - The dialogue message to display
+         */
+        function getEngineDialogue(move, isCapture, isCheck, isCheckmate) {
+            engineMoveCount++;
+
+            // Checkmate messages (highest priority)
+            if (isCheckmate) {
+                const checkmateMessages = [
+                    '🤖 Checkmate',
+                    '🤖 Well fought'
+                ];
+                const message = checkmateMessages[checkmateMessageIndex % checkmateMessages.length];
+                checkmateMessageIndex++;
+                return message;
+            }
+
+            // Check messages
+            if (isCheck) {
+                const checkMessages = [
+                    '🤖 Check',
+                    '🤖 Applying pressure'
+                ];
+                const message = checkMessages[checkMessageIndex % checkMessages.length];
+                checkMessageIndex++;
+                return message;
+            }
+
+            // Capture messages
+            if (isCapture) {
+                const captureMessages = [
+                    '🤖 Here I come.',
+                    '🤖 Piece secured.',
+                    '🤖 Gaining material.',
+                    '🤖 Taking control.'
+                ];
+                const message = captureMessages[captureMessageIndex % captureMessages.length];
+                captureMessageIndex++;
+                return message;
+            }
+
+            // Move-specific messages for first 3 moves
+            if (engineMoveCount === 1) {
+                return '🤖 Good start.';
+            } else if (engineMoveCount === 2) {
+                return '🤖 Interesting…';
+            } else if (engineMoveCount === 3) {
+                return '🤖 Let\'s see.';
+            }
+
+            // General messages for move 4 and beyond
+            const generalMessages = [
+                '🤖 Nice move.',
+                '🤖 Solid.',
+                '🤖 Well played.',
+                '🤖 Good idea.',
+                '🤖 Hmmmmm'
+            ];
+            const message = generalMessages[generalMessageIndex % generalMessages.length];
+            generalMessageIndex++;
+            return message;
+        }
+
+        /**
          * Add a message to the engine dialogue box
          * @param {string} message - The message text
          * @param {string} type - Message type: 'info', 'thinking', 'error', 'success', 'teaching'
@@ -2452,8 +2557,20 @@
 
                 // Check response status
                 if (data.status === 'ok' && data.move) {
+                    // Detect capture before making the move
+                    const fromSquare = data.move.substring(0, 2);
+                    const toSquare = data.move.substring(2, 4);
+                    const toCol = toSquare.charCodeAt(0) - 97;
+                    const toRow = 8 - parseInt(toSquare[1]);
+                    const isCapture = board[toRow][toCol] !== '.';
+
                     // Make the move
                     if (makeMove(data.move)) {
+                        // Check if move resulted in checkmate
+                        const legalMoves = await fetchLegalMoves();
+                        const isCheckmate = (legalMoves.length === 0);
+                        const isCheck = false; // TODO: Implement check detection
+
                         // Record engine move in history
                         const moveRecord = {
                             from: data.move.substring(0, 2),
@@ -2480,7 +2597,10 @@
                         updateLastMoveDisplay(data.move);
                         cachedLegalMoves = null; // Clear cache after engine move
                         renderBoard();
-                        addEngineDialogue(`🎯 Engine played: ${data.move}`, 'success');
+
+                        // Generate conversational dialogue
+                        const dialogue = getEngineDialogue(data.move, isCapture, isCheck, isCheckmate);
+                        addEngineDialogue(dialogue, 'success');
                     } else {
                         throw new Error('Failed to make move on board');
                     }
@@ -2517,6 +2637,13 @@
             moveHistory = [];
             currentMoveIndex = -1;
             isViewingHistory = false;
+
+            // Reset engine dialogue counters
+            engineMoveCount = 0;
+            generalMessageIndex = 0;
+            captureMessageIndex = 0;
+            checkMessageIndex = 0;
+            checkmateMessageIndex = 0;
 
             updateNavigationButtons();
             updateMoveHistoryDisplay();
