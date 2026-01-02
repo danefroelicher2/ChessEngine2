@@ -2532,11 +2532,10 @@
                 return;
             }
 
-            // Disable button and show thinking message
+            // Disable button
             const btn = document.getElementById('getMoveBtn');
             btn.disabled = true;
             isProcessing = true;
-            addEngineDialogue('🤔 Calculating best move...', 'thinking');
 
             try {
                 // Get current FEN
@@ -2566,10 +2565,10 @@
 
                     // Make the move
                     if (makeMove(data.move)) {
-                        // Check if move resulted in checkmate
-                        const legalMoves = await fetchLegalMoves();
-                        const isCheckmate = (legalMoves.length === 0);
-                        const isCheck = false; // TODO: Implement check detection
+                        // Simplified detection: only capture for now
+                        // Check/checkmate detection requires server-side support
+                        const isCheckmate = false;
+                        const isCheck = false;
 
                         // Record engine move in history
                         const moveRecord = {
