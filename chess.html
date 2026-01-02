@@ -2431,7 +2431,12 @@
                 return message;
             }
 
-            // Only speak every 3rd move (moves 3, 6, 9, 12...)
+            // First move always speaks
+            if (engineMoveCount === 1) {
+                return '🤖 Good start.';
+            }
+
+            // After move 1, only speak every 3rd move (moves 3, 6, 9, 12...)
             if (engineMoveCount % 3 !== 0) {
                 return null; // Don't speak this move
             }
