@@ -96,7 +96,7 @@ Each position was labeled with Stockfish at depth 12, providing evaluation score
 Section 5.2: The First Model - What Went Wrong
 I designed a neural network with:
 
-Input: 768 features (board state encoding)
+Input: 768 features  (board state encoding)
 Hidden layers: 1024 → 512 → 256 → 128 neurons with ReLU, batch normalization, and 0.1 dropout
 Output: Single evaluation value (pawns)
 Parameters: ~1.48 million
